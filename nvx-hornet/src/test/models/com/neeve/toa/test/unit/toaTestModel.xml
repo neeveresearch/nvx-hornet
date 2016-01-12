@@ -1,0 +1,151 @@
+<?xml version="1.0"?>
+<model xmlns="http://www.neeveresearch.com/schema/x-adml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    namespace="com.neeve.toa.test.unit" name="TestModel" defaultFactoryId="100">
+
+    <enumerations>
+        <enum name="Enumeration" doc="Test default int enum">
+            <documentation>This enum tests a default (int) coded enumeration</documentation>
+            <const name="Value1" value="1" doc="Brief constant documentation" />
+            <const name="Value2" value="2">
+                <documentation> 
+                Value 2 has a int code type of 2
+              </documentation>
+            </const>
+        </enum>
+        <enum name="EnumerationWithZero" doc="An enum with a zero value">
+            <documentation>This enum tests an enum with a zero value</documentation>
+            <const name="Value1" value="0">
+                <documentation>enum code value of 0</documentation>
+            </const>
+            <const name="Value2" value="1">
+                <documentation>enum code value of 1</documentation>
+            </const>
+            <const name="Value3" value="2">
+                <documentation>enum code value of 2</documentation>
+            </const>
+        </enum>
+        <enum name="IntEnumeration" type="int">
+            <documentation>This enum tests an explicity int coded enumeration</documentation>
+            <const name="Value1" value="1">
+                <documentation>enum code value of 1</documentation>
+            </const>
+            <const name="Value2" value="2">
+                <documentation>enum code value of 2</documentation>
+            </const>
+        </enum>
+        <enum name="CharEnumeration" type="char">
+            <documentation>This enum tests a char code enumeration</documentation>
+            <const name="Value1" value="0">
+                <documentation>enum code value of '0'</documentation>
+            </const>
+            <const name="Value2" value="1">
+                <documentation>enum code value of '1'</documentation>
+            </const>
+        </enum>
+        <enum name="StringEnumeration" type="string">
+            <documentation>This enum tests a String code enumeration</documentation>
+            <const name="Value1" value="zero">
+                <documentation>enum code value of "zero"</documentation>
+            </const>
+            <const name="Value2" value="one">
+                <documentation>enum code value of "one"</documentation>
+            </const>
+        </enum>
+    </enumerations>
+    
+    <fields>
+        <field name="pinnedField" type="Integer" doc="Tests a pinned field" id="1" />
+        <field name="enumField" type="Enumeration" doc="Tests an enum field" id="2" />
+        <field name="enumArrayField" type="Enumeration[]" doc="Tests an enum array field" id="3" />
+        <field name="enumWithZeroField" type="EnumerationWithZero" doc="Tests an enum field with a zero value" id="4" />
+        <field name="enumWithZeroArrayField" type="EnumerationWithZero[]" doc="Tests an enum array field with zero value"
+            id="5" />
+        <field name="booleanField" type="Boolean" doc="Tests a boolean field" id="6" />
+        <field name="booleanArrayField" type="Boolean[]" doc="Tests a boolean array field" id="7" />
+        <field name="byteField" type="Byte" doc="Tests a byte field" id="8" />
+        <field name="byteArrayField" type="Byte[]" doc="Tests a byte array field" id="9" />
+        <field name="shortField" type="Short" doc="Tests a short field" id="10" />
+        <field name="shortArrayField" type="Short[]" doc="Tests short array field" id="11" />
+        <field name="intField" type="Integer" doc="Tests an int field" id="12" />
+        <field name="intArrayField" type="Integer[]" doc="Tests int array field" id="13" />
+        <field name="longField" type="Long" doc="Tests a long field" id="14" />
+        <field name="longArrayField" type="Long[]" doc="Tests a long array field" id="15" />
+        <field name="floatField" type="Float" doc="Tests a float field" id="16" />
+        <field name="floatArrayField" type="Float[]" doc="Tests a float array field" id="17" />
+        <field name="doubleField" type="Double" doc="Tests a double field" id="18" />
+        <field name="doubleArrayField" type="Double[]" doc="Tests a double array field" id="19" />
+        <field name="stringField" type="String" doc="Tests a String field" id="20" />
+        <field name="stringArrayField" type="String[]" doc="Tests a String array field" id="21" />
+        <field name="dateField" type="Date" doc="Tests a date field" id="28" />
+        <field name="dateArrayField" type="Date[]" doc="Tests date array field" id="29" />
+        <field name="charField" type="Char" doc="Tests a char field" id="30" />
+        <field name="charArrayField" type="Char[]" doc="Tests a char arrays field" id="31" />
+        <field name="currencyField" type="Currency" doc="Tests a currency field" id="32" />
+        <field name="currencyArrayField" doc="Tests a currency array  field" type="Currency[]" id="33" />
+        <field name="fixlenField" type="Integer" doc="Tests a fixlength (int) field" id="34" />
+        <field name="varlenField" type="String" doc="Tests an variable length field (String) field" id="35" />
+    </fields>
+
+    <messages>
+        <message name="ForwarderMessage1" id="1">
+          <inline ref="AllEmbeddedAdmFieldTypes"/>
+        </message>
+        <message name="ForwarderMessage2" id="2">
+          <inline ref="AllEmbeddedAdmFieldTypes"/>
+        </message>
+        <message name="ForwarderMessage3" id="3">
+          <inline ref="AllEmbeddedAdmFieldTypes"/>
+        </message>
+        <message name="ForwarderMessage4" id="4">
+          <inline ref="AllEmbeddedAdmFieldTypes"/>
+        </message>
+
+        <message name="ReceiverMessage1" id="101">
+          <inline ref="AllEmbeddedAdmFieldTypes"/>
+        </message>
+        <message name="ReceiverMessage2" id="102">
+          <inline ref="AllEmbeddedAdmFieldTypes"/>
+        </message>
+        <message name="ReceiverMessage3" id="103">
+          <inline ref="AllEmbeddedAdmFieldTypes"/>
+        </message>
+        <message name="ReceiverMessage4" id="104">
+          <inline ref="AllEmbeddedAdmFieldTypes"/>
+        </message>
+    </messages>
+
+
+    <entities>
+        <entity name="AllEmbeddedAdmFieldTypes" id="201" asEmbedded="true">
+            <fieldRef ref="enumField" />
+            <fieldRef ref="enumArrayField" />
+            <fieldRef ref="enumWithZeroField" />
+            <fieldRef ref="enumWithZeroArrayField" />
+            <fieldRef ref="booleanField" />
+            <fieldRef ref="booleanArrayField" />
+            <fieldRef ref="byteField" />
+            <fieldRef ref="byteArrayField" />
+            <fieldRef ref="shortField" />
+            <fieldRef ref="shortArrayField" />
+            <fieldRef ref="intField" />
+            <fieldRef ref="intArrayField" />
+            <fieldRef ref="longField" />
+            <fieldRef ref="longArrayField" />
+            <fieldRef ref="floatField" />
+            <fieldRef ref="floatArrayField" />
+            <fieldRef ref="doubleField" />
+            <fieldRef ref="doubleArrayField" />
+            <fieldRef ref="stringField" />
+            <field name="pooledStringField" type="String" poolable="true" length="32" />
+            <fieldRef ref="stringArrayField" />
+            <fieldRef ref="dateField" />
+            <fieldRef ref="dateArrayField" />
+            <fieldRef ref="charField" />
+            <fieldRef ref="charArrayField" />
+            <fieldRef ref="currencyField" />
+            <fieldRef ref="currencyArrayField" />
+        </entity>
+    </entities>
+</model>
+
+

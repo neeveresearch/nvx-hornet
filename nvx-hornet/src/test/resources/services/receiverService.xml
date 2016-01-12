@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<Service xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.neeveresearch.com/schema/x-tsml" namespace="com.neeve.toa.test.unit" name="ReceiverService">
+    <Models>
+        <Model file="com/neeve/toa/test/unit/toaTestModel.xml"/>
+    </Models>
+    <Channels>
+        <Channel name="ReceiverChannel1" key="Receiver1/${IntField}"/>
+        <Channel name="ReceiverChannel2" key="Receiver2/${IntField}"/>
+        <Channel name="ReceiverChannel3" key="Receiver3/${IntField}_${LongField}"/>
+        <Channel name="ReceiverChannel4" key="Receiver4/${IntField}_${LongField::2}"/>
+    </Channels>
+    <Roles>
+        <To role="Receiver">
+            <Message name="ReceiverMessage1" channel="ReceiverChannel1"/>
+            <Message name="ReceiverMessage2" channel="ReceiverChannel2"/>
+            <Message name="ReceiverMessage3" channel="ReceiverChannel3"/>
+            <Message name="ReceiverMessage4" channel="ReceiverChannel4"/>
+        </To>
+    </Roles>
+</Service>

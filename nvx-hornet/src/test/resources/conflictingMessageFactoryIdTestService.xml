@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<Service xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.neeveresearch.com/schema/x-tsml" namespace="com.neeve.toa.test.unit" name="ConflictingFactoryIdService">
+    <Models>
+        <Model file="com/neeve/toa/test/unit/modelB/modelB.xml" />
+        <Model file="com/neeve/toa/test/unit/modelA/modelA.xml" />
+    </Models>
+    <Channels>
+        <Channel name="ConflictingFactoryIdServiceChannel" key="ConflictingFactoryIdService"/>
+    </Channels>
+    <Roles>
+        <To role="ConflictTestRole">
+            <!-- Both of these messages use the same factoring name which means that we wouldn't be able to choose the right one on
+                 deserialization at runtime -->
+            <Message name="com.neeve.toa.test.unit.modelA.ConflictingMessageFactoryIdMessage" channel="ConflictingFactoryIdServiceChannel"/>
+            <Message name="com.neeve.toa.test.unit.modelB.ConflictingMessageFactoryIdMessage" channel="ConflictingFactoryIdServiceChannel"/>
+        </To>
+    </Roles>
+</Service>
+
+

@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<Service xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.neeveresearch.com/schema/x-tsml"
+    namespace="com.barclays.eq.apex" name="Oms">
+    <Models>
+        <Model file="com/neeve/toa/test/unit/modelB/modelB.xml" />
+        <Model file="com/neeve/toa/test/unit/modelA/modelA.xml" />
+    </Models>
+    <Channels prefixChannelNames="false">
+        <Channel name="ModelBMessage"
+            key="null" />
+        <Channel name="ModelBMessage1"
+            key="null" />
+        <Channel name="DefaultChannel"
+           key="null"
+            default="true" />
+    </Channels>
+    <Roles>
+        <To role="ServiceB">
+            <Message name="ModelBMessage1" channel="ModelBMessage" />
+        </To>
+        <To role="ServiceA">
+            <Message name="ModelAMessage1" />
+        </To>
+    </Roles>
+</Service>

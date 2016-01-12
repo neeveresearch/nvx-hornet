@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet type="text/xsl" href="file:///C:/temp/xs3p-1.1.5/xs3p.xsl"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.neeveresearch.com/schema/x-tsml"
+    xmlns="http://www.neeveresearch.com/schema/x-tsml" elementFormDefault="qualified" version="1.1">
+    <xs:element name="Service">
+        <xs:annotation>
+            <xs:documentation>Schema for Topic Oriented Application Services.</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="Documentation" minOccurs="0" />
+                <xs:element name="Models" minOccurs="1" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Defines the ADM Message Models that are used by the application.
+                        </xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Model" minOccurs="0" maxOccurs="unbounded">
+                                <xs:annotation>
+                                    <xs:documentation>
+                                        An ADM XML model definition containing message definitiions used
+                                        by the application.
+                                    </xs:documentation>
+                                </xs:annotation>
+                                <xs:complexType>
+                                    <xs:attribute name="file" type="xs:string" use="required">
+                                        <xs:annotation>
+                                            <xs:documentation>
+                                                The classpath path of the XML Model file e.g.
+                                                "com/example/MyModel.xml"
+                                            </xs:documentation>
+                                        </xs:annotation>
+                                    </xs:attribute>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="Channels" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            List this service's message channels
+                        </xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Channel" minOccurs="0" maxOccurs="unbounded">
+                                <xs:annotation>
+                                    <xs:documentation>
+                                        Defines a message channel. An SMA message channel is a named
+                                        conduit for message exchange between SMA messaging participants.
+                                    </xs:documentation>
+                                </xs:annotation>
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Documentation" minOccurs="0" />
+                                    </xs:sequence>
+                                    <xs:attribute name="name" type="xs:NCName" use="required">
+                                        <xs:annotation>
+                                            <xs:documentation>
+                                                The name of the channel which must be unique within the
+                                                application.
+                                            </xs:documentation>
+                                        </xs:annotation>
+                                    </xs:attribute>
+                                    <xs:attribute name="key" type="xs:string" use="required">
+                                        <xs:annotation>
+                                            <xs:documentation>
+                                                The key for this channel. The channel key is used to
+                                                construct the topic on which to send a message. The key may be static or
+                                                dynamic key that supports substitution at runtime. A static key for
+                                                example might simply be "application/events/alerts" whereas a dynamic
+                                                key might look like "application/events/${eventType}" where "eventType"
+                                                would be substituted either during application or initialization or on
+                                                each send by using reflecting against the sent message's "eventType"
+                                                field or with a provided key resolution table.
+                                            </xs:documentation>
+                                        </xs:annotation>
+                                    </xs:attribute>
+                                    <xs:attribute name="default" type="xs:boolean" use="optional">
+                                        <xs:annotation>
+                                            <xs:documentation>
+                                                Whether or not this is the default channel for this
+                                                service. Only one channel may be declared as the default channel for
+                                                a service.
+                                            </xs:documentation>
+                                        </xs:annotation>
+                                    </xs:attribute>
+                                    <xs:attribute name="bus" type="xs:NCName" use="optional">
+                                        <xs:annotation>
+                                            <xs:documentation>
+                                                May be specified to indicate the name of the bus to use for the channel.
+                                                If omitted then the applications's default messaging bus will be used. The
+												default bus shares the same name as the application, and should be present
+												in the platform's configuration repository at the time messaging is configured
+												for the TopicOrientedApplication.
+                                            </xs:documentation>
+                                        </xs:annotation>
+                                    </xs:attribute>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+						    <xs:attribute name="prefixChannelNames" type="xs:boolean" use="optional" default="true">
+							<xs:annotation>
+								<xs:documentation>
+									Specifies whether the channel name used in the application should be prefixed
+                  with the lowercase name of this service. The default behavior value of this attribute
+                  is true, to lower the chance of conflicts between services that use the same channel
+                  name, setting it to false shortens the channel name and can thus result in better 
+                  performance.
+								</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="Roles" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Defines service roles, which binds message to message channels on which they
+                            should be transmitted.
+                        </xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="To" minOccurs="0" maxOccurs="unbounded">
+                                <xs:annotation>
+                                    <xs:documentation>
+                                        Defines a 'to' role. A 'to' role groups together a collection of 
+                                        messages by a role name. Such a grouping can be a useful way of 
+										organizing a set of operations that a particular participant in 
+										the messaging flow would be responsible for handling. 
+                                    </xs:documentation>
+                                </xs:annotation>
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Documentation" minOccurs="0" />
+                                        <xs:element name="Message" minOccurs="0" maxOccurs="unbounded">
+                                            <xs:annotation>
+                                                <xs:documentation>
+                                                    Declares a message as a type for this service.
+                                                </xs:documentation>
+                                            </xs:annotation>
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="Documentation" minOccurs="0" />
+                                                </xs:sequence>
+                                                <xs:attribute name="name" type="xs:NCName" use="required">
+                                                    <xs:annotation>
+                                                        <xs:documentation>
+                                                            The name of the message. The name should not
+                                                            be namespace qualified. If the type is ambiguous with
+                                                            respect to the message model's defined by this service, then
+                                                            the model attribute should be specified.
+                                                        </xs:documentation>
+                                                    </xs:annotation>
+                                                </xs:attribute>
+                                                <xs:attribute name="channel" type="xs:string" use="optional">
+                                                    <xs:annotation>
+                                                        <xs:documentation>
+                                                            The name of the channel on which messages
+                                                            of this type should be sent when a channel name is not
+                                                            otherwise specified at the time of send. If this value is
+                                                            not set, and a channel matching the message name is defined
+															it will be used. Otherwise the service's default channel will 
+															be used for this message type.
+                                                        </xs:documentation>
+                                                    </xs:annotation>
+                                                </xs:attribute>
+                                                <xs:attribute name="model" type="xs:NCName" use="optional">
+                                                    <xs:annotation>
+                                                        <xs:documentation>
+                                                            The name of the model that defines this
+                                                            message. If the name of the message is unique within the set
+                                                            of models defined in this service this attribute may be
+                                                            omitted, but it is required if the message name is otherwise
+                                                            ambiguous.
+                                                        </xs:documentation>
+                                                    </xs:annotation>
+                                                </xs:attribute>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="role" type="xs:NCName" use="required">
+                                        <xs:annotation>
+                                            <xs:documentation>
+                                                The 'To' role name. 
+                                            </xs:documentation>
+                                        </xs:annotation>
+                                    </xs:attribute>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:NCName" use="required">
+                <xs:annotation>
+                    <xs:documentation>
+                        The name of the service. When combined with the namespace attribute this name must
+                        be unique within the scope of an application.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="namespace" type="xs:NCName" use="required">
+                <xs:annotation>
+                    <xs:documentation>
+                        The namespace of the service.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

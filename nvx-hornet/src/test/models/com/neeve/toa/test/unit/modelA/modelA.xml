@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<model xmlns="http://www.neeveresearch.com/schema/x-adml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" namespace="com.neeve.toa.test.unit.modelA" name="ModelA" defaultFactoryId="24">
+    <factories>
+      <factory name="ConflictingFactory" id="30"></factory>
+    </factories>
+
+    <messages>
+        <message name="ModelAMessage1" id="100"/>
+    
+        <!-- Test Messages for catching conflicts -->
+        <message name="ConflictingMessageFactoryIdMessage" id="208" factoryid="30"/>
+        <message name="AmbiguouslyNamedMessage" id="209" />
+        
+    </messages>
+</model>
+
+

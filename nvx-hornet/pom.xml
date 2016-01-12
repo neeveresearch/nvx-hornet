@@ -1,0 +1,154 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>nvx-hornet</artifactId>
+    <packaging>jar</packaging>
+    <name>Hornet (X Platform Topic Oriented Applications)</name>
+
+    <parent>
+        <groupId>com.neeve</groupId>
+        <artifactId>nvx-hornet-parent</artifactId>
+        <version>1.1-SNAPSHOT</version>
+    </parent>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+    
+    <organization>
+      <name>Neeve Research, LLC</name>
+      <url>http://www.neeveresearch.com</url>
+    </organization>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>jaxb2-maven-plugin</artifactId>
+                <version>1.6</version>
+                <executions>
+                    <execution>
+                        <id>hornet-service</id>
+                        <goals>
+                            <goal>xjc</goal>
+                        </goals>
+                        <configuration>
+                            <schemaDirectory>${project.basedir}/src/main/resources</schemaDirectory>
+                            <schemaFiles>x-tsml.xsd</schemaFiles>
+                            <packageName>com.neeve.toa.service.jaxb</packageName>
+                            <clearOutputDir>false</clearOutputDir>
+                            <bindingDirectory>${project.build.directory}</bindingDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>javadoc-jar</id>
+                    </execution>
+                </executions>
+                <configuration>
+                    <excludePackageNames>com.neeve.toa.service.jaxb</excludePackageNames>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>com.neeve</groupId>
+                <artifactId>nvx-core-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>generate-test-model-a</id>
+                        <goals>
+                            <goal>generateTest</goal>
+                        </goals>
+                        <configuration>
+                            <modelFile>${basedir}/src/test/models/com/neeve/toa/test/unit/modelA/modelA.xml</modelFile>
+                            <encodingType>Xbuf</encodingType>
+                            <protoXbufGenerationCompatibility>Protobuf</protoXbufGenerationCompatibility>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-test-model-b</id>
+                        <goals>
+                            <goal>generateTest</goal>
+                        </goals>
+                        <configuration>
+                            <modelFile>${basedir}/src/test/models/com/neeve/toa/test/unit/modelB/modelB.xml</modelFile>
+                            <encodingType>Xbuf</encodingType>
+                            <protoXbufGenerationCompatibility>Protobuf</protoXbufGenerationCompatibility>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-hornet-test-model</id>
+                        <goals>
+                            <goal>generateTest</goal>
+                        </goals>
+                        <configuration>
+                            <modelFile>${basedir}/src/test/models/com/neeve/toa/test/unit/toaTestModel.xml</modelFile>
+                            <encodingType>Xbuf</encodingType>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-hornet-injection-test-model</id>
+                        <goals>
+                            <goal>generateTest</goal>
+                        </goals>
+                        <configuration>
+                            <modelFile>${basedir}/src/test/models/com/neeve/toa/test/unit/injectionTestModel.xml</modelFile>
+                            <encodingType>Xbuf</encodingType>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>2.6</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>test-jar</goal>
+                            </goals>
+                            <configuration>
+                                <skip>false</skip>
+                                <includes>
+                                    <include>**/test/unit/AbstractToaTest*</include>
+                                    <include>**/test/unit/AbstractToaTestApp*</include>
+                                    <include>**/test/unit/SingleAppToaServer*</include>
+                                    <include>**/test/unit/ToaSingleAppServerConfigurer*</include>
+                                </includes>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.neeve</groupId>
+            <artifactId>nvx-core-all</artifactId>
+            <version>${nvx.core.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+            <version>1</version>
+        </dependency>
+    </dependencies>
+
+</project>

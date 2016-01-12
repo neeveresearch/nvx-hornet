@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<Service xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.neeveresearch.com/schema/x-tsml" namespace="com.neeve.toa.test.unit" name="ForwarderService">
+    <Models>
+        <Model file="com/neeve/toa/test/unit/toaTestModel.xml"/>
+        <Model file="com/neeve/toa/test/unit/toaTestModel.xml"/>
+        <Model file="com/neeve/server/mon/alert/model.xml"/>
+    </Models>
+    <Channels>
+        <Channel name="ForwarderChannel1" key="Forwarder1"/>
+        <Channel name="ForwarderChannel2" key="Forwarder1"/>
+        <Channel name="ForwarderChannel4" key="${Field1}_${Field2}"/>
+        <Channel name="ForwarderChannel5" key="${Field1}_${Field2}"/>
+    </Channels>
+    <Roles>
+        <To role="Forwarder">
+            <Message name="ForwarderMessage1" channel="ForwarderChannel1"/>
+            <Message name="ForwarderMessage2" channel="ForwarderChannel2"/>
+            <Message name="ForwarderMessage3" channel="ForwarderChannel2"/>
+            <Message name="ForwarderMessage4" channel="ForwarderChannel4"/>
+            <Message name="com.neeve.server.mon.alert.SrvMonAppStoreTransactionLogRepairedMessage" channel="ForwarderChannel5"/> 
+        </To>
+    </Roles>
+</Service>
+
+

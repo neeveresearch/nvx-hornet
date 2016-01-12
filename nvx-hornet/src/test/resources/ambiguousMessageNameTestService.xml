@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<Service xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.neeveresearch.com/schema/x-tsml" namespace="com.neeve.toa.test.unit" name="AmbiguouslyNamedMessageTestService">
+    <Models>
+        <Model file="com/neeve/toa/test/unit/modelB/modelB.xml" />
+        <Model file="com/neeve/toa/test/unit/modelA/modelA.xml" />
+    </Models>
+    <Channels>
+        <Channel name="TestChannel" key="TestChannel"/>
+    </Channels>
+    <Roles>
+        <To role="TestRole">
+            <!-- Both OMS and Market service declare a message with this name, should be an error -->
+            <Message name="AmbiguouslyNamedMessage" channel="TestChannel"/>
+        </To>
+    </Roles>
+</Service>
+
+

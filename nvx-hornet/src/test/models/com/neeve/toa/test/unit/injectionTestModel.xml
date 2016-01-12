@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<model xmlns="http://www.neeveresearch.com/schema/x-adml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    namespace="com.neeve.toa.test.unit.injectiontests" name="TestModel" defaultFactoryId="200">
+
+    <factories>
+
+        <factory name="InjectionFactory" id="200">
+            <documentation>
+               A factory that should be registered by virtue of an EventHandler
+            </documentation>
+        </factory>
+
+        <factory name="InjectionFactoryNoHandlers" id="201">
+            <documentation>
+               A factory whose types have no event handlers and are not declared in services
+            </documentation>
+        </factory>
+
+        <factory name="FirstMessageFactory" id="301">
+            <documentation>
+               A factory that should be registered by virtue of an EventHandler
+            </documentation>
+        </factory>
+        
+        
+        <factory name="InitialMessageFactory" id="302">
+            <documentation>
+               A factory that should be registered by virtue of an EventHandler
+            </documentation>
+        </factory>
+        
+        <factory name="ConflictingFactoryId" id="100">
+            <documentation>
+               A factory that conflicts with the default factory id in the toa test model.
+            </documentation>
+        </factory>
+    </factories>
+
+    <messages>
+        <message name="InjectionMessage1" id="1" factoryid="200">
+            <documentation>
+               This message should not be declared in any service. Its factory 
+               should be registered with the runtime by virtue of an application 
+               defining an event handler
+            </documentation>
+        </message>
+        
+        <message name="UnhandledInjectionMessage" id="1" factoryid="201">
+            <documentation>
+               This message should not be declared in any service, nor should it
+               be declared in an EventHandler. Injection of it should fail because
+               its factory is not registered with the runtime. 
+            </documentation>
+        </message>
+
+        <message name="FirstMessage1" id="1" factoryid="301">
+            <documentation>
+               This message should not be declared in any service. Its factory 
+               should be registered with the runtime by virtue of an application 
+               defining an event handler. It will be used as a FirstMessage for
+               the application.
+            </documentation>
+        </message>
+        
+        
+        <message name="InitialMessage1" id="1" factoryid="302">
+            <documentation>
+               This message should not be declared in any service. Its factory 
+               should be registered with the runtime by virtue of an application 
+               defining an event handler. It will be used as a InitialMessage for
+               the application in a test case.
+            </documentation>
+        </message>
+        
+        <message name="ConflictingFactoryMessages1" id="1600" factoryid="100">
+            <documentation>
+               This message should not be declared in any service, nor should it
+               be declared in an EventHandler. Injection of it should fail because
+               its factory is not registered with the runtime. 
+            </documentation>
+        </message>
+    </messages>
+</model>
+
+

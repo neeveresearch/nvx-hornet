@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<model xmlns="http://www.neeveresearch.com/schema/x-ddl" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <env>
+      <nv>
+        <server>
+          <stats>
+            <enable>false</enable>
+            <interval>10000</interval>
+            <pool.trace>config</pool.trace>
+          </stats>
+        </server>
+        <adm>
+          <enableimportcaching>true</enableimportcaching>
+        </adm>
+        <toa>
+          <trace>config</trace>
+          <disablecompatcheck>true</disablecompatcheck>
+        </toa>
+        <event>
+          <shouldpool>true</shouldpool>
+        </event>
+        <pkt>
+          <shouldpool>true</shouldpool>
+        </pkt>
+<!--         <pool> -->
+<!--           <leaktracking> -->
+<!--             <types>com.neeve.pkt.PktIOBuffer|com.neeve.io.IOBuffer</types> -->
+<!--             <triggerThreshold>500</triggerThreshold> -->
+<!--             <historySize>100</historySize> -->
+<!--           </leaktracking> -->
+<!--         </pool> -->
+<!--         <reftracking> -->
+<!--           <types>com.neeve.pkt.PktIOBuffer|com.neeve.io.IOBuffer</types> -->
+<!--         </reftracking> -->
+        <discovery.descriptor>local://.&amp;initWaitTime=1</discovery.descriptor>
+        <enablecpuaffinitymasks>false</enablecpuaffinitymasks>
+        <defaultcpuaffinitymask>0</defaultcpuaffinitymask>
+        <reftracking.types></reftracking.types>
+      </nv>
+    </env>
+     
+    <buses>
+        <bus name="${application.name::noname}" descriptor="${transport.descriptor::unknown}"/>
+    </buses>
+
+    <apps>
+        <app name="${application.name::unknown}" mainClass="${application.main.class::unknown}">
+            <messaging>
+                <bus name="${application.name::unknown}"/>
+            </messaging>
+            <outboundMessageLogging policy="${outbound.message.logging.policy::Off}"/>
+            <inboundMessageLogging policy="${inbound.message.logging.policy::Default}"/>
+            <storage descriptor="${store.descriptor::native://.}" enabled="${store.enabled::false}">
+              <discoveryDescriptor>${store.discovery.descriptor}</discoveryDescriptor>
+              <persistence enabled="${store.persister.enabled::true}">
+                <storeRoot>${NVROOT}/rdat/${application.server.name::}</storeRoot>
+                <detachedPersist enabled="${store.persister.detachedPersist::true}">
+                </detachedPersist>
+              </persistence>
+            </storage>
+            <adaptiveCommitBatchCeiling>${adaptiveCommitBatchCeiling::0}</adaptiveCommitBatchCeiling>
+            <disposeOnSend>true</disposeOnSend>
+        </app>
+    </apps>
+
+    <servers>
+        <server name="${application.server.name::noname}" discoveryDescriptor="${server.discoveryDescriptor}">
+            <apps>
+                <app name="${application.name::noname}" autoStart="true"/>
+            </apps>
+        </server>
+    </servers>
+</model>

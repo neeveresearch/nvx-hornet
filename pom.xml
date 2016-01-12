@@ -20,10 +20,10 @@
             <comments>A business-friendly OSS license</comments>
         </license>
     </licenses>
-    
+
     <organization>
-      <name>Neeve Research, LLC</name>
-      <url>http://www.neeveresearch.com</url>
+        <name>Neeve Research, LLC</name>
+        <url>http://www.neeveresearch.com</url>
     </organization>
 
     <properties>
@@ -186,4 +186,18 @@
             </plugins>
         </pluginManagement>
     </build>
+
+    <repositories>
+        <repository>
+            <id>neeve-central</id>
+            <url>http://nexus.neeveresearch.com/nexus/content/groups/public/</url>
+            <name>Neeve Central</name>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+    </repositories>
 </project>

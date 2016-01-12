@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Service xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.neeveresearch.com/schema/x-tsml"
-    namespace="com.barclays.eq.apex" name="Oms">
+    namespace="com.neeve.toa.noprefix" name="NoPrefixChannelTest">
     <Models>
         <Model file="com/neeve/toa/test/unit/modelB/modelB.xml" />
         <Model file="com/neeve/toa/test/unit/modelA/modelA.xml" />

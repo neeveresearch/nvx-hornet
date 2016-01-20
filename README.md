@@ -4,9 +4,11 @@
 
 The Hornet Framework enables the development of ultra high-performance, low-latency, message-driven, transactional, topic-oriented applications.
 
-## Three Easy Steps
+## Four Easy Steps
 
-First, use the ADM modelling facilities to *define your messages* and describe the topics to which the messages may be sent.
+First, use the ADM modelling facilities to *define your messages*.
+
+Next, use Hornet's lightweight service modeling to map those messages to the topics on which they should be sent.
 
 Next write your senders (which send messages) and your receivers (which receive messages, duh) in plain ol' Java.
 

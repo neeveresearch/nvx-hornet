@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -1363,8 +1363,8 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * {@link #onEngineDescriptorInjected(AepEngineDescriptor)} so they may be used to figure out information about 
      * the application's identity. 
      *  
-     * @return The {@link ServiceDefinitionLocator} to use to load the application's services. 
-     * @see DefaultServiceDefinitionLocator
+     * @return The {@link ManagedObjectLocator} to use to load the application's services. 
+     * @see DefaultManagedObjectLocator
      */
     protected ManagedObjectLocator getManagedObjectLocator() {
         return new DefaultManagedObjectLocator(this);

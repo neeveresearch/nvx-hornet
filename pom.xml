@@ -77,7 +77,7 @@
                     <doctitle><![CDATA[<h1>Hornet ${project.version} API</h1>]]></doctitle>
                     <windowtitle><![CDATA[Hornet ${project.version} API]]></windowtitle>
                     <links>
-                        <link>http://build.neeveresearch.com/core/javadoc/1.9/${nvx.core.version}/</link>
+                        <link>http://build.neeveresearch.com/core/javadoc/3.1/${nvx.core.version}/</link>
                     </links>
                     <groups>
                         <group>
@@ -131,7 +131,7 @@
                     <configuration>
                         <doctitle><![CDATA[<h1>${project.name}</h1>]]></doctitle>
                         <windowtitle><![CDATA[${project.name} API]]></windowtitle>
-                        <bottom><![CDATA[<i>Copyright &#169; 2015 ${vendor.name}. All Rights Reserved.</i>]]></bottom>
+                        <bottom><![CDATA[<i>Copyright &#169; 2016 ${vendor.name}. All Rights Reserved.</i>]]></bottom>
                         <quiet>true</quiet>
                         <show>protected</show>
                         <breakiterator>true</breakiterator>

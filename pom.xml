@@ -148,7 +148,7 @@
                             </tag>
                         </tags>
                         <links>
-                            <link>http://build.neeveresearch.com/core/javadoc/1.9/${nvx.core.version}/</link>
+                            <link>http://build.neeveresearch.com/core/javadoc/3.1/${nvx.core.version}/</link>
                         </links>
                     </configuration>
                 </plugin>

@@ -210,6 +210,13 @@
                     </xs:documentation>
                 </xs:annotation>
             </xs:attribute>
+            <xs:attribute name="version" type="xs:short" use="optional">
+                <xs:annotation>
+                    <xs:documentation>
+                        Specifies a version for the service.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
         </xs:complexType>
     </xs:element>
 </xs:schema>

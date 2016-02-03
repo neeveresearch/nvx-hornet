@@ -45,39 +45,6 @@
                 <artifactId>maven-surefire-plugin</artifactId>
             </plugin>
         </plugins>
-
-        <pluginManagement>
-            <plugins>
-                <!-- Enforce No Snapshots -->
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-enforcer-plugin</artifactId>
-                    <version>1.4.1</version>
-                    <executions>
-                        <execution>
-                            <id>enforce-no-snapshots</id>
-                            <goals>
-                                <goal>enforce</goal>
-                            </goals>
-                            <configuration>
-                                <rules>
-                                    <requireReleaseDeps>
-                                        <message>No Snapshots Allowed!</message>
-                                        <excludes>
-                                            <exclude>com.neeve:nvx-hornet:*</exclude>
-                                        </excludes>
-                                    </requireReleaseDeps>
-                                    <requireReleaseVersion>
-                                        <message>Release Version Required!</message>
-                                    </requireReleaseVersion>
-                                </rules>
-                                <fail>true</fail>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
-            </plugins>
-        </pluginManagement>
     </build>
 
     <dependencies>

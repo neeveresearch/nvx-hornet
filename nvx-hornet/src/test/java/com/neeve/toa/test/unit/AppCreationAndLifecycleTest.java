@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -46,9 +46,12 @@ import com.neeve.aep.event.AepEngineCreatedEvent;
 import com.neeve.aep.event.AepEngineStartedEvent;
 import com.neeve.aep.event.AepMessagingPrestartEvent;
 import com.neeve.aep.event.AepMessagingStartedEvent;
+import com.neeve.ci.XRuntime;
 import com.neeve.server.app.SrvAppLoader;
 import com.neeve.server.app.annotations.AppHAPolicy;
 import com.neeve.server.app.annotations.AppInjectionPoint;
+import com.neeve.toa.DefaultServiceDefinitionLocator;
+import com.neeve.toa.spi.ServiceDefinitionLocator;
 
 /**
  * Tests for MessageInjection via TOA
@@ -216,6 +219,16 @@ public class AppCreationAndLifecycleTest extends AbstractToaTest {
         }
     }
 
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static class StrictServiceValidationTestApp extends AbstractToaTestApp {
+
+        @Override
+        public ServiceDefinitionLocator getServiceDefinitionLocator() {
+            return new DefaultServiceDefinitionLocator();
+        }
+
+    }
+
     @Test
     public void testInaccessableClassApp() throws Throwable {
         SingleAppToaServer<InaccessableClassApp> server = createServer(testcaseName.getMethodName(), "standalone", InaccessableClassApp.class);
@@ -299,6 +312,18 @@ public class AppCreationAndLifecycleTest extends AbstractToaTest {
         }
         finally {
             assertEquals("Expected messaging to be stopped", MessagingState.Stopped, server.getApplication().getAepEngine().getMessagingState());
+        }
+    }
+
+    @Test
+    public void testStringServiceDefinitionValidation() throws Throwable {
+        XRuntime.getProps().setProperty(DefaultServiceDefinitionLocator.PROP_STRICT_SERVICE_VALIDATION, "true");
+        try {
+            createApp("testStringServiceDefinitionValidation", "standalone", StrictServiceValidationTestApp.class);
+            fail("Shouldn't be able to start application with invalid service definition.");
+        }
+        catch (Exception e) {
+            assertTrue("Exception has wrong text expected reference to 'invalidService'", e.getMessage().indexOf("invalidService") >= 0);
         }
     }
 }

@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -43,16 +43,43 @@ import com.neeve.util.UtlResource.URLFilter;
  * <li>file://${NVROOT}/resources/${application.name}/services/*.xml
  * <li>classpath://services/*.xml
  * </ul>
- * This locator will return any xml file found in the above locations that xml that 
+ * This locator will return any .xml file found in the above locations that xml that 
  * validates against the service definition schema x-tsml.xsd.
  */
 public final class DefaultServiceDefinitionLocator extends AbstractServiceDefinitionLocator {
+
+    /**
+     * This property controls whether or not stricte validation is done on service definition
+     * files located by this locator. When validation is not strict, files found at the locations
+     * for this locator are ignored with a warning, when set to <code>true</code>, an exception
+     * will be thrown if a file is encountered that is not a   
+     */
+    public static final String PROP_STRICT_SERVICE_VALIDATION = "nv.toa.strictServiceLocatorValidation";
+
+    /**
+     * The default value for strict service definition location validation ({@value #PROP_STRICT_SERVICE_VALIDATION_DEFAULT}).
+     * By default files that are not services are ignored and result in a trace log warning.  
+     */
+    public static final boolean PROP_STRICT_SERVICE_VALIDATION_DEFAULT = false;
+
+    private final boolean strictValidation = XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION, PROP_STRICT_SERVICE_VALIDATION_DEFAULT);
 
     private final static URLFilter SERVICE_FILTER = new URLFilter() {
 
         @Override
         public boolean filter(URL url) {
-            return !AbstractServiceDefinitionLocator.isServiceDefinitionFile(url);
+            if (XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION, PROP_STRICT_SERVICE_VALIDATION_DEFAULT)) {
+                if (url.getPath().endsWith(".xml")) {
+                    AbstractServiceDefinitionLocator.validateServiceDefinitionFile(url);
+                }
+                else {
+                    if (tracer.debug) tracer.log("Ignoring service definition candidate, no xml suffix: " + url, Tracer.Level.DEBUG);
+                }
+                return true;
+            }
+            else {
+                return !AbstractServiceDefinitionLocator.isServiceDefinitionFile(url);
+            }
         }
     };
 
@@ -67,7 +94,7 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
             findFileSystemServices(new File(XRuntime.getRootDirectory().toString() + File.separator + "resources" + File.separator + appName + File.separator + "services"), urls);
         }
 
-        // search classpath.
+        // search classpath
         UtlResource.findClasspathResourcesIn("services", urls, SERVICE_FILTER);
     }
 
@@ -85,8 +112,14 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
 
         for (File file : files) {
             final URL url = file.toURI().toURL();
-            if (isServiceDefinitionFile(url)) {
+            if (strictValidation) {
+                validateServiceDefinitionFile(url);
                 urls.add(url);
+            }
+            else {
+                if (isServiceDefinitionFile(url)) {
+                    urls.add(url);
+                }
             }
         }
     }

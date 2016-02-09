@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,6 +34,7 @@ import javax.xml.validation.Validator;
 import org.xml.sax.SAXException;
 
 import com.neeve.root.RootConfig;
+import com.neeve.toa.ToaException;
 import com.neeve.trace.Tracer;
 
 /**
@@ -58,13 +59,42 @@ public abstract class AbstractServiceDefinitionLocator implements ServiceDefinit
      * Tests if the given URL represents a valid x-tsml service defintion. 
      * 
      * @param url The url to test.
+     * @throws ToaException If the provided url doesn't contain a parseable service definition.
+     */
+    public static final void validateServiceDefinitionFile(URL url) throws ToaException {
+        if (tracer.debug) tracer.log("validateServiceDefinitionFile checking url: " + url.toString(), Tracer.Level.DEBUG);
+
+        Validator validator = SERVICE_SCHEMA.newValidator();
+        try {
+            InputStream is = url.openStream();
+            try {
+                validator.validate(new StreamSource(url.openStream()));
+                return;
+            }
+            catch (SAXException e) {
+                throw new ToaException("Couldn't parse " + url + " as a service definition: " + e.getMessage(), e);
+            }
+            finally {
+                is.close();
+            }
+        }
+        catch (IOException ioe) {
+            throw new ToaException("Unable to read service definition at " + url.toString(), ioe);
+        }
+
+    }
+
+    /**
+     * Tests if the given URL represents a valid x-tsml service defintion. 
+     * 
+     * @param url The url to test.
      * @return true if valid, false otherwise.
      */
     public static final boolean isServiceDefinitionFile(URL url) {
-        if (tracer.debug) tracer.log("isValidServiceDefinitionFile checking url: " + url.toString(), Tracer.Level.DEBUG);
+        if (tracer.debug) tracer.log("isServiceDefinitionFile checking url: " + url.toString(), Tracer.Level.DEBUG);
 
         if (!url.getPath().endsWith(".xml")) {
-            if (tracer.debug) tracer.log("isValidServiceDefinitionFile returning false, no xml suffix", Tracer.Level.DEBUG);
+            if (tracer.debug) tracer.log("isServiceDefinitionFile returning false, no xml suffix", Tracer.Level.DEBUG);
             return false;
         }
 
@@ -76,7 +106,7 @@ public abstract class AbstractServiceDefinitionLocator implements ServiceDefinit
                 return true;
             }
             catch (SAXException e) {
-                tracer.log("isValidServiceDefinitionFile couldn't parse " + url + " as a service definition: " + e.getMessage(), Tracer.Level.WARNING);
+                tracer.log("isServiceDefinitionFile couldn't parse " + url + " as a service definition: " + e.getMessage(), Tracer.Level.WARNING);
             }
             finally {
                 is.close();

@@ -1634,12 +1634,6 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         if (managedObjects.contains(null)) {
             throw new IllegalStateException("Addition of null objects to the set of managed objects is not supported.");
         }
-
-        boolean duplicateChecking = XRuntime.getValue("nv.aep.duplicate.checking", true);
-        if (duplicateChecking) {
-            _tracer.log(tracePrefix() + "setting nv.aep.duplicate.checking to false, as duplicate checking is not currently supported for TopicOrientedApplications", Level.WARNING);
-            XRuntime.getProps().setProperty("nv.aep.duplicate.checking", "false");
-        }
     }
 
     /**

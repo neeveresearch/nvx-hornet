@@ -183,6 +183,15 @@
                     <artifactId>nvx-core-maven-plugin</artifactId>
                     <version>${nvx.core.version}</version>
                 </plugin>
+                
+                <!-- Skip enforcer plugin (caused problems withe javadoc fork)-->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <configuration>
+                      <skip>true</skip>
+                    </configuration>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>

@@ -70,6 +70,7 @@
                         <configuration>
                             <skip>true</skip>
                         </configuration>
+                        <phase>package</phase>
                     </execution>
                 </executions>
                 <inherited>false</inherited>
@@ -126,6 +127,7 @@
                                 <goal>jar</goal>
                                 <goal>resource-bundle</goal>
                             </goals>
+                            <phase>package</phase>
                         </execution>
                     </executions>
                     <configuration>

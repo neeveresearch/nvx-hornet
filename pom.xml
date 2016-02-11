@@ -254,39 +254,6 @@
                 <enabled>false</enabled>
             </releases>
         </repository>
-        <repository>
-            <id>neeve-release</id>
-            <url>http://nexus.neeveresearch.com/nexus/content/repositories/releases/</url>
-            <name>Neeve Release Repo</name>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-        </repository>
-        <repository>
-            <id>neeve-milestone</id>
-            <url>http://nexus.neeveresearch.com/nexus/content/repositories/milestones/</url>
-            <name>Neeve Milestones Repo</name>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-        </repository>
-        <repository>
-            <id>neeve-3rdparty</id>
-            <url>http://nexus.neeveresearch.com/nexus/content/repositories/thirdparty/</url>
-            <name>Neeve 3rd Party Repo</name>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-        </repository>
     </repositories>
 
 
@@ -328,39 +295,6 @@
             <id>neeve-public-milestone</id>
             <url>http://nexus.neeveresearch.com/nexus/content/repositories/public-milestones/</url>
             <name>Neeve Public Milestones Repo</name>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-        </pluginRepository>
-        <pluginRepository>
-            <id>neeve-snapshot</id>
-            <url>http://nexus.neeveresearch.com/nexus/content/repositories/snapshots/</url>
-            <name>Neeve Snapshot Repo</name>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-        </pluginRepository>
-        <pluginRepository>
-            <id>neeve-release</id>
-            <url>http://nexus.neeveresearch.com/nexus/content/repositories/releases/</url>
-            <name>Neeve Release Repo</name>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-        </pluginRepository>
-        <pluginRepository>
-            <id>neeve-milestone</id>
-            <url>http://nexus.neeveresearch.com/nexus/content/repositories/milestones/</url>
-            <name>Neeve Milestones Repo</name>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>

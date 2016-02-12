@@ -3,13 +3,13 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>nvx-hornet-parent</artifactId>
     <packaging>pom</packaging>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.2-SNAPSHOT</version>
     <name>Hornet Parent (X Platform Topic Oriented Applications)</name>
 
     <parent>
         <groupId>com.neeve</groupId>
         <artifactId>nvx-os-parent</artifactId>
-        <version>1.0-M3</version>
+        <version>1.0</version>
     </parent>
 
     <licenses>
@@ -27,7 +27,7 @@
     </organization>
 
     <properties>
-        <nvx.core.version>3.1.76</nvx.core.version>
+        <nvx.core.version>3.1.79</nvx.core.version>
         <build.version.display>${project.version}</build.version.display>
     </properties>
 

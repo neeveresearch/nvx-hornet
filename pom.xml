@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.neeve</groupId>
         <artifactId>nvx-os-parent</artifactId>
-        <version>1.0-M3</version>
+        <version>1.0</version>
     </parent>
 
     <licenses>

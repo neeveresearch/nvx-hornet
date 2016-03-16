@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -81,10 +81,16 @@ public interface MessageInjector {
      * <li>A value of 0 causes the message to be added to the end of the underlying engine's 
      * event multiplexer queue for immediate dispatch after already enqueued events. 
      * <li>A positive value is interpreted in milliseconds and will cause the execution of the
-     * event to be delay no sooner than the delay period. 
+     * event to be scheduled no sooner than the delay period. When 2 events are scheduled with a positive delay
+     * that results in the same scheduled execution time, then the events are executed in the order 
+     * they were added. E.g. if E1 is injected at time T with delay of 2ms and and E2 injected at 
+     * time T + 1ms with a delay of 1ms, E2 will be scheduled after E1 (presuming a clock precision
+     * with a resolution of 1ms for System.currentTimeMillis()).
      * <li>A negative value is treated as a high priority dispatch and are added to the 
      * beginning of the engine's event multiplexer queue, a lower delay represents a higher
-     * priority dispatch.   
+     * priority dispatch. When 2 events are scheduled with same <i>negative</i> delay the latter 
+     * scheduled event will be executed after the former.
+     * <br><b>NOTE: Priorities less than -1000 are reserved for platform use.</b>
      * </ul>
      * 
      * <h2>Behavior when not in HA Active Role</h2>
@@ -96,7 +102,7 @@ public interface MessageInjector {
      * external source may call {@link AepEngine#waitForMessagingToStart()} to avoid
      * an injected message being discarded while an engine is transitioning to a started,
      * primary role. 
-     * <b>It is important to note that message injection is thus effectively a BestEffor 
+     * <b>It is important to note that message injection is thus effectively a BestEffort 
      * operation because injections of message that are in the event multiplexer queue
      * at the time of failure will be lost</b>
      * 

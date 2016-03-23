@@ -48,37 +48,38 @@ public class HK2ManagedObjectLocator implements ManagedObjectLocator {
     final private List<Binder> applicationModules;
     final private String applicationName;
 
-    private ServiceLocator _applicationServiceLocator;
+    private ServiceLocator applicationServiceLocator;
 
     public HK2ManagedObjectLocator(TopicOrientedApplication application, String applicationName, List<Binder> applicationModules) {
         this.application = application;
         this.applicationName = applicationName;
         this.applicationModules = applicationModules;
+        applicationServiceLocator = initializeApplicationServiceLocator();
     }
 
     @Override
     public void locateManagedObjects(Set<Object> managedObjects) throws Exception {
-        _applicationServiceLocator = initializeApplicationServiceLocator();
         List<Object> applicationManagedObjects = findManagedObjects();
 
-        if (applicationManagedObjects.isEmpty()) tracer.log("No Managed Objects found", Tracer.Level.WARNING);
+        if (applicationManagedObjects.isEmpty()) 
+        	tracer.log("No Managed Objects found", Tracer.Level.WARNING);
+        
         if (tracer.debug) {
             for (Object object : applicationManagedObjects) {
                 tracer.log(this + " found ManagedObject=" + object, Tracer.Level.DEBUG);
             }
         }
+        
         //Inject Service Locator in managed objects
         for (Object object : applicationManagedObjects) {
-            _applicationServiceLocator.inject(object);
+            applicationServiceLocator.inject(object);
         }
-        //Inject service locator in main application object
-        _applicationServiceLocator.inject(application);
 
         managedObjects.addAll(applicationManagedObjects);
     }
 
     private List<Object> findManagedObjects() {
-        List<ServiceHandle<?>> serviceHandles = _applicationServiceLocator.getAllServiceHandles(new ManagedImpl());
+        List<ServiceHandle<?>> serviceHandles = applicationServiceLocator.getAllServiceHandles(new ManagedImpl());
         List<Object> managedObjects = new ArrayList<Object>();
         for (ServiceHandle<?> serviceHandle : serviceHandles) {
             managedObjects.add(serviceHandle.getService());
@@ -122,7 +123,7 @@ public class HK2ManagedObjectLocator implements ManagedObjectLocator {
      */
 
     public void destroy() {
-        _applicationServiceLocator.shutdown();
+        applicationServiceLocator.shutdown();
     }
 
     /**
@@ -133,6 +134,6 @@ public class HK2ManagedObjectLocator implements ManagedObjectLocator {
      */
 
     public ServiceLocator getAppplicationServiceLocator() {
-        return _applicationServiceLocator;
+        return applicationServiceLocator;
     }
 }

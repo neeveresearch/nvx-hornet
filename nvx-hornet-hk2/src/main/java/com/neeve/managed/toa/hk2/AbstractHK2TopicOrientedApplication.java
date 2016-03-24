@@ -88,7 +88,7 @@ public abstract class AbstractHK2TopicOrientedApplication extends TopicOrientedA
 	}
 	
 	/**
-	 * Get the Application Modules. The Application Modules is a list of {@link HK2 Binder}s that will be bound to the 
+	 * Get the Application Modules. The Application Modules is a list of HK2 Binders that will be bound to the 
 	 * {@link #getApplicationServiceLocator() Application ServiceLocator}. This list may be empty but it must not be <code>null</code>.
 	 * 
 	 * @return the Application Modules
@@ -99,7 +99,7 @@ public abstract class AbstractHK2TopicOrientedApplication extends TopicOrientedA
 	 * Get the Application Name. The <strong>Application Name</strong> is a short, human-readable string that uniquely identifies an
 	 * Application in the Talon Server. Note that the name must be unique; two Applications running in the same Talon Server must not
 	 * have the same Application Name. The Application Name will be used to construct a unique {@link #getApplicationServiceLocator() ServiceLocator}
-	 * for the Application. The Application Name will be made availble to components and services and can also be used to support qualified
+	 * for the Application. The Application Name will be made available to components and services and can also be used to support qualified
 	 * injection. The Application Name must not be <code>null</code> and must not be an empty string or a string that contains only whitespace.
 	 * 
 	 * @return the Application Name

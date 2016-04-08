@@ -57,6 +57,7 @@ import com.neeve.aep.event.AepMessagingPrestartEvent;
 import com.neeve.ci.ManifestProductInfo;
 import com.neeve.ci.ProductInfo;
 import com.neeve.ci.XRuntime;
+import com.neeve.cli.annotations.Configured;
 import com.neeve.event.alert.IAlertEvent;
 import com.neeve.event.lifecycle.LifecycleEvent;
 import com.neeve.lang.XLongLinkedHashMap;
@@ -73,6 +74,7 @@ import com.neeve.server.Main;
 import com.neeve.server.app.SrvAppLoader;
 import com.neeve.server.app.annotations.AppCommandHandler;
 import com.neeve.server.app.annotations.AppCommandHandlerContainersAccessor;
+import com.neeve.server.app.annotations.AppConfiguredAccessor;
 import com.neeve.server.app.annotations.AppEventHandlerAccessor;
 import com.neeve.server.app.annotations.AppEventHandlerContainersAccessor;
 import com.neeve.server.app.annotations.AppFinalizer;
@@ -1126,6 +1128,26 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     protected void addAppStatContainers(Set<Object> containers) {}
 
     /**
+     * This method may be overridden by subclasses to add additional objects that contain
+     * methods with {@link Configured} annotations.
+     * <p>
+     * This method is called by the {@link DefaultManagedObjectLocator}, if an application
+     * provides its own {@link ManagedObjectLocator} then it is up to that locator as
+     * to whether or not this method will be invoked.
+     * <p>
+     * This method is called by the application during the configuration phase
+     * allowing the application subclass to register command handler containers
+     * by adding objects having methods annotated with {@link Configured} that 
+     * will serve as the application's command handlers. 
+     * <p>
+     * This class is automatically added as an command handler container, subclasses
+     * should not add itself to the set.
+     * 
+     * @param containers Objects with {@link Configured} should be added to this set.
+     */
+    protected void addConfiguredContainers(Set<Object> containers) {}
+
+    /**
      * This method may be overridden by subclasses to add additional objects that implement
      * {@link ChannelFilterProvider}. 
      * <p>
@@ -1725,6 +1747,20 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @AppStatContainersAccessor
     final private void findStatAccessors(final Set<Object> containers) throws Exception {
+        containers.add(this);
+        containers.addAll(managedObjects);
+    }
+
+    /**
+     * This method is called by a Talon server during application initialization 
+     * to solicit the application's user defined beans that require Configuration.
+     * <p>
+     * <b>This method should not be called by subclasses or application code.</b>  
+     * 
+     * @param containers The set to which Configured containers should be added. 
+     */
+    @AppConfiguredAccessor
+    final private void findConfiguredAccessor(final Set<Object> containers) throws Exception {
         containers.add(this);
         containers.addAll(managedObjects);
     }

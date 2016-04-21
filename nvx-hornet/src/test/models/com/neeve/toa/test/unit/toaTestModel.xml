@@ -122,6 +122,9 @@
         <message name="ForwarderMessage4" id="4">
           <inline ref="AllEmbeddedAdmFieldTypes"/>
         </message>
+        <message name="ForwarderMessage5" id="5">
+          <inline ref="AllEmbeddedAdmFieldTypes"/>
+        </message>
 
         <message name="ReceiverMessage1" id="101">
           <inline ref="AllEmbeddedAdmFieldTypes"/>
@@ -133,6 +136,9 @@
           <inline ref="AllEmbeddedAdmFieldTypes"/>
         </message>
         <message name="ReceiverMessage4" id="104">
+          <inline ref="AllEmbeddedAdmFieldTypes"/>
+        </message>
+        <message name="ReceiverMessage5" id="105">
           <inline ref="AllEmbeddedAdmFieldTypes"/>
         </message>
     </messages>

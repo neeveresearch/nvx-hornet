@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,6 +25,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -33,12 +35,14 @@ import org.junit.Test;
 import com.neeve.aep.AepBusManager;
 import com.neeve.aep.AepEngine.HAPolicy;
 import com.neeve.aep.annotations.EventHandler;
+import com.neeve.ci.XRuntime;
 import com.neeve.lang.XString;
 import com.neeve.rog.IRogMessage;
 import com.neeve.server.app.annotations.AppHAPolicy;
 import com.neeve.sma.MessageBusBindingFactory;
 import com.neeve.sma.MessageChannel.Qos;
 import com.neeve.sma.MessageChannel.RawKeyResolutionTable;
+import com.neeve.sma.MessageChannel;
 import com.neeve.sma.MessageChannelDescriptor;
 import com.neeve.sma.SmaException;
 import com.neeve.sma.impl.MessageChannelBase;
@@ -57,6 +61,9 @@ import com.neeve.util.UtlTailoring;
 public class ChannelKeysAndFiltersTest extends AbstractToaTest {
     private static final Properties IKRT = new Properties();
     static {
+        //Initialize clean key property (it is static):
+        XRuntime.getProps().setProperty(MessageChannel.PROP_CLEAN_MESSAGE_KEY, "true");
+        MessageChannelBase.parseKey("foo");
         IKRT.put("IntField", "5");
     }
 
@@ -330,6 +337,15 @@ public class ChannelKeysAndFiltersTest extends AbstractToaTest {
 
         @EventHandler
         public void onReceiverMessage4(ReceiverMessage4 message) {
+            recordReceipt(message);
+        }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static class CleanKeyResolutionTestReceiverApp extends AbstractToaTestApp {
+
+        @EventHandler
+        public void onReceiver5Message(ReceiverMessage5 message) {
             recordReceipt(message);
         }
     }
@@ -900,5 +916,21 @@ public class ChannelKeysAndFiltersTest extends AbstractToaTest {
         }
         duration = System.nanoTime() - start;
         System.out.println("Dynamic Key Resolution: " + duration + "(" + duration / CYCLES + " ns/resolution)");
+    }
+
+    @Test
+    public void testCleanMessageKey() throws Throwable {
+        Map<String, String> props = new HashMap<String, String>();
+        props.put(MessageChannel.PROP_CLEAN_MESSAGE_KEY, "true");
+        CleanKeyResolutionTestReceiverApp receiver = createApp("cleanKeyReceiver", "standalone", CleanKeyResolutionTestReceiverApp.class, props);
+        receiver.holdMessages = true;
+        SenderApp sender = createApp("cleanKeySender", "standalone", SenderApp.class, props);
+        sender.holdMessages = true;
+
+        ReceiverMessage5 message = ReceiverMessage5.create();
+        message.setStringField("a/b/c");
+        sender.sendTestMessage(message);
+        assertEquals("Key was not cleaned", "Receiver5/a_b_c", sender.sent.get(0).getMessageKey());
+        assertTrue("Receiver didn't receive message", receiver.waitForMessages(10, 1));
     }
 }

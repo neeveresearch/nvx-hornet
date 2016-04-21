@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.neeve.aep.AepEngine;
@@ -179,32 +178,6 @@ public class MessageInjectionTest extends AbstractToaTest {
     }
 
     @Test
-    @Ignore
-    public void testBlockingPriorityInjection() throws Throwable {
-        SingleAppToaServer<MessageInjectionTestApp> server = createServer(testcaseName.getMethodName(), "standalone", MessageInjectionTestApp.class);
-        server.start();
-        MessageInjectionTestApp app = server.getApplication();
-        ArrayList<IRogMessage> toInject = new ArrayList<IRogMessage>();
-
-        for (int i = 0; i < 5; i++) {
-            toInject.add(ForwarderMessage1.create());
-            toInject.add(ForwarderMessage2.create());
-        }
-
-        for (IRogMessage message : toInject) {
-            app.getMessageInjector().injectMessage(message, false, 10);
-        }
-
-        app.waitForMessages(10, toInject.size());
-
-        assertEquals("Didn't get expected number of injected messages", toInject.size(), app.received.size());
-        for (int i = 0; i < toInject.size(); i++) {
-            assertSame("Wrong message received by application", toInject.get(i), app.received.get(i));
-            assertEquals("Wrong reference count for injected message", 1, app.received.get(i).getOwnershipCount());
-        }
-    }
-
-    @Test
     public void testNonBlockingInjection() throws Throwable {
         SingleAppToaServer<MessageInjectionTestApp> server = createServer(testcaseName.getMethodName(), "standalone", MessageInjectionTestApp.class);
         server.start();
@@ -214,32 +187,6 @@ public class MessageInjectionTest extends AbstractToaTest {
         toInject.add(ForwarderMessage2.create());
         for (IRogMessage message : toInject) {
             app.getMessageInjector().injectMessage(message, true);
-        }
-
-        app.waitForMessages(10, toInject.size());
-
-        assertEquals("Didn't get expected number of injected messages", toInject.size(), app.received.size());
-        for (int i = 0; i < toInject.size(); i++) {
-            assertSame("Wrong message received by application", toInject.get(i), app.received.get(i));
-            assertEquals("Wrong reference count for injected message", 1, app.received.get(i).getOwnershipCount());
-        }
-    }
-
-    @Test
-    @Ignore
-    public void testNonBlockingPriorityInjection() throws Throwable {
-        SingleAppToaServer<MessageInjectionTestApp> server = createServer(testcaseName.getMethodName(), "standalone", MessageInjectionTestApp.class);
-        server.start();
-        MessageInjectionTestApp app = server.getApplication();
-        ArrayList<IRogMessage> toInject = new ArrayList<IRogMessage>();
-
-        for (int i = 0; i < 5; i++) {
-            toInject.add(ForwarderMessage1.create());
-            toInject.add(ForwarderMessage2.create());
-        }
-
-        for (IRogMessage message : toInject) {
-            app.getMessageInjector().injectMessage(message, true, -10);
         }
 
         app.waitForMessages(10, toInject.size());
@@ -336,6 +283,64 @@ public class MessageInjectionTest extends AbstractToaTest {
         }
         catch (IllegalStateException ie) {
             return;
+        }
+    }
+
+    @Test
+    public void testBlockingPriorityInjection() throws Throwable {
+        SingleAppToaServer<MessageInjectionTestApp> server = createServer(testcaseName.getMethodName(), "standalone", MessageInjectionTestApp.class);
+        server.start();
+        MessageInjectionTestApp app = server.getApplication();
+        ArrayList<IRogMessage> toInject = new ArrayList<IRogMessage>();
+
+        for (int i = 0; i < 5; i++) {
+            ForwarderMessage1 m1 = ForwarderMessage1.create();
+            m1.setIntField(i);
+            ForwarderMessage2 m2 = ForwarderMessage2.create();
+            m2.setIntField(i);
+            toInject.add(m1);
+            toInject.add(m2);
+        }
+
+        for (IRogMessage message : toInject) {
+            app.getMessageInjector().injectMessage(message, false, -10);
+        }
+
+        app.waitForMessages(10, toInject.size());
+
+        assertEquals("Didn't get expected number of injected messages", toInject.size(), app.received.size());
+        for (int i = 0; i < toInject.size(); i++) {
+            assertSame("Wrong message received by application", toInject.get(i), app.received.get(i));
+            assertEquals("Wrong reference count for injected message", 1, app.received.get(i).getOwnershipCount());
+        }
+    }
+
+    @Test
+    public void testNonBlockingPriorityInjection() throws Throwable {
+        SingleAppToaServer<MessageInjectionTestApp> server = createServer(testcaseName.getMethodName(), "standalone", MessageInjectionTestApp.class);
+        server.start();
+        MessageInjectionTestApp app = server.getApplication();
+        ArrayList<IRogMessage> toInject = new ArrayList<IRogMessage>();
+
+        for (int i = 0; i < 5; i++) {
+            ForwarderMessage1 m1 = ForwarderMessage1.create();
+            m1.setIntField(i);
+            ForwarderMessage2 m2 = ForwarderMessage2.create();
+            m2.setIntField(i);
+            toInject.add(m1);
+            toInject.add(m2);
+        }
+
+        for (IRogMessage message : toInject) {
+            app.getMessageInjector().injectMessage(message, true, 10);
+        }
+
+        app.waitForMessages(10, toInject.size());
+
+        assertEquals("Didn't get expected number of injected messages", toInject.size(), app.received.size());
+        for (int i = 0; i < toInject.size(); i++) {
+            assertSame("Wrong message received by application", toInject.get(i), app.received.get(i));
+            assertEquals("Wrong reference count for injected message", 1, app.received.get(i).getOwnershipCount());
         }
     }
 }

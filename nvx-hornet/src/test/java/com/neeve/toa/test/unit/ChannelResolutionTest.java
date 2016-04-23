@@ -40,9 +40,9 @@ import com.neeve.lang.XString;
 import com.neeve.rog.IRogMessage;
 import com.neeve.server.app.annotations.AppHAPolicy;
 import com.neeve.sma.MessageBusBindingFactory;
+import com.neeve.sma.MessageChannel;
 import com.neeve.sma.MessageChannel.Qos;
 import com.neeve.sma.MessageChannel.RawKeyResolutionTable;
-import com.neeve.sma.MessageChannel;
 import com.neeve.sma.MessageChannelDescriptor;
 import com.neeve.sma.SmaException;
 import com.neeve.sma.impl.MessageChannelBase;
@@ -51,14 +51,15 @@ import com.neeve.toa.service.ToaService;
 import com.neeve.toa.service.ToaServiceChannel;
 import com.neeve.toa.spi.AbstractTopicResolver;
 import com.neeve.toa.spi.ChannelFilterProvider;
+import com.neeve.toa.spi.ChannelJoinProvider;
 import com.neeve.toa.spi.ChannelQosProvider;
 import com.neeve.toa.spi.TopicResolver;
 import com.neeve.util.UtlTailoring;
 
 /**
- * 
+ * Tests for channel send and join parsing
  */
-public class ChannelKeysAndFiltersTest extends AbstractToaTest {
+public class ChannelResolutionTest extends AbstractToaTest {
     private static final Properties IKRT = new Properties();
     static {
         //Initialize clean key property (it is static):
@@ -128,6 +129,186 @@ public class ChannelKeysAndFiltersTest extends AbstractToaTest {
         @Override
         public String getChannelFilter(ToaService service, ToaServiceChannel channel) {
             return "IntField=2|4";
+        }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class NoJoinJoinProviderReceiverApp extends AbstractToaTestApp {
+        @EventHandler
+        public void onReceiverMessage1(ReceiverMessage1 message) {
+            recordReceipt(message);
+        }
+
+        @EventHandler
+        public void onReceiverMessage2(ReceiverMessage2 message) {
+            recordReceipt(message);
+        }
+
+        @Override
+        public void addChannelJoinProviders(Set<Object> providers) {
+            super.addChannelJoinProviders(providers);
+            providers.add(new ChannelJoinProvider() {
+
+                @Override
+                public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+                    if (channel.getSimpleName().equals("ReceiverChannel1")) {
+                        return ChannelJoin.NoJoin;
+                    }
+                    return null;
+                }
+            });
+        }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class JoinJoinProviderReceiverApp extends AbstractToaTestApp {
+        @EventHandler
+        public void onReceiverMessage1(ReceiverMessage1 message) {
+            recordReceipt(message);
+        }
+
+        @EventHandler
+        public void onReceiverMessage2(ReceiverMessage2 message) {
+            recordReceipt(message);
+        }
+
+        @Override
+        public void addChannelJoinProviders(Set<Object> providers) {
+            super.addChannelJoinProviders(providers);
+
+            // add multiple providers that specify default join behavior for channel 1:
+            providers.add(new ChannelJoinProvider() {
+
+                @Override
+                public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+                    if (channel.getSimpleName().equals("ReceiverChannel1")) {
+                        return ChannelJoin.Default;
+                    }
+                    return null;
+                }
+            });
+
+            providers.add(new ChannelJoinProvider() {
+
+                @Override
+                public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+                    if (channel.getSimpleName().equals("ReceiverChannel1")) {
+                        return ChannelJoin.Default;
+                    }
+                    return null;
+                }
+            });
+
+            providers.add(new ChannelJoinProvider() {
+
+                @Override
+                public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+                    return null;
+                }
+            });
+
+            // add some unrelated providers
+            providers.add(new ChannelJoinProvider() {
+
+                @Override
+                public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+                    if (channel.getSimpleName().equals("ReceiverChannel3")) {
+                        return ChannelJoin.NoJoin;
+                    }
+                    return null;
+                }
+            });
+
+            providers.add(new ChannelJoinProvider() {
+
+                @Override
+                public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+                    if (channel.getSimpleName().equals("ReceiverChannel4")) {
+                        return ChannelJoin.Join;
+                    }
+                    return null;
+                }
+            });
+
+            // add unecessary join provider for channel 2:
+            providers.add(new ChannelJoinProvider() {
+
+                @Override
+                public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+                    if (channel.getSimpleName().equals("ReceiverChannel2")) {
+                        return ChannelJoin.Join;
+                    }
+                    return null;
+                }
+            });
+        }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class DefaultJoinProviderReceiverApp extends AbstractToaTestApp {
+
+        @EventHandler
+        public void onReceiverMessage(ReceiverMessage1 message) {
+            recordReceipt(message);
+        }
+
+        @EventHandler
+        public void onReceiverMessage2(ReceiverMessage2 message) {
+            recordReceipt(message);
+        }
+
+        @Override
+        public void addChannelJoinProviders(Set<Object> providers) {
+            super.addChannelJoinProviders(providers);
+            providers.add(new ChannelJoinProvider() {
+
+                @Override
+                public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+                    if (channel.getSimpleName().equals("ReceiverChannel5")) {
+                        return ChannelJoin.Join;
+                    }
+                    return null;
+                }
+            });
+        }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class ConflictingJoinProviderReceiverApp extends AbstractToaTestApp {
+        @EventHandler
+        public void onReceiverMessage1(ReceiverMessage1 message) {
+            recordReceipt(message);
+        }
+
+        @EventHandler
+        public void onReceiverMessage2(ReceiverMessage2 message) {
+            recordReceipt(message);
+        }
+
+        @Override
+        public void addChannelJoinProviders(Set<Object> providers) {
+            super.addChannelJoinProviders(providers);
+            providers.add(new ChannelJoinProvider() {
+
+                @Override
+                public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+                    if (channel.getSimpleName().equals("ReceiverChannel1")) {
+                        return ChannelJoin.NoJoin;
+                    }
+                    return null;
+                }
+            });
+
+            providers.add(new ChannelJoinProvider() {
+
+                @Override
+                public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+                    if (channel.getSimpleName().equals("ReceiverChannel1")) {
+                        return ChannelJoin.Join;
+                    }
+                    return null;
+                }
+            });
         }
     }
 
@@ -932,5 +1113,84 @@ public class ChannelKeysAndFiltersTest extends AbstractToaTest {
         sender.sendTestMessage(message);
         assertEquals("Key was not cleaned", "Receiver5/a_b_c", sender.sent.get(0).getMessageKey());
         assertTrue("Receiver didn't receive message", receiver.waitForMessages(10, 1));
+    }
+
+    @Test
+    public void testConflictingJoinProvider() throws Throwable {
+        try {
+            createApp("testConflictingJoinProvider", "standalone", ConflictingJoinProviderReceiverApp.class);
+            fail("Application with conflicting join providers started successfully");
+        }
+        catch (Exception e) {
+            assertTrue("Expected startup failure exception to contain 'Conflicting channel join provided' but was '" + e.getMessage() + "'", e.getMessage().toLowerCase().indexOf("conflicting channel join provided") >= 0);
+        }
+    }
+
+    @Test
+    public void testChannelJoinProviderNoJoin() throws Throwable {
+        NoJoinJoinProviderReceiverApp receiver = createApp("testChannelJoinProviderNoJoin", "standalone", NoJoinJoinProviderReceiverApp.class);
+        receiver.holdMessages = true;
+        SenderApp sender = createApp("sender", "standalone", SenderApp.class);
+
+        sender.sendMessage(ReceiverMessage1.create(), "Receiver1/1");
+        sender.sendMessage(ReceiverMessage2.create(), "Receiver2/1");
+
+        sender.waitForTransactionStability(1);
+        receiver.waitForTransactionStability(1);
+
+        if (verbose()) {
+            for (IRogMessage message : sender.sent) {
+                System.out.println("Sent: " + message.toString());
+            }
+        }
+
+        // receiver should only get ReceiverMessage2 since ReceiverMessage1 channel 
+        // join was set to false
+        receiver.assertExpectedReceipt(5, 1);
+        assertEquals("Wrong type for received message", ReceiverMessage2.class, receiver.received.get(0).getClass());
+    }
+
+    @Test
+    public void testChannelJoinProviderJoin() throws Throwable {
+        JoinJoinProviderReceiverApp receiver = createApp("testChannelJoinProviderNoJoin", "standalone", JoinJoinProviderReceiverApp.class);
+        receiver.holdMessages = true;
+        SenderApp sender = createApp("sender", "standalone", SenderApp.class);
+
+        // send a message on channel 5 for which the app has no EventHandler.
+        // This will result in an AepUnhandledMessageEvent which the app will
+        // treat as a valid receive. 
+        sender.sendMessage(ReceiverMessage5.create(), "Receiver5/1");
+        sender.sendMessage(ReceiverMessage2.create(), "Receiver2/1");
+
+        sender.waitForTransactionStability(1);
+        receiver.waitForTransactionStability(2);
+
+        // receiver should only get ReceiverMessage2 since ReceiverMessage1 channel 
+        // join was set to false
+        receiver.assertExpectedReceipt(5, 2);
+        assertEquals("Wrong type for received message", ReceiverMessage5.class, receiver.received.get(0).getClass());
+        assertEquals("Wrong type for received message", ReceiverMessage2.class, receiver.received.get(1).getClass());
+    }
+
+    @Test
+    public void testChannelJoinProviderDefault() throws Throwable {
+        DefaultJoinProviderReceiverApp receiver = createApp("testChannelJoinProviderNoJoin", "standalone", DefaultJoinProviderReceiverApp.class);
+        receiver.holdMessages = true;
+        SenderApp sender = createApp("sender", "standalone", SenderApp.class);
+
+        // send a message on channel 1 for which the app has no EventHandler.
+        // This will result in an AepUnhandledMessageEvent which the app will
+        // treat as a valid receive. 
+        sender.sendMessage(ReceiverMessage1.create(), "Receiver1/1");
+        sender.sendMessage(ReceiverMessage2.create(), "Receiver2/1");
+
+        sender.waitForTransactionStability(1);
+        receiver.waitForTransactionStability(2);
+
+        // receiver should only get ReceiverMessage2 since ReceiverMessage1 channel 
+        // join was set to false
+        receiver.assertExpectedReceipt(5, 2);
+        assertEquals("Wrong type for received message", ReceiverMessage1.class, receiver.received.get(0).getClass());
+        assertEquals("Wrong type for received message", ReceiverMessage2.class, receiver.received.get(1).getClass());
     }
 }

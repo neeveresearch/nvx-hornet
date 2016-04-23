@@ -100,6 +100,7 @@ import com.neeve.toa.service.ToaServiceChannel;
 import com.neeve.toa.service.ToaServiceToRole;
 import com.neeve.toa.spi.ChannelFilterProvider;
 import com.neeve.toa.spi.ChannelInitialKeyResolutionTableProvider;
+import com.neeve.toa.spi.ChannelJoinProvider;
 import com.neeve.toa.spi.ChannelQosProvider;
 import com.neeve.toa.spi.ServiceDefinitionLocator;
 import com.neeve.toa.spi.TopicResolver;
@@ -529,6 +530,33 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     }
 
     /**
+     * Enumerates the channel join options that a {@link ChannelJoinProvider}
+     * can specify.
+     */
+    public static enum ChannelJoin {
+        /**
+         * Indicates that the provider has no opinion and will defer to the 
+         * default behavior of Hornet or other {@link ChannelJoinProvider}s
+         * <p>
+         * When no channel join behavior is otherwise specified Hornet will join
+         * a channel if there is EventHandler for a message type mapped to it in
+         * a service definition.
+         */
+        Default,
+        /**
+         * Indicates that a channel should not be joined regardless of whether
+         * or not there are message handlers present for types mapped to the
+         * channel. 
+         */
+        NoJoin,
+        /**
+         * Indicates that a channel should be joined even if there are 
+         * no message handlers present for types mapped to the channel.
+         */
+        Join
+    }
+
+    /**
      * Subclasses may use this tracer for trace logging.
      */
     private final Map<String, Map<String, List<Long>>> _channelMessageMapByBus;
@@ -751,7 +779,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         final boolean genericHandlerJoinsAll = XRuntime.getValue("nv.toa.generichandlerjoinsall", true);
         final EventHandlerContext genericMessageViewHandler = eventHandlersByClass.get(MessageView.class);
         final EventHandlerContext genericMessageEventHandler = eventHandlersByClass.get(MessageEvent.class);
-        final Map<ToaService, Set<ToaServiceChannel>> joinChannels = new HashMap<ToaService, Set<ToaServiceChannel>>();
+        final Map<ToaService, Set<ToaServiceChannel>> channelsWithHandlers = new HashMap<ToaService, Set<ToaServiceChannel>>();
         final HashMap<String, ServiceMessageContext> serviceDeclaredMessages = new HashMap<String, ServiceMessageContext>();
         for (ToaService service : services) {
             for (ToaServiceToRole to : service.getToRoles()) {
@@ -801,7 +829,8 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                         throw new ToaException(error.toString());
                     }
 
-                    // check for an event handler to see if channel should be joined
+                    // check for an event handler ... this is used below to determine if we should
+                    // join the channel
                     EventHandlerContext eventHandler = eventHandlersByClass.get(admMessage.getFullName());
                     if (eventHandler != null) {
                         // set the model to help with factory lookup:
@@ -813,9 +842,9 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                             (genericHandlerJoinsAll &&
                             ((genericMessageEventHandler != null && !genericMessageEventHandler.localOnly) ||
                             (genericMessageViewHandler != null && !genericMessageViewHandler.localOnly)))) {
-                        Set<ToaServiceChannel> serviceJoinChannels = joinChannels.get(service);
+                        Set<ToaServiceChannel> serviceJoinChannels = channelsWithHandlers.get(service);
                         if (serviceJoinChannels == null) {
-                            joinChannels.put(service, serviceJoinChannels = new HashSet<ToaServiceChannel>());
+                            channelsWithHandlers.put(service, serviceJoinChannels = new HashSet<ToaServiceChannel>());
                         }
                         serviceJoinChannels.add(toaChannel);
                     }
@@ -871,17 +900,20 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             }
         }
 
-        _tracer.log(tracePrefix() + "......channels to join...", Tracer.Level.CONFIG);
-        for (ToaService service : joinChannels.keySet()) {
-            _tracer.log(tracePrefix() + ".........service '" + service.getName() + "'...", Tracer.Level.CONFIG);
-            Set<ToaServiceChannel> serviceJoinChannels = joinChannels.get(service);
-            if (serviceJoinChannels.size() > 0) {
-                for (ToaServiceChannel channel : serviceJoinChannels) {
-                    _tracer.log(tracePrefix() + "............'" + channel.getName() + "'.", Tracer.Level.CONFIG);
+        // trace handlers found...
+        if (_tracer.getLevel().val <= Tracer.Level.CONFIG.val) {
+            _tracer.log(tracePrefix() + "......channels with handlers...", Tracer.Level.CONFIG);
+            for (ToaService service : channelsWithHandlers.keySet()) {
+                _tracer.log(tracePrefix() + ".........service '" + service.getName() + "'...", Tracer.Level.CONFIG);
+                Set<ToaServiceChannel> serviceChannelsWithHandlers = channelsWithHandlers.get(service);
+                if (serviceChannelsWithHandlers.size() > 0) {
+                    for (ToaServiceChannel channel : serviceChannelsWithHandlers) {
+                        _tracer.log(tracePrefix() + "............'" + channel.getName() + "'.", Tracer.Level.CONFIG);
+                    }
                 }
-            }
-            else {
-                _tracer.log(tracePrefix() + "............<no channels to join>.", Tracer.Level.CONFIG);
+                else {
+                    _tracer.log(tracePrefix() + "............<no channels with handlers>.", Tracer.Level.CONFIG);
+                }
             }
         }
 
@@ -906,6 +938,14 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         for (Object o : managedObjects) {
             if (o instanceof ChannelInitialKeyResolutionTableProvider) {
                 channelKRTProviders.add((ChannelInitialKeyResolutionTableProvider)o);
+            }
+        }
+
+        // prepare the ChannelJoinProviders set:
+        final HashSet<ChannelJoinProvider> channelJoinProviders = new HashSet<ChannelJoinProvider>();
+        for (Object o : managedObjects) {
+            if (o instanceof ChannelJoinProvider) {
+                channelJoinProviders.add((ChannelJoinProvider)o);
             }
         }
 
@@ -1012,8 +1052,39 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                             _tracer.log(tracePrefix() + "......channel filter for '" + channelDescriptor.getName() + "' '" + channelFilter + "' already defined in channel descriptor.", Tracer.Level.CONFIG);
                         }
 
+                        ChannelJoin channelJoin = ChannelJoin.Default;
+                        ChannelJoinProvider joinProvider = null;
+                        for (ChannelJoinProvider provider : channelJoinProviders) {
+                            ChannelJoin join = provider.getChannelJoin(service, channel);
+                            // check for conflict if the provider returned a non default value:
+                            if (join != null && join != ChannelJoin.Default) {
+                                if (channelJoin != ChannelJoin.Default && !channelJoin.equals(join)) {
+                                    throw new ToaException("Conflicting channel join provided for channel '" + channel.getSimpleName() + "' in service '" + service.getName() + "'!"
+                                            + " '" + joinProvider.getClass().getName() + "' provided '" + channelJoin + "'"
+                                            + ", but '" + provider.getClass().getName() + "' provided '" + join + "'");
+                                }
+                                joinProvider = provider;
+                                channelJoin = join;
+                                _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' '" + channelJoin + "' (provided by: '" + joinProvider.getClass().getName() + "').", Tracer.Level.CONFIG);
+                            }
+                        }
+
+                        final boolean hasHandler = channelsWithHandlers.get(service) != null && channelsWithHandlers.get(service).contains(channel);
+                        final boolean join;
+                        switch (channelJoin) {
+                            case Join:
+                                join = true;
+                                break;
+                            case NoJoin:
+                                join = false;
+                                break;
+                            default:
+                            case Default:
+                                join = hasHandler;
+                                break;
+                        }
+
                         // add to engine
-                        final boolean join = (joinChannels.get(service) != null && joinChannels.get(service).contains(channel));
                         _engineDescriptor.addChannel(busDescriptor.getName(),
                                                      channel.getName(),
                                                      AepEngineDescriptor.ChannelConfig.from("join=" + join));
@@ -1228,7 +1299,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * allowing the application subclass to register {@link ChannelQosProvider}s
      * <p>
      * The default implementation of this method adds a {@link ChannelQosProvider} that calls
-     * {@link #getChannelFilter(ToaService, ToaServiceChannel)} on this class.
+     * {@link #getChannelQos(ToaService, ToaServiceChannel)} on this class.
      * 
      * @param containers Objects implementing {@link ChannelQosProvider} should be added to this set.
      */
@@ -1258,6 +1329,49 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     protected Qos getChannelQos(ToaService service, ToaServiceChannel channel) {
         return null;
+    }
+
+    /**
+     * This method may be overridden by subclasses to add additional objects that implement
+     * {@link ChannelJoinProvider}. 
+     * <p>
+     * This method is called by the {@link DefaultManagedObjectLocator}, if an application
+     * provides its own {@link ManagedObjectLocator} then it is up to that locator as
+     * to whether or not this method will be invoked.
+     * <p>
+     * This method is called by the application during the configuration phase
+     * allowing the application subclass to register {@link ChannelJoinProvider}s
+     * <p>
+     * The default implementation of this method adds a {@link ChannelJoinProvider} that calls
+     * {@link #getChannelJoin(ToaService, ToaServiceChannel)} on this class. 
+     * <p>
+     * @param containers Objects implementing {@link ChannelJoinProvider} should be added to this set.
+     */
+    protected void addChannelJoinProviders(Set<Object> containers) {
+        containers.add(new ChannelJoinProvider() {
+
+            @Override
+            public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+                return TopicOrientedApplication.this.getChannelJoin(service, channel);
+            }
+        });
+    }
+
+    /**
+     * Subclasses may override this method to change whether or not a channel should be joined. 
+     * <p>
+     * See {@link ChannelJoinProvider#getChannelJoin(ToaService, ToaServiceChannel)} for the semantics
+     * of this method. 
+     * <p>
+     * This method returns {@link ChannelJoin#Default} when not overridden. 
+     * 
+     * @param service The service that defined the channel.
+     * @param channel The channel. 
+     * 
+     * @return A value indicating whether or not the channel should be joined. 
+     */
+    protected ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+        return ChannelJoin.Default;
     }
 
     /**
@@ -1882,9 +1996,8 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     }
 
     /**
-     * This method is called by the AepEngine when a channel is started. 
-     * <p>
-     * <b>This method should not be called by subclasses or application code.</b>  
+     * This method is called by the AepEngine when a channel is started, and is
+     * used by {@link MessageSender} to send messages.
      * 
      * @param event The {@link AepEngineActiveEvent}
      */

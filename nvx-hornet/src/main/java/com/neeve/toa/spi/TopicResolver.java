@@ -24,8 +24,8 @@ package com.neeve.toa.spi;
 import java.util.Properties;
 
 import com.neeve.lang.XString;
-import com.neeve.sma.MessageView;
 import com.neeve.sma.MessageChannel.RawKeyResolutionTable;
+import com.neeve.sma.MessageView;
 import com.neeve.toa.TopicOrientedApplication;
 import com.neeve.toa.service.ToaServiceChannel;
 

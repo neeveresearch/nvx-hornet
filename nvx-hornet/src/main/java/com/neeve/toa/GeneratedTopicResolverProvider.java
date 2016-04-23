@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import com.neeve.util.UtlText;
 import com.neeve.managed.ManagedObjectLocator;
 import com.neeve.root.RootConfig;
 import com.neeve.toa.service.ToaService;
@@ -34,6 +33,7 @@ import com.neeve.toa.spi.TopicResolver;
 import com.neeve.toa.spi.TopicResolverProvider;
 import com.neeve.toa.tools.ToaCodeGenerator;
 import com.neeve.trace.Tracer;
+import com.neeve.util.UtlText;
 
 /**
  * This {@link TopicResolverProvider} attempts to load {@link ToaCodeGenerator} generated {@link TopicResolverProvider}s.

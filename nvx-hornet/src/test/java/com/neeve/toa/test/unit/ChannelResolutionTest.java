@@ -35,6 +35,7 @@ import org.junit.Test;
 import com.neeve.aep.AepBusManager;
 import com.neeve.aep.AepEngine.HAPolicy;
 import com.neeve.aep.annotations.EventHandler;
+import com.neeve.aep.event.AepUnhandledMessageEvent;
 import com.neeve.ci.XRuntime;
 import com.neeve.lang.XString;
 import com.neeve.rog.IRogMessage;
@@ -163,7 +164,38 @@ public class ChannelResolutionTest extends AbstractToaTest {
     @AppHAPolicy(HAPolicy.EventSourcing)
     public static final class JoinJoinProviderReceiverApp extends AbstractToaTestApp {
         @EventHandler
-        public void onReceiverMessage1(ReceiverMessage1 message) {
+        public void onUnhandledMessage(AepUnhandledMessageEvent event) {
+            System.out.println("GOT AEP UNHANDLED MESSAGE");
+            recordReceipt((IRogMessage)event.getTriggeringMessage());
+        }
+
+        @EventHandler
+        public void onReceiverMessage2(ReceiverMessage2 message) {
+            System.out.println("GOT MESSAGE 2");
+            recordReceipt(message);
+        }
+
+        @Override
+        public void addChannelJoinProviders(Set<Object> providers) {
+            super.addChannelJoinProviders(providers);
+            providers.add(new ChannelJoinProvider() {
+
+                @Override
+                public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+                    if (channel.getSimpleName().equals("ReceiverChannel5")) {
+                        return ChannelJoin.Join;
+                    }
+                    return null;
+                }
+            });
+        }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class DefaultJoinProviderReceiverApp extends AbstractToaTestApp {
+
+        @EventHandler
+        public void onReceiverMessage(ReceiverMessage1 message) {
             recordReceipt(message);
         }
 
@@ -236,35 +268,6 @@ public class ChannelResolutionTest extends AbstractToaTest {
                 @Override
                 public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
                     if (channel.getSimpleName().equals("ReceiverChannel2")) {
-                        return ChannelJoin.Join;
-                    }
-                    return null;
-                }
-            });
-        }
-    }
-
-    @AppHAPolicy(HAPolicy.EventSourcing)
-    public static final class DefaultJoinProviderReceiverApp extends AbstractToaTestApp {
-
-        @EventHandler
-        public void onReceiverMessage(ReceiverMessage1 message) {
-            recordReceipt(message);
-        }
-
-        @EventHandler
-        public void onReceiverMessage2(ReceiverMessage2 message) {
-            recordReceipt(message);
-        }
-
-        @Override
-        public void addChannelJoinProviders(Set<Object> providers) {
-            super.addChannelJoinProviders(providers);
-            providers.add(new ChannelJoinProvider() {
-
-                @Override
-                public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
-                    if (channel.getSimpleName().equals("ReceiverChannel5")) {
                         return ChannelJoin.Join;
                     }
                     return null;
@@ -1128,9 +1131,9 @@ public class ChannelResolutionTest extends AbstractToaTest {
 
     @Test
     public void testChannelJoinProviderNoJoin() throws Throwable {
-        NoJoinJoinProviderReceiverApp receiver = createApp("testChannelJoinProviderNoJoin", "standalone", NoJoinJoinProviderReceiverApp.class);
+        NoJoinJoinProviderReceiverApp receiver = createApp("testChannelJoinProviderNoJoinReceiver", "standalone", NoJoinJoinProviderReceiverApp.class);
         receiver.holdMessages = true;
-        SenderApp sender = createApp("sender", "standalone", SenderApp.class);
+        SenderApp sender = createApp("testChannelJoinProviderNoJoinSender", "standalone", SenderApp.class);
 
         sender.sendMessage(ReceiverMessage1.create(), "Receiver1/1");
         sender.sendMessage(ReceiverMessage2.create(), "Receiver2/1");
@@ -1152,9 +1155,9 @@ public class ChannelResolutionTest extends AbstractToaTest {
 
     @Test
     public void testChannelJoinProviderJoin() throws Throwable {
-        JoinJoinProviderReceiverApp receiver = createApp("testChannelJoinProviderNoJoin", "standalone", JoinJoinProviderReceiverApp.class);
+        JoinJoinProviderReceiverApp receiver = createApp("testChannelJoinProviderJoinReceiver", "standalone", JoinJoinProviderReceiverApp.class);
         receiver.holdMessages = true;
-        SenderApp sender = createApp("sender", "standalone", SenderApp.class);
+        SenderApp sender = createApp("testChannelJoinProviderJoinSender", "standalone", SenderApp.class);
 
         // send a message on channel 5 for which the app has no EventHandler.
         // This will result in an AepUnhandledMessageEvent which the app will
@@ -1174,9 +1177,9 @@ public class ChannelResolutionTest extends AbstractToaTest {
 
     @Test
     public void testChannelJoinProviderDefault() throws Throwable {
-        DefaultJoinProviderReceiverApp receiver = createApp("testChannelJoinProviderNoJoin", "standalone", DefaultJoinProviderReceiverApp.class);
+        DefaultJoinProviderReceiverApp receiver = createApp("testChannelJoinProviderDefaultReceiver", "standalone", DefaultJoinProviderReceiverApp.class);
         receiver.holdMessages = true;
-        SenderApp sender = createApp("sender", "standalone", SenderApp.class);
+        SenderApp sender = createApp("testChannelJoinProviderDefaultSender", "standalone", SenderApp.class);
 
         // send a message on channel 1 for which the app has no EventHandler.
         // This will result in an AepUnhandledMessageEvent which the app will

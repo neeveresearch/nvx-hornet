@@ -57,6 +57,7 @@ import com.neeve.aep.event.AepMessagingPrestartEvent;
 import com.neeve.ci.ManifestProductInfo;
 import com.neeve.ci.ProductInfo;
 import com.neeve.ci.XRuntime;
+import com.neeve.cli.annotations.Configured;
 import com.neeve.event.alert.IAlertEvent;
 import com.neeve.event.lifecycle.LifecycleEvent;
 import com.neeve.lang.XLongLinkedHashMap;
@@ -73,6 +74,7 @@ import com.neeve.server.Main;
 import com.neeve.server.app.SrvAppLoader;
 import com.neeve.server.app.annotations.AppCommandHandler;
 import com.neeve.server.app.annotations.AppCommandHandlerContainersAccessor;
+import com.neeve.server.app.annotations.AppConfiguredAccessor;
 import com.neeve.server.app.annotations.AppEventHandlerAccessor;
 import com.neeve.server.app.annotations.AppEventHandlerContainersAccessor;
 import com.neeve.server.app.annotations.AppFinalizer;
@@ -139,13 +141,19 @@ import com.neeve.util.UtlThrowable;
  * </ul>
  * <li>{@link AppInitializer}, use {@link #onAppFinalized()}
  * <li>{@link AppFinalizer}, use {@link #onAppFinalized()}
- * </ul>
- * </li>
- * <li><b>@{@link AppEventHandlerContainersAccessor}, @{@link AppStatContainersAccessor} and  @{@link AppCommandHandlerContainersAccessor}</b><br>
- * Talon Server applications return objects containing event handlers and command handlers via methods on the application class
+ * <li><b>@{@link AppEventHandlerContainersAccessor}, @{@link AppStatContainersAccessor}, {@link AppConfiguredAccessor} and @{@link AppCommandHandlerContainersAccessor}</b><br>
+ * Talon Server applications return objects containing event handlers, stats containers, config injected objects, and command handlers via methods on the application class
  * annotated with these annotations respectively. {@link TopicOrientedApplication} implements the accessors for application event 
- * and command handlers, and instead exposes a single collection point for all objects of interest to the server for introspect
- * via a {@link ManagedObjectLocator}. The default {@link ManagedObjectLocator} 
+ * and command handlers, and instead exposes a single collection point for all objects of interest to the server for introspection
+ * via a {@link ManagedObjectLocator}. The default {@link ManagedObjectLocator} retrieves such objects via the methods:
+ * <ul>
+ * <li> {@link #addHandlerContainers(Set)}
+ * <li> {@link #addAppStatContainers(Set)}
+ * <li> {@link #addConfiguredContainers(Set)}
+ * <li> {@link #addAppCommandHandlerContainers(Set)}
+ * </ul>
+ * So a subclass can override these methods to add such objects or alternatively provide its own ManagedObjectLocator to return a set of objects that
+ * will be introspected for EventHandlers, App Stats, Configured object and Command Handlers.
  * </li> 
  * </ul>
  * </ol>
@@ -164,9 +172,8 @@ import com.neeve.util.UtlThrowable;
  * <br><i>Note: because TopicOrientedApplication provides this injection point it is illegal for subclasses to implement an {@link AppInjectionPoint} for  {@link AepEngineDescriptor},
  * subclasses can instead override {@link #onEngineDescriptorInjected(AepEngineDescriptor)}.</i> 
  * <li>Call {@link #getManagedObjectLocator()} and call its {@link ManagedObjectLocator#locateManagedObjects(Set)} method to find objects that expose
- * {@link AppCommandHandler} or {@link EventHandler} annotations.
- * <br><i>Note: {@link TopicOrientedApplication} implements {@link AppCommandHandlerContainersAccessor} and {@link AppEventHandlerContainersAccessor} methods that
- * pass the objects returned from the application's {@link ManagedObjectLocator}, so it is illegal for subclasses to use these annotations</i>
+ * {@link AppCommandHandler}, {@link AppStat}, {@link Configured} or {@link EventHandler} annotations.
+ * <li>Perform {@link Configured} configuration injection on the set of objects returned by the {@link ManagedObjectLocator}.  
  * <li>Call {@link #getServiceDefinitionLocator()} and invoke its {@link ServiceDefinitionLocator#locateServices(Set)}. {@link TopicOrientedApplication} parses the 
  * service models returned by the {@link ServiceDefinitionLocator} and based on interest defined by the application's {@link EventHandler}s determines which
  * channels to join. 
@@ -595,6 +602,10 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
             if (method.isAnnotationPresent(AppCommandHandlerContainersAccessor.class) && method.getDeclaringClass() != TopicOrientedApplication.class) {
                 throw new UnsupportedOperationException("Usage of " + AppCommandHandlerContainersAccessor.class.getSimpleName() + " annotation is unsupported for " + TopicOrientedApplication.class.getSimpleName() + " subclasses. '" + method + "' is therefore not valid!");
+            }
+
+            if (method.isAnnotationPresent(AppConfiguredAccessor.class) && method.getDeclaringClass() != TopicOrientedApplication.class) {
+                throw new UnsupportedOperationException("Usage of " + AppConfiguredAccessor.class.getSimpleName() + " annotation is unsupported for " + TopicOrientedApplication.class.getSimpleName() + " subclasses. '" + method + "' is therefore not valid!");
             }
 
             if (method.isAnnotationPresent(AppEventHandlerAccessor.class) && method.getDeclaringClass() != TopicOrientedApplication.class) {
@@ -1195,6 +1206,26 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * @param containers Objects with {@link AppStat} should be added to this set.
      */
     protected void addAppStatContainers(Set<Object> containers) {}
+
+    /**
+     * This method may be overridden by subclasses to add additional objects that contain
+     * methods with {@link Configured} annotations.
+     * <p>
+     * This method is called by the {@link DefaultManagedObjectLocator}, if an application
+     * provides its own {@link ManagedObjectLocator} then it is up to that locator as
+     * to whether or not this method will be invoked.
+     * <p>
+     * This method is called by the application during the configuration phase
+     * allowing the application subclass to register command handler containers
+     * by adding objects having methods annotated with {@link Configured} that 
+     * will serve as the application's command handlers. 
+     * <p>
+     * This class is automatically added as an command handler container, subclasses
+     * should not add itself to the set.
+     * 
+     * @param containers Objects with {@link Configured} should be added to this set.
+     */
+    protected void addConfiguredContainers(Set<Object> containers) {}
 
     /**
      * This method may be overridden by subclasses to add additional objects that implement
@@ -1839,6 +1870,20 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @AppStatContainersAccessor
     final private void findStatAccessors(final Set<Object> containers) throws Exception {
+        containers.add(this);
+        containers.addAll(managedObjects);
+    }
+
+    /**
+     * This method is called by a Talon server during application initialization 
+     * to solicit the application's user defined beans that require Configuration.
+     * <p>
+     * <b>This method should not be called by subclasses or application code.</b>  
+     * 
+     * @param containers The set to which Configured containers should be added. 
+     */
+    @AppConfiguredAccessor
+    final private void findConfiguredAccessor(final Set<Object> containers) throws Exception {
         containers.add(this);
         containers.addAll(managedObjects);
     }

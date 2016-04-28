@@ -37,6 +37,7 @@ import com.neeve.managed.AbstractManagedObjectLocator;
  * <li>{@link TopicOrientedApplication#addChannelQosProviders(java.util.Set)}
  * <li>{@link TopicOrientedApplication#addChannelInitialKeyResolutionTableProviders(java.util.Set)}
  * <li>{@link TopicOrientedApplication#addTopicResolverProviders(java.util.Set)}
+ * <li>{@link TopicOrientedApplication#addConfiguredContainers(java.util.Set)}
  * </ul>
  */
 public class DefaultManagedObjectLocator extends AbstractManagedObjectLocator {
@@ -60,6 +61,7 @@ public class DefaultManagedObjectLocator extends AbstractManagedObjectLocator {
         app.addChannelJoinProviders(managedObjects);
         app.addChannelInitialKeyResolutionTableProviders(managedObjects);
         app.addTopicResolverProviders(managedObjects);
+        app.addConfiguredContainers(managedObjects);
     }
 
 }

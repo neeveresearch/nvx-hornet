@@ -323,7 +323,7 @@ public class AppCreationAndLifecycleTest extends AbstractToaTest {
             fail("Shouldn't be able to start application with invalid service definition.");
         }
         catch (Exception e) {
-            assertTrue("Exception has wrong text expected reference to 'invalidService'", e.getMessage().indexOf("invalidService") >= 0);
+            assertTrue("Exception has wrong text expected reference to 'invalidService' but was'" + e.getMessage() + "'", e.getMessage().indexOf("invalidService") >= 0);
         }
     }
 }

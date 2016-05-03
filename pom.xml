@@ -111,6 +111,34 @@
                 </configuration>
             </plugin>
 
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>2.6</version>
+
+                <!-- Copy xsd to target directory so they can be published-->
+                <executions>
+                    <execution>
+                        <id>copy-xsds</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/schema</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}/classes</directory>
+                                    <includes>
+                                        <include>**/*.xsd</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+
         </plugins>
 
         <pluginManagement>

@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,12 +26,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
 
 import com.neeve.ci.XRuntime;
+import com.neeve.toa.DefaultServiceDefinitionLocator;
 import com.neeve.toa.service.ToaService;
 import com.neeve.toa.service.ToaServiceChannel;
 import com.neeve.toa.service.ToaServiceToRole;
@@ -107,6 +109,19 @@ public class ServiceModelTest {
         assertNotNull("Expected to find 'ServiceB' role", role);
         ToaServiceChannel channel = role.getChannel(ModelBMessage1.class.getName());
         assertEquals("Channel Name and Simple Channel name should be identical", channel.getSimpleName(), channel.getName());
+    }
+
+    @Test
+    public void testServiceWithSpaceInNameFailsToValidate() throws Exception {
+        URL url = getClass().getResource("/serviceWithSpaceInNameTestService.xml");
+        try {
+            DefaultServiceDefinitionLocator.validateServiceDefinitionFile(url);
+            fail("Shouldn't haven been able to validate service with spaces in name");
+        }
+        catch (Exception e) {
+            assertTrue("Excepted error about NCName but was '" + e.getMessage() + "'", e.getMessage().indexOf("NCName") >= 0);
+        }
+
     }
 
     @Test

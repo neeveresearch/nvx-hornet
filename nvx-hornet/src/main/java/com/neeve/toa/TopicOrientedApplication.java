@@ -206,7 +206,7 @@ import com.neeve.util.UtlThrowable;
  * must be annotated with an {@link AppHAPolicy} annotation. 
  */
 abstract public class TopicOrientedApplication implements MessageSender, MessageInjector {
-    final private static String MINIMUM_TALON_VERSION = "3.1.21";
+    final private static String MINIMUM_TALON_VERSION = "3.2.86";
     final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
     static {
         ProductInfo productInfo = ManifestProductInfo.loadProductInfo("nvx-hornet");

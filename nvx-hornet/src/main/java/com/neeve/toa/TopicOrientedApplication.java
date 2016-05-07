@@ -667,10 +667,14 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                     }
                 }
                 else if (topic != null) {
+                    message.setMessageKey(topic);
                     _engine.sendMessage(sendContext.channel,
-                                        message,
-                                        topic,
-                                        keyResolutionTable);
+                                        message);
+                }
+                else if (rawTopic != null) {
+                    message.setMessageKeyAsRaw(rawTopic);
+                    _engine.sendMessage(sendContext.channel,
+                                        message);
                 }
                 else {
                     if (rawKeyResolutionTable == null) {

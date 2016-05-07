@@ -141,6 +141,9 @@
         <message name="ReceiverMessage5" id="105">
           <inline ref="AllEmbeddedAdmFieldTypes"/>
         </message>
+        <message name="KRTTestMessage" id="106">
+          <inline ref="AllEmbeddedAdmFieldTypes"/>
+        </message>
     </messages>
 
 

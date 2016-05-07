@@ -318,6 +318,32 @@ public class ChannelKeysAndFiltersTest extends AbstractToaTest {
         public void onReceiverMessage2(ReceiverMessage2 message) {
             recordReceipt(message);
         }
+
+        @EventHandler
+        public void onKRTMessage(KRTTestMessage message) {
+            recordReceipt(message);
+        }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class DynamicKRTReceiverApp extends AbstractToaTestApp {
+
+        @Override
+        protected Properties getInitialChannelKeyResolutionTable(ToaService service, ToaServiceChannel channel) {
+            //Return an initial key resolution table that will fix IntField on sends to '5'
+            return IKRT;
+        }
+
+        @Override
+        public String getChannelFilter(ToaService service, ToaServiceChannel channel) {
+            //Note this *should* be ignored since we don't currently support content filters.
+            return "KRTField=A|C";
+        }
+
+        @EventHandler
+        public void onKRTMessage(KRTTestMessage message) {
+            recordReceipt(message);
+        }
     }
 
     @AppHAPolicy(HAPolicy.EventSourcing)
@@ -755,7 +781,6 @@ public class ChannelKeysAndFiltersTest extends AbstractToaTest {
         }
 
         receiver.assertExpectedReceipt(5, 2);
-
     }
 
     @Test
@@ -853,6 +878,140 @@ public class ChannelKeysAndFiltersTest extends AbstractToaTest {
         }
 
         receiver.assertExpectedReceipt(5, 2);
+    }
+
+    @Test
+    public void testSendOnStaticXStringTopic() throws Throwable {
+        FilteringReceiverApp receiver = createApp("receiver", "standalone", FilteringReceiverApp.class);
+        SenderApp sender = createApp("sender", "standalone", SenderApp.class);
+
+        // receiver only receives on Receiver/2 and Receiver/4
+        // if dynamic key resolution kicks in then we'll only get 
+        // 2 messages.
+        XString staticTopic = XString.create("Receiver1/2", true, true);
+        for (int i = 1; i <= 4; i++) {
+            ReceiverMessage1 m = ReceiverMessage1.create();
+            m.setIntField(i);
+            sender.recordSend(m);
+            sender.sendMessage(m, staticTopic);
+            assertEquals("Message Key shouldn't have been changed", staticTopic, m.getMessageKeyAsRaw());
+        }
+
+        sender.waitForTransactionStability(4);
+        receiver.waitForTransactionStability(4);
+
+        sender.assertExpectedSends(5, 4);
+
+        if (verbose()) {
+            for (IRogMessage message : sender.sent) {
+                System.out.println("Sent: " + message.toString());
+            }
+        }
+
+        receiver.assertExpectedReceipt(5, 4);
+    }
+
+    @Test
+    public void testSendOnStaticStringTopic() throws Throwable {
+        FilteringReceiverApp receiver = createApp("receiver", "standalone", FilteringReceiverApp.class);
+        SenderApp sender = createApp("sender", "standalone", SenderApp.class);
+
+        // receiver only receives on Receiver/2 and Receiver/4
+        // if dynamic key resolution kicks in then we'll only get 
+        // 2 messages.
+        String staticTopic = "Receiver1/2";
+        for (int i = 1; i <= 4; i++) {
+            ReceiverMessage1 m = ReceiverMessage1.create();
+            m.setIntField(i);
+            sender.recordSend(m);
+            sender.sendMessage(m, staticTopic);
+            assertEquals("Message Key shouldn't have been changed", staticTopic, m.getMessageKey());
+        }
+
+        sender.waitForTransactionStability(4);
+        receiver.waitForTransactionStability(4);
+
+        sender.assertExpectedSends(5, 4);
+
+        if (verbose()) {
+            for (IRogMessage message : sender.sent) {
+                System.out.println("Sent: " + message.toString());
+            }
+        }
+
+        receiver.assertExpectedReceipt(5, 4);
+    }
+
+    @Test
+    public void testSendWithPropertiesKRT() throws Throwable {
+        DynamicKRTReceiverApp receiver = createApp("receiver", "standalone", DynamicKRTReceiverApp.class);
+        FixedKRTSenderApp sender = createApp("sender", "standalone", FixedKRTSenderApp.class);
+        sender.holdMessages = receiver.holdMessages = true;
+
+        // receiver only receives on Receiver/5/A and Receiver/5/C
+        // if dynamic key resolution kicks in then we'll only get 
+        // 2 messages.
+        Properties krt = new Properties();
+        final String[] krtSendValues = new String[] { "A", "B", "C", "D" };
+        for (int i = 1; i <= krtSendValues.length; i++) {
+            KRTTestMessage m = KRTTestMessage.create();
+
+            //Won't resolve in channel key because Initial Key Resolution table will
+            //resolve it to 5
+            m.setIntField(1);
+
+            //Update the value KRT Field
+            krt.put("KRTField", krtSendValues[i - 1]);
+            sender.recordSend(m);
+            sender.sendMessage(m, krt);
+            assertEquals("Message Key was not resolved using KRT", "KRTTest/5/" + krtSendValues[i - 1], m.getMessageKey());
+        }
+
+        sender.waitForTransactionStability(4);
+        receiver.waitForTransactionStability(2);
+
+        sender.assertExpectedSends(5, 4);
+        receiver.assertExpectedReceipt(5, 2);
+
+        assertSentAndReceivedMessagesEqual("Receiver's first message should have been first sender message with KRTField=" + krtSendValues[0], sender.sent.get(0), receiver.received.get(0));
+        assertSentAndReceivedMessagesEqual("Receiver's second message should have been 3rd sender message have gotten 3rd sender message with KRTField=" + krtSendValues[2], sender.sent.get(2), receiver.received.get(1));
+
+    }
+
+    @Test
+    public void testSendWithRawKRT() throws Throwable {
+        DynamicKRTReceiverApp receiver = createApp("receiver", "standalone", DynamicKRTReceiverApp.class);
+        FixedKRTSenderApp sender = createApp("sender", "standalone", FixedKRTSenderApp.class);
+        sender.holdMessages = receiver.holdMessages = true;
+
+        // receiver only receives on Receiver/5/A and Receiver/5/C
+        // if dynamic key resolution kicks in then we'll only get 
+        // 2 messages.
+        RawKeyResolutionTable krt = MessageBusBindingFactory.createRawKeyResolutionTable();
+        final String[] krtSendValues = new String[] { "A", "B", "C", "D" };
+        for (int i = 1; i <= krtSendValues.length; i++) {
+            KRTTestMessage m = KRTTestMessage.create();
+
+            //Won't resolve in channel key because Initial Key Resolution table will
+            //resolve it to 5
+            m.setIntField(1);
+
+            //Update the value KRT Field
+            krt.put("KRTField", XString.create(krtSendValues[i - 1]));
+            sender.recordSend(m);
+            sender.sendMessage(m, krt);
+            assertEquals("Message Key was not resolved using KRT", "KRTTest/5/" + krtSendValues[i - 1], m.getMessageKey());
+        }
+
+        sender.waitForTransactionStability(4);
+        receiver.waitForTransactionStability(2);
+
+        sender.assertExpectedSends(5, 4);
+        receiver.assertExpectedReceipt(5, 2);
+
+        assertSentAndReceivedMessagesEqual("Receiver's first message should have been first sender message with KRTField=" + krtSendValues[0], sender.sent.get(0), receiver.received.get(0));
+        assertSentAndReceivedMessagesEqual("Receiver's second message should have been 3rd sender message have gotten 3rd sender message with KRTField=" + krtSendValues[2], sender.sent.get(2), receiver.received.get(1));
+
     }
 
     @Test

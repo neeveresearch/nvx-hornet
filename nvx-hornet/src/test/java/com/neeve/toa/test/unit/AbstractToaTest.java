@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -191,7 +191,6 @@ public abstract class AbstractToaTest extends UnitTest {
             return;
         }
 
-        StringBuffer diffBuffer = new StringBuffer();
         for (int i = 1; i <= sender.sent.size(); i++) {
             if (receiver.received.size() < i) {
                 IRogMessage sent = sender.sent.get(i - 1);
@@ -199,9 +198,7 @@ public abstract class AbstractToaTest extends UnitTest {
                 RogLogUtil.dumpObjectAsJson(sent.getMetadata(), sent, true, true, true, JsonPrettyPrintStyle.Default, writer);
                 throw new Exception("Receiver didn't receive message #" + i + ":\n " + writer.toString());
             }
-            if (!RogLogUtil.compareRogNodes(sender.sent.get(i - 1), receiver.received.get(i - 1), SENDER_RECEIVER_FILTER, diffBuffer)) {
-                throw new Exception("Sender (source) and receiver (target) messages diverge at message #" + i + ": " + diffBuffer);
-            }
+            assertSentAndReceivedMessagesEqual("Sender (source) and receiver (target) messages diverge at message #" + i + ": ", sender.sent.get(i - 1), receiver.received.get(i - 1));
         }
 
         if (receiver.received.size() > sender.sent.size()) {
@@ -209,6 +206,13 @@ public abstract class AbstractToaTest extends UnitTest {
             StringWriter writer = new StringWriter();
             RogLogUtil.dumpObjectAsJson(received.getMetadata(), received, true, true, true, JsonPrettyPrintStyle.Default, writer);
             throw new Exception("Receiver received " + (receiver.received.size() - sender.sent.size()) + " additional messages. First message:\n " + writer.toString());
+        }
+    }
+
+    protected final void assertSentAndReceivedMessagesEqual(String text, IRogMessage sentMessage, IRogMessage receivedMessage) throws Exception {
+        StringBuffer diffBuffer = new StringBuffer();
+        if (!RogLogUtil.compareRogNodes(sentMessage, receivedMessage, SENDER_RECEIVER_FILTER, diffBuffer)) {
+            throw new Exception(text + ":" + diffBuffer);
         }
     }
 

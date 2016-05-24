@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -37,6 +37,7 @@ import com.neeve.managed.AbstractManagedObjectLocator;
  * <li>{@link TopicOrientedApplication#addChannelQosProviders(java.util.Set)}
  * <li>{@link TopicOrientedApplication#addChannelInitialKeyResolutionTableProviders(java.util.Set)}
  * <li>{@link TopicOrientedApplication#addTopicResolverProviders(java.util.Set)}
+ * <li>{@link TopicOrientedApplication#addConfiguredContainers(java.util.Set)}
  * </ul>
  */
 public class DefaultManagedObjectLocator extends AbstractManagedObjectLocator {
@@ -57,8 +58,10 @@ public class DefaultManagedObjectLocator extends AbstractManagedObjectLocator {
         app.addAppStatContainers(managedObjects);
         app.addChannelFilterProviders(managedObjects);
         app.addChannelQosProviders(managedObjects);
+        app.addChannelJoinProviders(managedObjects);
         app.addChannelInitialKeyResolutionTableProviders(managedObjects);
         app.addTopicResolverProviders(managedObjects);
+        app.addConfiguredContainers(managedObjects);
     }
 
 }

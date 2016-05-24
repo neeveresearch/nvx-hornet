@@ -49,10 +49,10 @@ import com.neeve.util.UtlResource.URLFilter;
 public final class DefaultServiceDefinitionLocator extends AbstractServiceDefinitionLocator {
 
     /**
-     * This property controls whether or not stricte validation is done on service definition
+     * This property controls whether or not strict validation is done on service definition
      * files located by this locator. When validation is not strict, files found at the locations
      * for this locator are ignored with a warning, when set to <code>true</code>, an exception
-     * will be thrown if a file is encountered that is not a   
+     * will be thrown if a file is encountered that is not a valid service definition.   
      */
     public static final String PROP_STRICT_SERVICE_VALIDATION = "nv.toa.strictServiceLocatorValidation";
 

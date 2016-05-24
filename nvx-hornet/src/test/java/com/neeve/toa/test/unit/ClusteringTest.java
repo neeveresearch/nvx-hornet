@@ -21,8 +21,10 @@
  */
 package com.neeve.toa.test.unit;
 
-import static org.junit.Assert.*;
-import static com.neeve.toa.test.unit.SingleAppToaServer.*;
+import static com.neeve.toa.test.unit.SingleAppToaServer.PROP_NAME_STORE_ENABLED;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.util.HashMap;
 import java.util.Map;

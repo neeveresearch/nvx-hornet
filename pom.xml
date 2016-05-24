@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>nvx-hornet-parent</artifactId>
     <packaging>pom</packaging>
-    <version>1.2-SNAPSHOT</version>
+    <version>1.2.0</version>
     <name>Hornet Parent (X Platform Topic Oriented Applications)</name>
 
     <parent>
@@ -78,7 +78,7 @@
                     <doctitle><![CDATA[<h1>Hornet ${project.version} API</h1>]]></doctitle>
                     <windowtitle><![CDATA[Hornet ${project.version} API]]></windowtitle>
                     <links>
-                        <link>http://build.neeveresearch.com/core/javadoc/3.1/${nvx.core.version}/</link>
+                        <link>http://build.neeveresearch.com/core/javadoc/3.2/${nvx.core.version}/</link>
                     </links>
                     <groups>
                         <group>

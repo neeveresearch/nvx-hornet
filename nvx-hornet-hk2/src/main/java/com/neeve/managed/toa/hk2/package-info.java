@@ -19,20 +19,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.neeve.managed.hk2;
-
-import org.glassfish.hk2.api.AnnotationLiteral;
-
-import com.neeve.managed.annotations.Managed;
-
 /**
- * An {@link AnnotationLiteral} implementation of the {@link Managed} annotation.
- * <p>
- * {@link ManagedImpl} supports inline instantiation of the {@link Managed} annotation and
- * is used by the {@link HK2ManagedObjectLocator} to assist in finding object annotated
- * with {@link Managed}. 
+ * TOA HK2 Integration
+ * 
+ * TODO: Provide more information about how TOA HK2 Integration works as well as why an application developer might want to use it.
  */
-@SuppressWarnings("all")
-final public class ManagedImpl extends AnnotationLiteral<Managed> implements Managed {
-    private static final long serialVersionUID = 1L;
-}
+package com.neeve.managed.toa.hk2;

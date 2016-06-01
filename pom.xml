@@ -28,6 +28,7 @@
 
     <properties>
         <nvx.core.version>3.3.21</nvx.core.version>
+        <nvx.core.minorversion>3.3</nvx.core.minorversion>
         <build.version.display>${project.version}</build.version.display>
     </properties>
 
@@ -78,7 +79,7 @@
                     <doctitle><![CDATA[<h1>Hornet ${project.version} API</h1>]]></doctitle>
                     <windowtitle><![CDATA[Hornet ${project.version} API]]></windowtitle>
                     <links>
-                        <link>http://build.neeveresearch.com/core/javadoc/3.2/${nvx.core.version}/</link>
+                        <link>http://build.neeveresearch.com/core/javadoc/${nvx.core.minorversion}/${nvx.core.version}/</link>
                     </links>
                     <groups>
                         <group>
@@ -178,7 +179,7 @@
                             </tag>
                         </tags>
                         <links>
-                            <link>http://build.neeveresearch.com/core/javadoc/3.1/${nvx.core.version}/</link>
+                            <link>http://build.neeveresearch.com/core/javadoc/${nvx.core.minorversion}/${nvx.core.version}/</link>
                         </links>
                     </configuration>
                 </plugin>

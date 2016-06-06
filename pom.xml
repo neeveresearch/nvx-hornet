@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>nvx-hornet-parent</artifactId>
     <packaging>pom</packaging>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
     <name>Hornet Parent (X Platform Topic Oriented Applications)</name>
 
     <parent>
@@ -27,7 +27,7 @@
     </organization>
 
     <properties>
-        <nvx.core.version>3.2.121</nvx.core.version>
+        <nvx.core.version>3.2.125</nvx.core.version>
         <build.version.display>${project.version}</build.version.display>
     </properties>
 

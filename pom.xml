@@ -27,8 +27,8 @@
     </organization>
 
     <properties>
-        <nvx.core.version>3.3.21</nvx.core.version>
-        <nvx.core.minorversion>3.3</nvx.core.minorversion>
+        <nvx.core.version>3.4.20</nvx.core.version>
+        <nvx.core.minorversion>3.4</nvx.core.minorversion>
         <build.version.display>${project.version}</build.version.display>
     </properties>
 

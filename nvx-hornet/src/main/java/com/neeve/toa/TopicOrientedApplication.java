@@ -53,6 +53,7 @@ import com.neeve.aep.event.AepBusBindingOpenFailedEvent;
 import com.neeve.aep.event.AepChannelUpEvent;
 import com.neeve.aep.event.AepEngineActiveEvent;
 import com.neeve.aep.event.AepEngineStartedEvent;
+import com.neeve.aep.event.AepEngineStoppedEvent;
 import com.neeve.aep.event.AepMessagingPrestartEvent;
 import com.neeve.ci.ManifestProductInfo;
 import com.neeve.ci.ProductInfo;
@@ -2101,6 +2102,12 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
         if (alert instanceof AepBusBindingOpenFailedEvent) {
             if (_engineDescriptor.getMessagingStartFailPolicy() == MessagingStartFailPolicy.NeverFail) {
+                return;
+            }
+        }
+
+        if (alert instanceof AepEngineStoppedEvent) {
+            if (((AepEngineStoppedEvent)alert).getCause() == null) {
                 return;
             }
         }

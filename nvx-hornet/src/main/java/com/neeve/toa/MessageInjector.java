@@ -58,9 +58,19 @@ public interface MessageInjector {
      * Enqueue a message into an application's {@link AepEngine}'s event multiplexer. 
      * <p>
      * This method is the same as {@link #injectMessage(IRogMessage, boolean)} with
-     * a value of false for nonBlocking and a delay of 0.
+     * a value of false for nonBlocking and the default injection delay that was configured
+     * for this MessageInjector.
      * 
      * @param message The message to enqueue. 
+     * 
+     * @param nonBlocking Indicates whether the multiplexing should be a 
+     * non-blocking action or not. If blocking, then the calling thread 
+     * will block if the main multiplexer queue is full and wait until 
+     * space is available. If non-blocking, then the method will not
+     * wait but rather enque the message in a multiplexer feeder queue 
+     * and return. 
+     * 
+     * @see TopicOrientedApplication#PROP_DEFAULT_INJECTION_DELAY
      */
     public void injectMessage(IRogMessage message, boolean nonBlocking);
 

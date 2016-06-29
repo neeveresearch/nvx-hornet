@@ -25,9 +25,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -42,6 +45,7 @@ import com.neeve.rog.IRogMessage;
 import com.neeve.server.app.annotations.AppHAPolicy;
 import com.neeve.sma.MessageViewFactoryRegistry;
 import com.neeve.toa.ToaException;
+import com.neeve.toa.TopicOrientedApplication;
 import com.neeve.toa.test.unit.injectiontests.ConflictingFactoryMessages1;
 import com.neeve.toa.test.unit.injectiontests.FirstMessage1;
 import com.neeve.toa.test.unit.injectiontests.FirstMessageFactory;
@@ -67,6 +71,33 @@ public class MessageInjectionTest extends AbstractToaTest {
         @EventHandler
         public void onForwarderMessage2(ForwarderMessage2 message) {
             recordReceipt(message);
+        }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static class DefaultInjectionDelayTestApp extends AbstractToaTestApp {
+        CountDownLatch firstMessageReceivedLatch = new CountDownLatch(1);
+        CountDownLatch firstMessageReleaseLatch = new CountDownLatch(1);
+
+        @EventHandler
+        public void onForwarderMessage1(ForwarderMessage1 message) {
+            recordReceipt(message);
+        }
+
+        @EventHandler
+        public void onForwarderMessage2(ForwarderMessage2 message) {
+            recordReceipt(message);
+        }
+
+        @EventHandler
+        public final void onMessagePrestartEvent(AepMessagingPrestartEvent event) {
+            event.setFirstMessage(ForwarderMessage3.create());
+        }
+
+        @EventHandler
+        public void onFirstMessage(ForwarderMessage3 firstMessage) throws InterruptedException {
+            firstMessageReceivedLatch.countDown();
+            firstMessageReleaseLatch.await(30, TimeUnit.SECONDS);
         }
     }
 
@@ -346,5 +377,27 @@ public class MessageInjectionTest extends AbstractToaTest {
             assertSame("Wrong message received by application", toInject.get(i), app.received.get(i));
             assertEquals("Wrong reference count for injected message", 1, app.received.get(i).getOwnershipCount());
         }
+    }
+
+    @Test
+    public void testDefaultInjectionPriority() throws Throwable {
+        Map<String, String> env = new HashMap<String, String>();
+        env.put(TopicOrientedApplication.PROP_DEFAULT_INJECTION_DELAY, "-10");
+        DefaultInjectionDelayTestApp app = createApp(testcaseName.getMethodName(), "standalone", DefaultInjectionDelayTestApp.class, env);
+
+        // Wait for first message handler to block so the following
+        // injections are queued and prioritized:
+        app.firstMessageReceivedLatch.await(30, TimeUnit.SECONDS);
+
+        // ForwarderMessage1 should be prioritized ahead of ForwarderMessage2. 
+        app.injectMessage(ForwarderMessage2.create(), true, 0);
+        app.injectMessage(ForwarderMessage1.create(), true);
+
+        // Release App From First Message handler. 
+        app.firstMessageReleaseLatch.countDown();
+
+        assertTrue("App didn't receive injected messages", app.waitForMessages(10, 2));
+        assertEquals("Expected ForwarderMessage1 to be the first message", app.received.get(0).getClass(), ForwarderMessage1.class);
+        assertEquals("Expected ForwarderMessage2 to be the second message", app.received.get(1).getClass(), ForwarderMessage2.class);
     }
 }

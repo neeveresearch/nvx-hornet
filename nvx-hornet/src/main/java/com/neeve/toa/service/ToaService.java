@@ -54,6 +54,62 @@ import com.neeve.util.UtlFile;
 public class ToaService {
     /**
      * Runtime property name to override whether or not channel names are prefixed with their service name. 
+     * <p>
+     * When an application uses multiple services there is a risk that channels with the same in two different
+     * services would conflict with one another. To reduce the chances of this happening the service xml defaults
+     * to prefixing the channel name with the service name. For example consider teh following two service definition
+     * snippets:
+     * 
+     * <pre>
+     * {@code
+     *   <Service xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+     *            xmlns="http://www.neeveresearch.com/schema/x-tsml" 
+     *            namespace="com.neeve.toa.example.orders" 
+     *            name="OrderProcessorService">
+     *     <Models>
+     *       <Model file="com/neeve/toa/example/orders/orderMessages.xml"/>
+     *     </Models>
+     *     <Channels>
+     *       <Channel name="Rejects" key="orderprocessing/rejects"/>
+     *     </Channels>
+     *     <Messages>
+     *     </Messages>
+     *   </Service>
+     * }    
+     * </pre>
+     * 
+     * and
+     * 
+     * <pre>
+     * {@code
+     *   <Service xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+     *            xmlns="http://www.neeveresearch.com/schema/x-tsml" 
+     *            namespace="com.neeve.toa.example.shipping" 
+     *            name="ShippingService">
+     *     <Models>
+     *       <Model file="com/neeve/toa/example/orders/shippingMessages.xml"/>
+     *     </Models>
+     *     <Channels>
+     *       <Channel name="Rejects" key="shipping/rejects"/>
+     *     </Channels>
+     *   </Service>
+     * }    
+     * </pre>
+     * 
+     * In the above case both services define a channel named 'Rejects' which map to different underling
+     * topics. To avoid a conflict between the 2 channels, Hornet, by default will prefix the channel names 
+     * with the unqualified service name in lower case so that one ends up with:
+     * 
+     * <ul>
+     * <li>orderprocessorservice-Rejects</li>
+     * <li>shippingservice-Rejects</li>
+     * </ul>
+     * 
+     * <p>
+     * <b>Property name:</b> {@value #PROP_PREFIX_CHANNEL_NAMES}
+     * <br>
+     * <b>Default value:</b> Value read from service definition.
+     * <br>
      */
     public static final String PROP_PREFIX_CHANNEL_NAMES = "nv.toa.prefixchannelnames";
 
@@ -129,6 +185,9 @@ public class ToaService {
         return defaultChannel;
     }
 
+    /**
+     * @return True if channels defined in this service should prefix their names with the lowercase, unqualified name of the service. 
+     */
     public boolean isPrefixChannelNames() {
         return prefixChannelNames;
     }

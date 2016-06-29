@@ -207,7 +207,98 @@ import com.neeve.util.UtlThrowable;
  * must be annotated with an {@link AppHAPolicy} annotation. 
  */
 abstract public class TopicOrientedApplication implements MessageSender, MessageInjector {
+
+    /*
+     * configuration properties.  
+     */
+
+    /**
+     * Property that controls the default level at which alert events are traced to the 
+     * 'nv.toa' trace logger.
+     * <p>
+     * When the 'nv.toa' trace level is at or above this level given by the name of a
+     * {@link Level}, then alerts will be trace logged. 
+     * <p>
+     * <b>Property name:</b> {@value #PROP_ALERT_TRACE_LEVEL}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_ALERT_TRACE_LEVEL_DEFAULT}
+     * <br>
+     * 
+     * @see #PROP_ALERT_TRACE_LEVEL_DEFAULT
+     */
+    public static final String PROP_ALERT_TRACE_LEVEL = "nv.toa.alerttracelevel";
+
+    /**
+     * The default value for {@link #PROP_ALERT_TRACE_LEVEL_DEFAULT} ({@value #PROP_ALERT_TRACE_LEVEL_DEFAULT}).
+     */
+    public static final String PROP_ALERT_TRACE_LEVEL_DEFAULT = "warning";
+
+    /**
+     * Property that controls the default delay (or priority) for messages injected by this application. 
+     * <p>
+     * This is the default value delay value used for injection via {@link #injectMessage(IRogMessage, boolean, int)}
+     * when called from a variant that doesn't supply the delay.
+     * <p>
+     * <b>Property name:</b> {@value #PROP_DEFAULT_INJECTION_DELAY}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_DEFAULT_INJECTION_DELAY_DEFAULT}
+     * <br>
+     * @see #PROP_DEFAULT_INJECTION_DELAY_DEFAULT
+     */
+    public static final String PROP_DEFAULT_INJECTION_DELAY = "nv.toa.defaultinjectiondelay";
+
+    /**
+     * The default value for {@link #PROP_ALERT_TRACE_LEVEL_DEFAULT} ({@value #PROP_ALERT_TRACE_LEVEL_DEFAULT}).
+     */
+    public static final int PROP_DEFAULT_INJECTION_DELAY_DEFAULT = 0;
+
+    /**
+     * Property that indicates whether a MessageView or MessageEvent handler will cause all channel types to be joined.
+     * <p>
+     * {@link TopicOrientedApplication}'s default behavior is to join channels for which the application exposes
+     * an {@link EventHandler} annotated method. When this property is set to "true" if an event handler 
+     * discovered that handles a {@link MessageView} or a {@link MessageEvent} then the channel join logic will
+     * join channels associated with any type. 
+     * <p>
+     * Note that an application registered {@link ChannelJoinProvider} takes precedence over this setting so if
+     * this property is set to true and a {@link ChannelJoinProvider} {@link ChannelJoin#NoJoin}
+     * then the channel will not be joined. 
+     * <p>
+     * <b>Property name:</b> {@value #PROP_GENERIC_HANDLER_JOINS_ALL}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT}
+     * <br>
+     * @see #PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT
+     */
+    public static final String PROP_GENERIC_HANDLER_JOINS_ALL = "nv.toa.generichandlerjoinsall";
+
+    /**
+     * The default value for {@link #PROP_GENERIC_HANDLER_JOINS_ALL} ({@value #PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT}).
+     */
+    public static final boolean PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT = true;
+
+    /**
+     * Property used to disable the runtime check against compatibility with nvxtalon. 
+     * <p>
+     * When the Hornet runtime is loaded a compatibility check against 
+     * the version of nvx-talon found on the class path is performed to check for a version of 
+     * nvx-talon that is known to be incompatible with the current Hornet runtime.
+     * <p>
+     * <b>Property name:</b> {@value #PROP_DISABLE_COMPAT_CHECK}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_DISABLE_COMPAT_CHECK_DEFAULT}
+     * <br>
+     * @see #PROP_DISABLE_COMPAT_CHECK_DEFAULT
+     */
+    public static final String PROP_DISABLE_COMPAT_CHECK = "nv.toa.disablecompatcheck";
+
+    /**
+     * The default value for {@link #PROP_DISABLE_COMPAT_CHECK} ({@value #PROP_DISABLE_COMPAT_CHECK_DEFAULT}).
+     */
+    public static final boolean PROP_DISABLE_COMPAT_CHECK_DEFAULT = false;
+
     final private static String MINIMUM_TALON_VERSION = "3.2.86";
+
     final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
     static {
         ProductInfo productInfo = ManifestProductInfo.loadProductInfo("nvx-hornet");
@@ -575,6 +666,8 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     private final EngineTimeImpl _engineClock = new EngineTimeImpl();
     private final PredispatchMessageHandlerDispatcher predispatchMessageHandlerDispatcher = new PredispatchMessageHandlerDispatcher();
     private final PostdispatchMessageHandlerDispatcher postdispatchMessageHandlerDispatcher = new PostdispatchMessageHandlerDispatcher();
+    private final int defaultInjectionDelay = XRuntime.getValue(PROP_DEFAULT_INJECTION_DELAY, PROP_DEFAULT_INJECTION_DELAY_DEFAULT);
+    private final Tracer.Level alertTraceLevel = Tracer.getLevel(XRuntime.getValue(PROP_ALERT_TRACE_LEVEL, PROP_ALERT_TRACE_LEVEL_DEFAULT));
 
     private AepEngine.HAPolicy _haPolicy;
     private IStoreBinding.Role _role;
@@ -585,7 +678,6 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     private volatile boolean messagingConfigured = false;
     private LinkedHashSet<Object> managedObjects = new LinkedHashSet<Object>(); //The managed objects (important to maintain addition order)
     private ManagedObjectLocator managedObjectLocator;
-    private Tracer.Level alertTraceLevel = Tracer.getLevel(XRuntime.getValue("nv.toa.alerttracelevel", Tracer.Level.WARNING.name()));
 
     /**
      * Default constructor.
@@ -627,7 +719,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * Checks compatibility with Core X
      */
     private static void runtimeCompatibilityCheck() {
-        if (!XRuntime.getValue("nv.toa.disablecompatcheck", false)) {
+        if (!XRuntime.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT)) {
             final com.neeve.nvx.talon.Version talonVersion = new com.neeve.nvx.talon.Version();
             final String[] requiredMinVersionComponents = MINIMUM_TALON_VERSION.split("\\.");
             final String[] componentVersions = talonVersion.getFullVersion().split("\\.");
@@ -792,7 +884,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
         // prepare map that contains the channels to join and the map containing the messages to send for each channel
         _tracer.log(tracePrefix() + "...preparing join channel list and message channel map...", Tracer.Level.CONFIG);
-        final boolean genericHandlerJoinsAll = XRuntime.getValue("nv.toa.generichandlerjoinsall", true);
+        final boolean genericHandlerJoinsAll = XRuntime.getValue(PROP_GENERIC_HANDLER_JOINS_ALL, PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT);
         final EventHandlerContext genericMessageViewHandler = eventHandlersByClass.get(MessageView.class);
         final EventHandlerContext genericMessageEventHandler = eventHandlersByClass.get(MessageEvent.class);
         final Map<ToaService, Set<ToaServiceChannel>> channelsWithHandlers = new HashMap<ToaService, Set<ToaServiceChannel>>();
@@ -1690,7 +1782,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @Override
     final public void injectMessage(final IRogMessage message) {
-        injectMessage(message, false, 0);
+        injectMessage(message, false, defaultInjectionDelay);
     }
 
     /* (non-Javadoc)
@@ -1698,7 +1790,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @Override
     final public void injectMessage(final IRogMessage message, boolean nonBlocking) {
-        injectMessage(message, nonBlocking, 0);
+        injectMessage(message, nonBlocking, defaultInjectionDelay);
     }
 
     /* (non-Javadoc)

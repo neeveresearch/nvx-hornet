@@ -50,11 +50,25 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
 
     /**
      * This property controls whether or not strict validation is done on service definition
-     * files located by this locator. When validation is not strict, files found at the locations
+     * files located by this locator. 
+     * <p>
+     * When validation is not strict, files found at the locations
      * for this locator are ignored with a warning, when set to <code>true</code>, an exception
-     * will be thrown if a file is encountered that is not a valid service definition.   
+     * will be thrown if a file is encountered that is not a valid service definition.
+     * <p>
+     * <b>Property name:</b> {@value #PROP_STRICT_SERVICE_VALIDATION}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_STRICT_SERVICE_VALIDATION_DEFAULT}
+     * <br>
+     * @see #PROP_STRICT_SERVICE_VALIDATION_DEFAULT
      */
-    public static final String PROP_STRICT_SERVICE_VALIDATION = "nv.toa.strictServiceLocatorValidation";
+    public static final String PROP_STRICT_SERVICE_VALIDATION = "nv.toa.strictservicelocatorvalidation";
+
+    /**
+     * Deprecated property name
+     * @deprecated use {@link #PROP_STRICT_SERVICE_VALIDATION} instead.
+     */
+    private static final String PROP_STRICT_SERVICE_VALIDATION_DEPRECATED = "nv.toa.strictServiceLocatorValidation";
 
     /**
      * The default value for strict service definition location validation ({@value #PROP_STRICT_SERVICE_VALIDATION_DEFAULT}).
@@ -62,7 +76,7 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
      */
     public static final boolean PROP_STRICT_SERVICE_VALIDATION_DEFAULT = false;
 
-    private final boolean strictValidation = XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION, PROP_STRICT_SERVICE_VALIDATION_DEFAULT);
+    private final boolean strictValidation = XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION, XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION_DEPRECATED, PROP_STRICT_SERVICE_VALIDATION_DEFAULT));
 
     private final static URLFilter SERVICE_FILTER = new URLFilter() {
 

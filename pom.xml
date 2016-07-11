@@ -26,8 +26,13 @@
         <url>http://www.neeveresearch.com</url>
     </organization>
 
+    <scm>
+        <url>https://github.com/neeveresearch/nvx-eagle</url>
+        <connection>scm:git:git://github.com/neeveresearch/nvx-hornet.git</connection>
+    </scm>
+
     <properties>
-        <nvx.core.version>3.4.67</nvx.core.version>
+        <nvx.core.version>3.4.68</nvx.core.version>
         <nvx.core.minorversion>3.4</nvx.core.minorversion>
         <build.version.display>${project.version}</build.version.display>
     </properties>
@@ -116,7 +121,7 @@
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>2.6</version>
 
-                <!-- Copy xsd to target directory so they can be published-->
+                <!-- Copy xsd to target directory so they can be published -->
                 <executions>
                     <execution>
                         <id>copy-xsds</id>
@@ -214,19 +219,26 @@
                     <artifactId>nvx-core-maven-plugin</artifactId>
                     <version>${nvx.core.version}</version>
                 </plugin>
-                
-                <!-- Skip enforcer plugin (caused problems withe javadoc fork)-->
+
+                <!-- Skip enforcer plugin (caused problems withe javadoc fork) -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-enforcer-plugin</artifactId>
                     <configuration>
-                      <skip>true</skip>
+                        <skip>true</skip>
                     </configuration>
+                </plugin>
+
+                <!-- For releases -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-scm-plugin</artifactId>
+                    <version>1.9.5</version>
                 </plugin>
             </plugins>
         </pluginManagement>
     </build>
- 
+
     <repositories>
         <repository>
             <id>neeve-public-release</id>

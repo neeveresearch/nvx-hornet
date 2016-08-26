@@ -32,7 +32,7 @@
     </scm>
 
     <properties>
-        <nvx.core.version>3.4.68</nvx.core.version>
+        <nvx.core.version>3.4.120</nvx.core.version>
         <nvx.core.minorversion>3.4</nvx.core.minorversion>
         <build.version.display>${project.version}</build.version.display>
     </properties>
@@ -344,4 +344,21 @@
             </releases>
         </pluginRepository>
     </pluginRepositories>
+
+    <profiles>
+        <!-- In Development environment use SNAPSHOT 
+        <profile>
+            <id>developer</id>
+            <activation>
+                <property>
+                    <name>m2e.version</name>
+                </property>
+            </activation>
+            <properties>
+                <nvx.core.version>${nvx.core.minorversion}-SNAPSHOT</nvx.core.version>
+            </properties>
+        </profile>
+        -->
+    </profiles>
+
 </project>

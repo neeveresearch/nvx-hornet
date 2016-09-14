@@ -1428,6 +1428,10 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * <p>
      * The default implementation of this method adds a {@link ChannelQosProvider} that calls
      * {@link #getChannelQos(ToaService, ToaServiceChannel)} on this class.
+     * <p>
+     * If multiple {@link ChannelQosProvider}s return differing {@link Qos} values 
+     * for the same service and channel the highest quality of service will be 
+     * selected (e.g. Guaranteeed).
      * 
      * @param containers Objects implementing {@link ChannelQosProvider} should be added to this set.
      */
@@ -1443,13 +1447,13 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
     /**
      * This method may be overridden by subclasses to specify the {@link Qos} for 
-     * the provided service channel. 
-     * <p>
-     * The default implementation returns null which in the absense of .
+     * the provided service channel.
      * <p>
      * This method will not be called unless {@link #addChannelQosProviders(Set)} is
      * called on this class. This is done by the {@link DefaultManagedObjectLocator}, 
-     * but may not be called if the application defines its own {@link ManagedObjectLocator}.
+     * but may not be called if the application defines its own {@link ManagedObjectLocator}
+     * or overrides {@link #addChannelQosProviders(Set)} without delegating to this
+     * base class. 
      * 
      * @param service The service
      * @param channel The channel.

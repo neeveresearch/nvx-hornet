@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,6 +33,10 @@ public interface ChannelQosProvider {
 
     /**
      * Returns the channel {@link Qos} for the given {@link ToaServiceChannel}.
+     * <p>
+     * If multiple {@link ChannelQosProvider}s return differing {@link Qos} values 
+     * for the same service and channel the highest quality of service will be 
+     * selected (e.g. Guaranteeed).
      * 
      * @param service The service that defined the channel.
      * @param channel The channel. 

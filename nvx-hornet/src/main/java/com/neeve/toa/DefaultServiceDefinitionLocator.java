@@ -68,6 +68,7 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
      * Deprecated property name
      * @deprecated use {@link #PROP_STRICT_SERVICE_VALIDATION} instead.
      */
+    @Deprecated
     private static final String PROP_STRICT_SERVICE_VALIDATION_DEPRECATED = "nv.toa.strictServiceLocatorValidation";
 
     /**

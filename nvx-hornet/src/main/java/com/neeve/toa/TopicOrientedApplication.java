@@ -219,9 +219,13 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * When the 'nv.toa' trace level is at or above this level given by the name of a
      * {@link Level}, then alerts will be trace logged. 
      * <p>
+     * <p>
      * <b>Property name:</b> {@value #PROP_ALERT_TRACE_LEVEL}
      * <br>
      * <b>Default value:</b> {@value #PROP_ALERT_TRACE_LEVEL_DEFAULT}
+     * <br>
+     * <b>Valid values:</b> Any valid {@link Level} other than {@link Level#ALL}. If
+     * {@link Level#ALL} is specified the trace level will use {@value #PROP_ALERT_TRACE_LEVEL_DEFAULT}.
      * <br>
      * 
      * @see #PROP_ALERT_TRACE_LEVEL_DEFAULT
@@ -667,7 +671,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     private final PredispatchMessageHandlerDispatcher predispatchMessageHandlerDispatcher = new PredispatchMessageHandlerDispatcher();
     private final PostdispatchMessageHandlerDispatcher postdispatchMessageHandlerDispatcher = new PostdispatchMessageHandlerDispatcher();
     private final int defaultInjectionDelay = XRuntime.getValue(PROP_DEFAULT_INJECTION_DELAY, PROP_DEFAULT_INJECTION_DELAY_DEFAULT);
-    private final Tracer.Level alertTraceLevel = Tracer.getLevel(XRuntime.getValue(PROP_ALERT_TRACE_LEVEL, PROP_ALERT_TRACE_LEVEL_DEFAULT));
+    private final Tracer.Level alertTraceLevel;
 
     private AepEngine.HAPolicy _haPolicy;
     private IStoreBinding.Role _role;
@@ -686,6 +690,15 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         _channelMessageMapByBus = new HashMap<String, Map<String, List<Long>>>();
         _messageChannelMap = XLongLinkedHashMap.newInstance();
         _factoryRegisteredTypesById = XLongLinkedHashMap.newInstance();
+
+        // validate the alert trace level. A value of ALL is ignored.
+        Tracer.Level alertTraceLevel = Tracer.getLevel(XRuntime.getValue(PROP_ALERT_TRACE_LEVEL, PROP_ALERT_TRACE_LEVEL_DEFAULT));
+        if (alertTraceLevel == Level.ALL) {
+            this.alertTraceLevel = Tracer.getLevel(PROP_ALERT_TRACE_LEVEL_DEFAULT);
+        }
+        else {
+            this.alertTraceLevel = alertTraceLevel;
+        }
 
         // validate that the subclass isn't using unsupported annotations:
         for (Method method : getClass().getDeclaredMethods()) {
@@ -2192,7 +2205,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @EventHandler
     private final void onApplicationAlert(IAlertEvent alert) {
-        if (_tracer.getLevel().val > alertTraceLevel.val) {
+        if (_tracer.getLevel().val > alertTraceLevel.val || alertTraceLevel == Level.OFF) {
             return;
         }
 

@@ -54,6 +54,7 @@ import com.neeve.aep.event.AepChannelUpEvent;
 import com.neeve.aep.event.AepEngineActiveEvent;
 import com.neeve.aep.event.AepEngineStartedEvent;
 import com.neeve.aep.event.AepEngineStoppedEvent;
+import com.neeve.aep.event.AepEngineStoppingEvent;
 import com.neeve.aep.event.AepMessagingPrestartEvent;
 import com.neeve.ci.ManifestProductInfo;
 import com.neeve.ci.ProductInfo;
@@ -95,7 +96,6 @@ import com.neeve.sma.MessageChannel.RawKeyResolutionTable;
 import com.neeve.sma.MessageChannelDescriptor;
 import com.neeve.sma.MessageView;
 import com.neeve.sma.MessageViewFactoryRegistry;
-import com.neeve.sma.MessageViewTags;
 import com.neeve.sma.SmaException;
 import com.neeve.sma.event.MessageEvent;
 import com.neeve.toa.service.ToaService;
@@ -301,7 +301,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     public static final boolean PROP_DISABLE_COMPAT_CHECK_DEFAULT = false;
 
-    final private static String MINIMUM_TALON_VERSION = "3.2.86";
+    final private static String MINIMUM_TALON_VERSION = "3.4.316";
 
     final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
     static {
@@ -1818,34 +1818,16 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         if (_engine.getState() == State.Started && _engine.isPrimary()) {
             if (!_engine.isDispatchThread()) {
 
-                if (message == null) {
-                    throw new IllegalArgumentException("cannot inject a null message");
-                }
-
                 if (!_factoryRegisteredTypesById.containsKey(uniqueMessageId(message.getVfid(), message.getType()))) {
                     throw new ToaException("Can't inject '" + message.getClass().getName() + "' it was not registered with the application during initialization. This probably means that you don't have an @EventHandler for it in your application.");
                 }
 
-                if (delay == 0) {
-
-                    try {
-                        _engine.multiplexMessage(message, nonBlocking);
-                    }
-                    catch (IllegalStateException ise) {
-                        //engine may have been stopped during multiplex...
-                        _tracer.log("Injection of message canceled: " + ise.getMessage(), Tracer.Level.WARNING);
-                    }
+                try {
+                    _engine.injectMessage(message, nonBlocking, delay);
                 }
-                else {
-                    final MessageEvent messageEvent = MessageEvent.create(null, null, message, null);
-                    messageEvent.setDelay(delay);
-                    try {
-                        message.setTag(MessageViewTags.TAG_SMA_MESSAGE_EVENT, messageEvent);
-                        _engine.getEventMultiplexer().scheduleEvent(messageEvent);
-                    }
-                    finally {
-                        messageEvent.dispose();
-                    }
+                catch (IllegalStateException ise) {
+                    //engine may have been stopped during multiplex...
+                    _tracer.log("Injection of message canceled: " + ise.getMessage(), Tracer.Level.WARNING);
                 }
             }
             else {
@@ -2220,6 +2202,13 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                 return;
             }
         }
+
+        if (alert instanceof AepEngineStoppingEvent) {
+            if (((AepEngineStoppingEvent)alert).getCause() == null) {
+                return;
+            }
+        }
+
         MessageView backing = alert.getBackingMessage();
         _tracer.log(tracePrefix() + "ALERT: " + alert.toString() + (backing != null ? ": " + backing.toString() : ""), alertTraceLevel);
     }

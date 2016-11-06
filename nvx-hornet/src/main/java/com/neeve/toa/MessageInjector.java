@@ -23,7 +23,6 @@ package com.neeve.toa;
 
 import com.neeve.aep.AepEngine;
 import com.neeve.rog.IRogMessage;
-import com.neeve.sma.MessageView;
 
 /**
  * Defines the interface for injecting messages into a Topic Oriented Applications.
@@ -37,8 +36,7 @@ import com.neeve.sma.MessageView;
  * <b>Threading</b>
  * @threading This method is safe for concurrent access by multiple threads. 
  * 
- * @see AepEngine#multiplexMessage(IRogMessage)
- * @see AepEngine#multiplexMessage(IRogMessage, boolean)
+ * @see AepEngine#injectMessage(IRogMessage, boolean, int)
  * @see AepEngine
  * @see TopicOrientedApplication
  */
@@ -47,29 +45,31 @@ public interface MessageInjector {
     /**
      * Enqueue a message into an application's {@link AepEngine}'s event multiplexer. 
      * <p>
-     * This method is the same as {@link #injectMessage(IRogMessage, boolean)} with
-     * a value of false for nonBlocking. 
-     * 
+     * This method is the same as {@link #injectMessage(IRogMessage, boolean, int) injectMessage(message, false, defaultInjectionDelay)}.
+     * (where default injection delay is set by {@link TopicOrientedApplication#PROP_DEFAULT_INJECTION_DELAY}).
+     *  
      * @param message The message to enqueue. 
+     * 
+     * @see AepEngine#injectMessage(IRogMessage, boolean)
      */
     public void injectMessage(IRogMessage message);
 
     /**
      * Enqueue a message into an application's {@link AepEngine}'s event multiplexer. 
      * <p>
-     * This method is the same as {@link #injectMessage(IRogMessage, boolean)} with
-     * a value of false for nonBlocking and the default injection delay that was configured
-     * for this MessageInjector.
+     * This method is the same as {@link #injectMessage(IRogMessage, boolean, int) injectMessage(message, nonBlocking, defaultInjectionDelay)} 
+     * (where default injection delay is set by {@link TopicOrientedApplication#PROP_DEFAULT_INJECTION_DELAY}).
      * 
      * @param message The message to enqueue. 
      * 
      * @param nonBlocking Indicates whether the multiplexing should be a 
      * non-blocking action or not. If blocking, then the calling thread 
-     * will block if the main multiplexer queue is full and wait until 
+     * will block if the engine's input multiplexer queue is full and wait until 
      * space is available. If non-blocking, then the method will not
-     * wait but rather enque the message in a multiplexer feeder queue 
-     * and return. 
+     * wait but rather enque the message in a feeder queue fronting the engine's
+     * input multiplexer queue. 
      * 
+     * @see AepEngine#injectMessage(IRogMessage, boolean)
      * @see TopicOrientedApplication#PROP_DEFAULT_INJECTION_DELAY
      */
     public void injectMessage(IRogMessage message, boolean nonBlocking);
@@ -77,72 +77,25 @@ public interface MessageInjector {
     /**
      * Enqueue a message into an application's {@link AepEngine}'s event multiplexer. 
      * <p> 
-     * This method enqueues a message into an engine's event multiplexer 
-     * event loop and returns to the caller. The message is then dispatched 
-     * subsequently using the normal message dispatch mechanisms.
-     * 
-     * <h2>Injection from an Event/Message Handler</h2>
-     * Injection of messages from an event handler is not currently a safe operation
-     * from an HA standpoint and as such it is currently disallowed. 
-     * 
-     * <h2>Delayed or Priority Injection</h2>
-     * The value of the delay parameter is interpreted as follows:
-     * <ul>
-     * <li>A value of 0 causes the message to be added to the end of the underlying engine's 
-     * event multiplexer queue for immediate dispatch after already enqueued events. 
-     * <li>A positive value is interpreted in milliseconds and will cause the execution of the
-     * event to be scheduled no sooner than the delay period. When 2 events are scheduled with a positive delay
-     * that results in the same scheduled execution time, then the events are executed in the order 
-     * they were added. E.g. if E1 is injected at time T with delay of 2ms and and E2 injected at 
-     * time T + 1ms with a delay of 1ms, E2 will be scheduled after E1 (presuming a clock precision
-     * with a resolution of 1ms for System.currentTimeMillis()).
-     * <li>A negative value is treated as a high priority dispatch and are added to the 
-     * beginning of the engine's event multiplexer queue, a lower delay represents a higher
-     * priority dispatch. When 2 events are scheduled with same <i>negative</i> delay the latter 
-     * scheduled event will be executed after the former.
-     * <br><b>NOTE: Priorities less than -1000 are reserved for platform use.</b>
-     * </ul>
-     * 
-     * <h2>Behavior when not in HA Active Role</h2>
-     * The message will only be injected on Started engines operating in the Primary role.
-     * Calls to inject are ignored on backup instances as the expectation is that the
-     * injected message will be replicated from the primary. Calls made while an engine
-     * is replaying from a transaction log are similarly ignored as they would interfere
-     * with the stream being replayed. An application that injects messages from an
-     * external source may call {@link AepEngine#waitForMessagingToStart()} to avoid
-     * an injected message being discarded while an engine is transitioning to a started,
-     * primary role. 
-     * <b>It is important to note that message injection is thus effectively a BestEffort 
-     * operation because injections of message that are in the event multiplexer queue
-     * at the time of failure will be lost</b>
-     * 
-     * <h2>Message Pooling Considerations</h2>
-     * This method transfers ownership of the message to the platform, the method
-     * caller must not modify the message subsequent to this call. The platform
-     * will call {@link IRogMessage#dispose()} on the message once it has been dispatched, 
-     * so an application must call {@link MessageView#acquire()} if it will hold on to
-     * a (read-only) reference to the message. 
-     * 
-     * <h2>Blocking vs. Non Blocking Considerations</h2>
-     * Care must be taken when considering whether to use using blocking
-     * or non blocking injection.  If the injecting thread is injecting to a engine 
-     * multiplexer that may itself block on a resource held by the thread trying to inject,
-     * is can cause a deadlock. Conversely, using non blocking dispatch can result in excessive 
-     * memory growth, increased latency and fairness issues, so if the injecting thread 
-     * is drawing events from an external source, blocking dispatch is generally the right choice. 
+     * This method is the same as the corresponding {@link AepEngine#injectMessage(IRogMessage, boolean, int)}
+     * method <b>except</b> that this method disallows injection of message from the {@link AepEngine}'s 
+     * dispatch thread (i.e. from a message handler). 
      * 
      * @param message The IRogMessage to enqueue. 
      *  
      * @param nonBlocking Indicates whether the multiplexing should be a 
      * non-blocking action or not. If blocking, then the calling thread 
-     * will block if the main multiplexer queue is full and wait until 
+     * will block if the engine's input multiplexer queue is full and wait until 
      * space is available. If non-blocking, then the method will not
-     * wait but rather enque the message in a multiplexer feeder queue 
-     * and return. 
+     * wait but rather enque the message in a feeder queue fronting the engine's
+     * input multiplexer queue. 
      * 
      * @param delay The delay in milliseconds at which the message should be injected.
      *  
      * @threading This method is safe for concurrent access by multiple threads. 
+     * 
+     * @throws IllegalStateException If the underlying AepEngine has not been started. 
+     * @throws UnsupportedOperationException if this is called from the {@link AepEngine}'s dispatch therad (i.e. a message/event handler). 
      */
     void injectMessage(IRogMessage message, boolean nonBlocking, int delay);
 

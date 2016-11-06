@@ -80,9 +80,9 @@ public class SingleAppToaServer<T extends TopicOrientedApplication> extends Embe
             overrides.put("application.server.name", appName + "-" + instanceId);
             overrides.put("application.main.class", applicationClass.getName());
             overrides.put("transport.descriptor", "loopback://.");
-            overrides.put("store.descriptor", "native://loopback://clusterdiscovery&amp;initWaitTime=1000");
-            overrides.put("store.discovery.descriptor", "loopback://clusterdiscovery&amp;initWaitTime=1&amp;memberName=" + serverName);
-            overrides.put("server.discoveryDescriptor", "loopback://serverdiscovery&amp;initWaitTime=1");
+            overrides.put("store.descriptor", "native://loopback://clusterdiscovery&initWaitTime=1000");
+            overrides.put("store.discovery.descriptor", "loopback://clusterdiscovery&initWaitTime=1&memberName=" + serverName);
+            overrides.put("server.discoveryDescriptor", "loopback://serverdiscovery&initWaitTime=0");
             if (configOverrides != null) {
                 overrides.putAll(configOverrides);
                 XRuntime.getProps().putAll(overrides);

@@ -733,7 +733,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     private static void runtimeCompatibilityCheck() {
         if (!XRuntime.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT)) {
-            final com.neeve.nvxtalon.Version talonVersion = new com.neeve.nvxtalon.Version();
+            final com.neeve.nvx.talon.Version talonVersion = new com.neeve.nvx.talon.Version();
             final String[] requiredMinVersionComponents = MINIMUM_TALON_VERSION.split("\\.");
             final String[] componentVersions = talonVersion.getFullVersion().split("\\.");
             try {

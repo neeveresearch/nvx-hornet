@@ -72,7 +72,7 @@
                 <bus name="${application.name::unknown}"/>
             </messaging>
             <outboundMessageLogging policy="${outbound.message.logging.policy::Off}"/>
-            <inboundMessageLogging policy="${inbound.message.logging.policy::Default}"/>
+            <inboundMessageLogging policy="${inbound.message.logging.policy::Off}"/>
             <storage descriptor="${store.descriptor::native://.}" enabled="${store.enabled::false}">
               <discoveryDescriptor>${store.discovery.descriptor}</discoveryDescriptor>
               <persistence enabled="${store.persister.enabled::true}">

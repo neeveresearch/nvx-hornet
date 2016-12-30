@@ -63,6 +63,7 @@ public abstract class AbstractToaTest extends UnitTest {
         DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS.add("outTs");
         DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS.add("transactionInSequenceNumber");
         DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS.add("isInboundMessage");
+        DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS.add("serializedMetadataLength");
         DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS.add("isOutboundMessage");
         DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS.add("transactionId");
         DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS.add("preProcessingTs");

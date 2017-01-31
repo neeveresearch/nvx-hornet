@@ -22,12 +22,32 @@
 package com.neeve.toa.spi;
 
 import com.neeve.sma.MessageChannel.Qos;
+import com.neeve.toa.TopicOrientedApplication;
 import com.neeve.toa.service.ToaService;
 import com.neeve.toa.service.ToaServiceChannel;
 
 /**
- * A {@link ChannelQosProvider} resolves the channel filter for a 
- * given {@link ToaServiceChannel} channel. 
+ * A {@link ChannelQosProvider} resolves the channel filter for a given {@link ToaServiceChannel} channel.
+ * 
+ * <h2>Channel QoS Resolution in Hornet</h2>
+ * A {@link TopicOrientedApplication} in hornet will automatically create buses and channels that 
+ * have have not already been configured for the application. 
+ * <p>
+ * In the absense of a {@link ChannelQosProvider}:
+ * <ul>
+ * <li>If the bus and channel is defined already in DDL the configured QoS will be used as the default.
+ * <li>If the channel is not defined then QoS default is set to Guaranteed
+ * </ul>
+ * <p>
+ * ChannelQosProviders can be used to override the QoS determined above:
+ * <ul>
+ * <li>If any ChannelQosProviders returns a {@link Qos} via {@link #getChannelQos(ToaService, ToaServiceChannel)} that value
+ *     is used to update the {@link Qos} for the channel. 
+ * <li>If one provider returns `BestEffort` and another `Guaranteed`, then Guaranteed is chosen.
+ * </ul>
+ * 
+ * The above logic only applies to channels discovered in Hornet services. Any preconfigured channels 
+ * for a bus that are unrelated to a service for the application are not modified. 
  */
 public interface ChannelQosProvider {
 

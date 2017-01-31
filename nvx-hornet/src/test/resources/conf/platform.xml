@@ -31,12 +31,13 @@
             <interval>10000</interval>
             <pool.trace>config</pool.trace>
           </stats>
+          <trace>info</trace>
         </server>
         <adm>
           <enableimportcaching>true</enableimportcaching>
         </adm>
         <toa>
-          <trace>config</trace>
+          <trace>info</trace>
           <disablecompatcheck>true</disablecompatcheck>
         </toa>
         <event>

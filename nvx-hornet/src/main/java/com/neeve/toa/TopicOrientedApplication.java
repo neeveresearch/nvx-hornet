@@ -861,10 +861,13 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             }
 
             try {
-                _tracer.log(tracePrefix() + "......'" + url + "'.", Tracer.Level.CONFIG);
+                _tracer.log(tracePrefix() + "......loading '" + url + "'.", Tracer.Level.CONFIG);
                 final ToaService service = ToaService.unmarshal(url);
                 if (!services.add(service)) {
-                    _tracer.log(tracePrefix() + "...ignore duplicate service '" + service.getName() + "' from " + url, Tracer.Level.CONFIG);
+                    _tracer.log(tracePrefix() + ".........ignore duplicate service '" + service.getName() + "' from " + url, Tracer.Level.CONFIG);
+                }
+                else {
+                    _tracer.log(tracePrefix() + ".........loaded service '" + service.getName() + "'.", Tracer.Level.CONFIG);
                 }
 
                 defaultChannels.put(service, service.getDefaultChannel());
@@ -1018,6 +1021,14 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
                     _messageChannelMap.put(uniqueMessageId, new MessageSendContext(XString.create(toaChannel.getBusName(), true, true), XString.create(toaChannel.getName(), true, true), admMessage.getFullName(), toaChannel, topicResolver));
                 }
+            }
+        }
+
+        // trace handlers found...
+        if (_tracer.getLevel().val <= Tracer.Level.CONFIG.val) {
+            _tracer.log(tracePrefix() + "......messages channel mappings...", Tracer.Level.CONFIG);
+            for (MessageSendContext sendContext : _messageChannelMap.values()) {
+                _tracer.log(tracePrefix() + ".........message '" + sendContext.messageType + "' -> " + sendContext.channelName + "@" + sendContext.busName + "(from service '" + sendContext.serviceChannel.getService().getName() + "')", Tracer.Level.CONFIG);
             }
         }
 

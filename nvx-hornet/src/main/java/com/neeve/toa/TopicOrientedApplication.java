@@ -41,6 +41,7 @@ import com.neeve.adm.runtime.annotations.AdmGenerated;
 import com.neeve.aep.AepEngine;
 import com.neeve.aep.AepEngine.MessagingStartFailPolicy;
 import com.neeve.aep.AepEngine.State;
+import com.neeve.aep.AepEngineDescriptor.ChannelConfig;
 import com.neeve.aep.AepEngineDescriptor;
 import com.neeve.aep.AepEventDispatcher;
 import com.neeve.aep.IAepApplicationStateFactory;
@@ -301,7 +302,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     public static final boolean PROP_DISABLE_COMPAT_CHECK_DEFAULT = false;
 
-    final private static String MINIMUM_TALON_VERSION = "3.4.316";
+    final private static String MINIMUM_TALON_VERSION = "3.5.99";
 
     final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
     static {
@@ -1176,12 +1177,27 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                             }
                         }
 
+                        // Join and Filter can come from DDL. They will be used if not overridden by a provider. 
+                        AepEngineDescriptor.ChannelConfig engineChannelConfig = _engineDescriptor.getChannelConfig(busName, channel.getName());
+                        boolean preConfiguredChannel = true;
+                        if (engineChannelConfig == null) {
+                            preConfiguredChannel = false;
+                            engineChannelConfig = ChannelConfig.from("join=false");
+                        }
+
                         if (channelFilter != null) {
-                            channelDescriptor.setChannelFilter(channelFilter);
+                            if (engineChannelConfig.getFilter() != null) {
+                                _tracer.log(tracePrefix() + ".........overrides preconfigured filter '" + engineChannelConfig.getFilter() + ".", Tracer.Level.CONFIG);
+                            }
+                            engineChannelConfig.setFilter(channelFilter);
                         }
                         else {
-                            channelFilter = channelDescriptor.getChannelFilter();
-                            _tracer.log(tracePrefix() + "......channel filter for '" + channelDescriptor.getName() + "' '" + channelFilter + "' already defined in channel descriptor.", Tracer.Level.CONFIG);
+                            if (engineChannelConfig.getFilter() != null) {
+                                _tracer.log(tracePrefix() + "......channel filter for '" + channelDescriptor.getName() + "' '" + engineChannelConfig.getFilter() + "' already defined in app's bus channel descriptor.", Tracer.Level.CONFIG);
+                            }
+                            else if (channelDescriptor.getChannelFilter() != null) {
+                                _tracer.log(tracePrefix() + "......channel filter for '" + channelDescriptor.getName() + "' '" + channelDescriptor.getChannelFilter() + "' already defined in bus channel descriptor.", Tracer.Level.CONFIG);
+                            }
                         }
 
                         ChannelJoin channelJoin = ChannelJoin.Default;
@@ -1212,16 +1228,30 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                                 break;
                             default:
                             case Default:
-                                join = hasHandler;
+                                if (hasHandler) {
+                                    join = true;
+                                    _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' '" + ChannelJoin.Join + "' implicitly joined by presense of message handler.", Tracer.Level.CONFIG);
+                                }
+                                else if (preConfiguredChannel) {
+                                    join = engineChannelConfig.getJoin();
+                                    channelJoin = join ? ChannelJoin.Join : ChannelJoin.NoJoin;
+                                    _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' '" + channelJoin + "' as preconfigured for application.", Tracer.Level.CONFIG);
+                                }
+                                else {
+                                    _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' '" + ChannelJoin.NoJoin + "' no join provider, message handler, or preconfiguration, .", Tracer.Level.CONFIG);
+                                    join = false;
+                                }
                                 break;
                         }
+
+                        engineChannelConfig.setJoin(join);
 
                         // add to engine
                         _engineDescriptor.addChannel(busDescriptor.getName(),
                                                      channel.getName(),
-                                                     AepEngineDescriptor.ChannelConfig.from("join=" + join));
+                                                     engineChannelConfig);
                         // trace
-                        _tracer.log(tracePrefix() + "......channel '" + channelDescriptor.getName() + "' configured (qos=" + channelDescriptor.getChannelQos() + ", key=" + channelDescriptor.getChannelKey() + ", filter=" + channelDescriptor.getChannelFilter() + ", join=" + join + ")...", Tracer.Level.CONFIG);
+                        _tracer.log(tracePrefix() + "......channel '" + channelDescriptor.getName() + "' configured (qos=" + channelDescriptor.getChannelQos() + ", key=" + channelDescriptor.getChannelKey() + ", filter=" + channelFilter + ", join=" + join + ")...", Tracer.Level.CONFIG);
                     }
                 }
                 busDescriptor.save(busName);

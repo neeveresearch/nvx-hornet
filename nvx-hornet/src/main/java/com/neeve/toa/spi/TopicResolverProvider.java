@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,6 +32,8 @@ import com.neeve.toa.service.ToaServiceChannel;
  * on the channel key defined in the service xml, but in some cases the application can
  * more efficiently resolve the topic, and in such cases may want to provide their own 
  * {@link TopicResolver}s.
+ * 
+ * <i><b>Note</b>Topic Resolvers are currently an experimental feature</i>
  */
 public interface TopicResolverProvider {
 

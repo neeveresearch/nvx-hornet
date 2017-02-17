@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,6 +23,7 @@ package com.neeve.toa.spi;
 
 import java.util.Properties;
 
+import com.neeve.toa.TopicOrientedApplication;
 import com.neeve.toa.service.ToaService;
 import com.neeve.toa.service.ToaServiceChannel;
 
@@ -30,6 +31,8 @@ import com.neeve.toa.service.ToaServiceChannel;
  * Called by a Topic Oriented Application at the time it is configured which allows all or a portion 
  * of a channel's dynamic key parts to be determined statically at configuration time by returning a 
  * initial Key Resolution Table (KRT).
+ * 
+ * @see TopicOrientedApplication TopicOrientedApplication messaging configuration
  */
 public interface ChannelInitialKeyResolutionTableProvider {
 
@@ -69,6 +72,8 @@ public interface ChannelInitialKeyResolutionTableProvider {
      * @param service The service name. 
      * @param channel The channel for which to perform key resolution
      * @return A key resolution table to substitute some or all of the configured channel key.
+     * 
+     * @see TopicOrientedApplication TopicOrientedApplication messaging configuration
      */
     public Properties getInitialChannelKeyResolutionTable(ToaService service, ToaServiceChannel channel);
 }

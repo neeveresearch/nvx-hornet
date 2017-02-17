@@ -48,6 +48,8 @@ import com.neeve.toa.service.ToaServiceChannel;
  * 
  * The above logic only applies to channels discovered in Hornet services. Any preconfigured channels 
  * for a bus that are unrelated to a service for the application are not modified. 
+ * 
+ * @see TopicOrientedApplication TopicOrientedApplication messaging configuration
  */
 public interface ChannelQosProvider {
 
@@ -63,6 +65,8 @@ public interface ChannelQosProvider {
      * 
      * @return The channel {@link Qos} or <code>null</null> if the provider either doesn't provide
      * {@link Qos} for this channel or if the channel should not be filtered. 
+     * 
+     * @see TopicOrientedApplication TopicOrientedApplication messaging configuration
      */
     public Qos getChannelQos(ToaService service, ToaServiceChannel channel);
 }

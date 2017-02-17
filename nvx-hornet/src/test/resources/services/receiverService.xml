@@ -33,6 +33,8 @@
         <Channel name="ReceiverChannel4" key="Receiver4/${IntField}_${LongField::2}"/>
         <Channel name="ReceiverChannel5" key="Receiver5/${StringField}"/>
         <Channel name="KRTTestChannel" key="KRTTest/${IntField}/${KRTField}"/>
+        <!-- This UnmappedChannel has no messages mapped to it -->
+        <Channel name="UnmappedChannel" key="UnmappedChannel"/>
     </Channels>
     <Roles>
         <To role="Receiver">

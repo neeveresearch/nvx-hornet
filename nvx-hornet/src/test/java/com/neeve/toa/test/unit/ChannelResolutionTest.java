@@ -21,9 +21,7 @@
  */
 package com.neeve.toa.test.unit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +31,7 @@ import java.util.Set;
 import org.junit.Test;
 
 import com.neeve.aep.AepBusManager;
+import com.neeve.aep.AepMessageSender;
 import com.neeve.aep.AepEngine.HAPolicy;
 import com.neeve.aep.annotations.EventHandler;
 import com.neeve.aep.event.AepUnhandledMessageEvent;
@@ -48,6 +47,7 @@ import com.neeve.sma.MessageChannelDescriptor;
 import com.neeve.sma.SmaException;
 import com.neeve.sma.impl.MessageChannelBase;
 import com.neeve.toa.ToaException;
+import com.neeve.toa.TopicOrientedApplication;
 import com.neeve.toa.service.ToaService;
 import com.neeve.toa.service.ToaServiceChannel;
 import com.neeve.toa.spi.AbstractTopicResolver;
@@ -55,6 +55,7 @@ import com.neeve.toa.spi.ChannelFilterProvider;
 import com.neeve.toa.spi.ChannelJoinProvider;
 import com.neeve.toa.spi.ChannelQosProvider;
 import com.neeve.toa.spi.TopicResolver;
+import com.neeve.toa.test.unit.modelB.ModelBMessage1;
 import com.neeve.util.UtlTailoring;
 
 /**
@@ -71,6 +72,7 @@ public class ChannelResolutionTest extends AbstractToaTest {
 
     @AppHAPolicy(HAPolicy.EventSourcing)
     public static class SenderApp extends AbstractToaTestApp {
+        volatile AepMessageSender aepMessageSender;
 
         public void sendTestMessage(IRogMessage message) {
             recordSend(message);
@@ -268,6 +270,36 @@ public class ChannelResolutionTest extends AbstractToaTest {
                 @Override
                 public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
                     if (channel.getSimpleName().equals("ReceiverChannel2")) {
+                        return ChannelJoin.Join;
+                    }
+                    return null;
+                }
+            });
+        }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class UnmappedChannelJoinReceiverApp extends AbstractToaTestApp {
+        @EventHandler
+        public void onUnhandledMessage(AepUnhandledMessageEvent event) {
+            System.out.println("GOT AEP UNHANDLED MESSAGE");
+            recordReceipt((IRogMessage)event.getTriggeringMessage());
+        }
+
+        @EventHandler
+        public void onUnmappedMessage(ModelBMessage1 message) {
+            System.out.println("GOT ModelBMessage1");
+            recordReceipt(message);
+        }
+
+        @Override
+        public void addChannelJoinProviders(Set<Object> providers) {
+            super.addChannelJoinProviders(providers);
+            providers.add(new ChannelJoinProvider() {
+
+                @Override
+                public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+                    if (channel.getSimpleName().equals("UnmappedChannel")) {
                         return ChannelJoin.Join;
                     }
                     return null;
@@ -1350,5 +1382,42 @@ public class ChannelResolutionTest extends AbstractToaTest {
         receiver.assertExpectedReceipt(5, 2);
         assertEquals("Wrong type for received message", ReceiverMessage1.class, receiver.received.get(0).getClass());
         assertEquals("Wrong type for received message", ReceiverMessage2.class, receiver.received.get(1).getClass());
+    }
+
+    @Test
+    public void testUnMappedChannelJoinProviderDefault() throws Throwable {
+        XRuntime.getProps().setProperty(TopicOrientedApplication.PROP_IGNORE_UNMAPPED_CHANNELS, "false");
+        try {
+            UnmappedChannelJoinReceiverApp receiver = createApp("testUnMappedChannelJoinProviderJoin", "standalone", UnmappedChannelJoinReceiverApp.class);
+            receiver.holdMessages = true;
+            SenderApp sender = createApp("testChannelJoinProviderDefaultSender", "standalone", SenderApp.class);
+
+            // send a message on UnmappedChannel which has no message mapped to it.
+            MessageChannel unmappedChannel = null;
+            for (AepBusManager busManager : sender.getAepEngine().getBusManagers()) {
+                if (!busManager.getBusBinding().getName().equals("testChannelJoinProviderDefaultSender")) {
+                    continue;
+                }
+                unmappedChannel = busManager.getChannel("receiverservice-UnmappedChannel");
+                break;
+            }
+            assertNotNull("receiverservice-UnmappedChannel not found in sender's bus", unmappedChannel);
+
+            ModelBMessage1 message = ModelBMessage1.create();
+            message.setMessageBusAsRaw(unmappedChannel.getMessageBusBinding().getNameAsRaw());
+            message.setMessageChannelAsRaw(unmappedChannel.getNameAsRaw());
+            sender.getAepEngine().sendMessage(unmappedChannel, message);
+
+            sender.waitForTransactionStability(1);
+            receiver.waitForTransactionStability(1);
+
+            // receiver should only get ReceiverMessage2 since ReceiverMessage1 channel 
+            // join was set to false
+            receiver.assertExpectedReceipt(5, 1);
+            assertEquals("Wrong type for received message", ModelBMessage1.class, receiver.received.get(0).getClass());
+        }
+        finally {
+            XRuntime.getProps().remove(TopicOrientedApplication.PROP_IGNORE_UNMAPPED_CHANNELS);
+        }
     }
 }

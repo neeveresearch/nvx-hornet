@@ -32,8 +32,8 @@
     </scm>
 
     <properties>
-        <nvx.core.version>3.5-SNAPSHOT</nvx.core.version>
-        <nvx.core.minorversion>3.5</nvx.core.minorversion>
+        <nvx.core.version>3.6-SNAPSHOT</nvx.core.version>
+        <nvx.core.minorversion>3.6</nvx.core.minorversion>
         <build.version.display>${project.version}</build.version.display>
     </properties>
 

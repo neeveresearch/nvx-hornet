@@ -342,6 +342,17 @@
                 <enabled>true</enabled>
             </releases>
         </pluginRepository>
+        <pluginRepository>
+            <id>neeve-snapshot</id>
+            <url>http://nexus.neeveresearch.com/nexus/content/repositories/snapshots/</url>
+            <name>Neeve Snapshot Repo</name>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+        </pluginRepository>
     </pluginRepositories>
 
     <profiles>

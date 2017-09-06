@@ -51,6 +51,7 @@ import com.neeve.util.UtlStr.ISubstResolver;
 public class SingleAppToaServer<T extends TopicOrientedApplication> extends EmbeddedServer {
 
     public static final String PROP_NAME_STORE_ENABLED = "store.enabled";
+    public static final String PROP_NAME_STORE_CLUSTERING_ENABLED = "store.clustering.enabled";
 
     private final Class<T> applicationClass;
     private final String appName;
@@ -80,9 +81,8 @@ public class SingleAppToaServer<T extends TopicOrientedApplication> extends Embe
             overrides.put("application.server.name", appName + "-" + instanceId);
             overrides.put("application.main.class", applicationClass.getName());
             overrides.put("transport.descriptor", "loopback://.");
-            overrides.put("store.descriptor", "native://loopback://clusterdiscovery&initWaitTime=1000");
-            overrides.put("store.discovery.descriptor", "loopback://clusterdiscovery&initWaitTime=1&memberName=" + serverName);
-            overrides.put("server.discoveryDescriptor", "loopback://serverdiscovery&initWaitTime=0");
+            overrides.put("store.discovery.descriptor", "loopback://clusterdiscovery&initWaitTime=2");
+            overrides.put("server.discoveryDescriptor", "local://serverdiscovery&initWaitTime=0");
             if (configOverrides != null) {
                 overrides.putAll(configOverrides);
                 XRuntime.getProps().putAll(overrides);

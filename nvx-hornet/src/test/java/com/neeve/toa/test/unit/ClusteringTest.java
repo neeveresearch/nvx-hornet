@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,7 +21,7 @@
  */
 package com.neeve.toa.test.unit;
 
-import static com.neeve.toa.test.unit.SingleAppToaServer.PROP_NAME_STORE_ENABLED;
+import static com.neeve.toa.test.unit.SingleAppToaServer.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -76,6 +76,7 @@ public class ClusteringTest extends AbstractToaTest {
     public void testClusteredApp() throws Throwable {
         Map<String, String> configOverrides = new HashMap<String, String>();
         configOverrides.put(PROP_NAME_STORE_ENABLED, "true");
+        configOverrides.put(PROP_NAME_STORE_CLUSTERING_ENABLED, "true");
 
         SingleAppToaServer<ClusteredEventSourcingApp> primaryServer = createServer(testcaseName.getMethodName(), "primary", ClusteredEventSourcingApp.class, configOverrides);
         primaryServer.start();
@@ -113,7 +114,7 @@ public class ClusteringTest extends AbstractToaTest {
     @Test
     public void testNonClusteredApp() throws Throwable {
         Map<String, String> configOverrides = new HashMap<String, String>();
-        configOverrides.put(PROP_NAME_STORE_ENABLED, "false");
+        configOverrides.put(PROP_NAME_STORE_CLUSTERING_ENABLED, "false");
 
         SingleAppToaServer<NonClusteredApp> server = createServer(testcaseName.getMethodName(), "standalone", NonClusteredApp.class, configOverrides);
         server.start();

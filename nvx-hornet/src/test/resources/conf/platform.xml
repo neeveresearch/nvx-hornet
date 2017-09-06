@@ -74,13 +74,16 @@
             </messaging>
             <outboundMessageLogging policy="${outbound.message.logging.policy::Off}"/>
             <inboundMessageLogging policy="${inbound.message.logging.policy::Off}"/>
-            <storage descriptor="${store.descriptor::native://.}" enabled="${store.enabled::false}">
-              <discoveryDescriptor>${store.discovery.descriptor}</discoveryDescriptor>
+            <storage enabled="${store.enabled::false}">
               <persistence enabled="${store.persister.enabled::true}">
                 <storeRoot>${NVROOT}/rdat/${application.server.name::}</storeRoot>
                 <detachedPersist enabled="${store.persister.detachedPersist::true}">
                 </detachedPersist>
               </persistence>
+              <clustering enabled="${store.clustering.enabled::false}">
+                <discoveryDescriptor>${store.discovery.descriptor}</discoveryDescriptor>
+                <initWaitTime>1000</initWaitTime>
+              </clustering>
             </storage>
             <adaptiveCommitBatchCeiling>${adaptiveCommitBatchCeiling::0}</adaptiveCommitBatchCeiling>
             <disposeOnSend>true</disposeOnSend>

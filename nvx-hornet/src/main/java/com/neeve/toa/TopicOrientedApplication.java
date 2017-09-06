@@ -395,7 +395,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     /**
      * The default value for {@link #PROP_GENERIC_HANDLER_JOINS_ALL} ({@value #PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT}).
      */
-    public static final boolean PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT = true;
+    public static final boolean PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT = false;
 
     /**
      * Property used to indicate whether Hornet processes service channels that are not mapped
@@ -415,6 +415,35 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * The default value for {@link #PROP_IGNORE_UNMAPPED_CHANNELS} ({@value #PROP_IGNORE_UNMAPPED_CHANNELS_DEFAULT}).
      */
     public static final boolean PROP_IGNORE_UNMAPPED_CHANNELS_DEFAULT = false;
+
+    /**
+     * Property used to indicate whether Hornet messaging configuration should fail if two services
+     * result in the same channel name being used on the same bus. 
+     * <p>
+     * By default Hornet prefixes channels declared in a service by the lowercase value of the 
+     * of the service name to prevent collisions between channels declared in two separate services.
+     * <p>
+     * In cases where either (a) the service is declared not to prefix channel names or (b) where
+     * two services in different namespaces, but with the same name declare the same channel name
+     * it can result in both services creating the same channel resulting in the messages from both
+     * services flowing over the same message channel. In most cases this behavior is undesirable and
+     * configuration of messaging should fail.
+     * <p>
+     * This property allows changing the behavior not to fail when two services create channels with
+     * the same name. 
+     *   
+     * <p>
+     * <b>Property name:</b> {@value #PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION_DEFAULT}
+     * <br>
+     */
+    public static final String PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION = "nv.toa.failonchannelnamecollision";
+
+    /**
+     * The default value for {@link #PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION} ({@value #PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION_DEFAULT}).
+     */
+    public static final boolean PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION_DEFAULT = true;
 
     /**
      * Property used to disable the runtime check against compatibility with nvxtalon. 
@@ -1037,8 +1066,8 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         _tracer.log(tracePrefix() + "...preparing join channel list and message channel map...", Tracer.Level.CONFIG);
         final boolean genericHandlerJoinsAll = XRuntime.getValue(PROP_GENERIC_HANDLER_JOINS_ALL, PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT);
         final boolean ignoreUnmappedChannels = XRuntime.getValue(PROP_IGNORE_UNMAPPED_CHANNELS, PROP_IGNORE_UNMAPPED_CHANNELS_DEFAULT);
-        final EventHandlerContext genericMessageViewHandler = eventHandlersByClass.get(MessageView.class);
-        final EventHandlerContext genericMessageEventHandler = eventHandlersByClass.get(MessageEvent.class);
+        final EventHandlerContext genericMessageViewHandler = eventHandlersByClass.get(MessageView.class.getName());
+        final EventHandlerContext genericMessageEventHandler = eventHandlersByClass.get(MessageEvent.class.getName());
         final Map<ToaService, Set<ToaServiceChannel>> channelsWithHandlers = new HashMap<ToaService, Set<ToaServiceChannel>>();
         final HashMap<String, ServiceMessageContext> serviceDeclaredMessages = new HashMap<String, ServiceMessageContext>();
         for (ToaService service : services) {
@@ -1112,8 +1141,8 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                     // join the channel if event handlers are not marked for only local message dispatch
                     if ((eventHandler != null && !eventHandler.localOnly) ||
                             (genericHandlerJoinsAll &&
-                            ((genericMessageEventHandler != null && !genericMessageEventHandler.localOnly) ||
-                            (genericMessageViewHandler != null && !genericMessageViewHandler.localOnly)))) {
+                                    ((genericMessageEventHandler != null && !genericMessageEventHandler.localOnly) ||
+                                            (genericMessageViewHandler != null && !genericMessageViewHandler.localOnly)))) {
                         Set<ToaServiceChannel> serviceJoinChannels = channelsWithHandlers.get(service);
                         if (serviceJoinChannels == null) {
                             channelsWithHandlers.put(service, serviceJoinChannels = new HashSet<ToaServiceChannel>());
@@ -1226,6 +1255,8 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         }
 
         // prepare the bus descriptor and, while doing so, add channels to the engine descriptor to register interest
+        final boolean failOnServiceChannelNameCollision = XRuntime.getValue(PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION, PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION_DEFAULT);
+        final HashMap<String, ToaService> channelNameToServiceMap = new HashMap<String, ToaService>();
         try {
             for (String busName : _channelMessageMapByBus.keySet()) {
                 _tracer.log(tracePrefix() + "...adding channels to bus descriptor '" + busName + "'...", Tracer.Level.CONFIG);
@@ -1241,11 +1272,28 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                             continue;
                         }
 
+                        // channel using a different bus
                         if (!busName.equals(channel.getBusName())) {
                             _tracer.log(tracePrefix() + "......channel not on bus, ignoring.", Tracer.Level.CONFIG);
                             continue;
                         }
 
+                        // check for channel name collision between services: 
+                        ToaService existing = channelNameToServiceMap.put(channel.getName(), service);
+                        if (existing != null) {
+                            if (failOnServiceChannelNameCollision) {
+                                throw new ToaException("Service channel name collision detected: channel '" + channel.getName() + "' is declared in both "
+                                        + "service '" + service.getName() + " and "
+                                        + "service '" + existing.getName() + "'!");
+                            }
+                            else {
+                                _tracer.log(tracePrefix() + "Service channel name collision detected: channel '" + channel.getName() + "' is declared in both "
+                                        + "service '" + service.getName() + " and "
+                                        + "service '" + existing.getName() + "'!", Tracer.Level.WARNING);
+                            }
+                        }
+
+                        // look up the message channel
                         MessageChannelDescriptor channelDescriptor = busDescriptor.getChannel(channel.getName());
                         if (channelDescriptor == null) {
                             channelDescriptor = MessageChannelDescriptor.create(channel.getName(), busDescriptor);

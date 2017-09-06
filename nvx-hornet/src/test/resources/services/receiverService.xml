@@ -35,6 +35,7 @@
         <Channel name="KRTTestChannel" key="KRTTest/${IntField}/${KRTField}"/>
         <!-- This UnmappedChannel has no messages mapped to it -->
         <Channel name="UnmappedChannel" key="UnmappedChannel"/>
+        <Channel name="ReceiverChannel6" key="${MarketSectorDescription::_NONE_}/EVENT/ORDER/${RoutingSymbol::_NONE_}/${DeskID::_NONE_}/${PogPublishingSystemInstanceTopicField::_NONE_}/${ClientAcronym::_NONE_}/HIERARCHY/${EnteringSystemInstance::_NONE_}/${ExecutingSystemInstance::_NONE_}"/>
     </Channels>
     <Roles>
         <To role="Receiver">

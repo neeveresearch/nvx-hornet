@@ -23,6 +23,7 @@ package com.neeve.toa.test.unit;
 
 import static org.junit.Assert.*;
 
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -50,10 +51,12 @@ import com.neeve.toa.ToaException;
 import com.neeve.toa.TopicOrientedApplication;
 import com.neeve.toa.service.ToaService;
 import com.neeve.toa.service.ToaServiceChannel;
+import com.neeve.toa.spi.AbstractServiceDefinitionLocator;
 import com.neeve.toa.spi.AbstractTopicResolver;
 import com.neeve.toa.spi.ChannelFilterProvider;
 import com.neeve.toa.spi.ChannelJoinProvider;
 import com.neeve.toa.spi.ChannelQosProvider;
+import com.neeve.toa.spi.ServiceDefinitionLocator;
 import com.neeve.toa.spi.TopicResolver;
 import com.neeve.toa.test.unit.modelB.ModelBMessage1;
 import com.neeve.util.UtlTailoring;
@@ -611,8 +614,7 @@ public class ChannelResolutionTest extends AbstractToaTest {
                 matchesServiceKey = false;
 
             }
-            else
-            {
+            else {
                 if (variableKeyDefaults != null) {
                     defaults[0] = variableKeyDefaults.get("IntField");
                     defaults[1] = variableKeyDefaults.get("ShortField");
@@ -764,8 +766,7 @@ public class ChannelResolutionTest extends AbstractToaTest {
                 matchesServiceKey = false;
 
             }
-            else
-            {
+            else {
                 defaults[0] = variableKeyDefaults.get("IntField");
                 defaults[1] = variableKeyDefaults.get("ShortField");
                 defaults[2] = variableKeyDefaults.get("NonMessageField");
@@ -1418,6 +1419,43 @@ public class ChannelResolutionTest extends AbstractToaTest {
         }
         finally {
             XRuntime.getProps().remove(TopicOrientedApplication.PROP_IGNORE_UNMAPPED_CHANNELS);
+        }
+    }
+
+    private static final class ConflictServiceDefinitionLocator extends AbstractServiceDefinitionLocator {
+
+        /* (non-Javadoc)
+         * @see com.neeve.toa.spi.ServiceDefinitionLocator#locateServices(java.util.Set)
+         */
+        @Override
+        public void locateServices(Set<URL> urls) throws Exception {
+            urls.add(getClass().getResource("/services/forwarderService.xml"));
+            urls.add(getClass().getResource("/conflictingForwarderService.xml"));
+        }
+
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class ConflictingServiceChannelTestApp extends AbstractToaTestApp {
+
+        @Override
+        public ServiceDefinitionLocator getServiceDefinitionLocator() {
+            return new ConflictServiceDefinitionLocator();
+        }
+    }
+
+    /**
+     * Tests that 2 services with the same simple name using the same channel name fails. 
+     */
+    @Test
+    public void testConflictingServiceAndChannelNameFails() {
+        try {
+            createApp("testConflictingServiceAndChannelNameFails", "standalone", ConflictingServiceChannelTestApp.class);
+        }
+        catch (Throwable thrown) {
+            String expectedText = "Service channel name collision detected";
+            assertTrue("Wrong exception for service channel conflict (expected '" + expectedText + "')", thrown.getMessage().indexOf(expectedText) >= 0);
+            thrown.printStackTrace();
         }
     }
 }

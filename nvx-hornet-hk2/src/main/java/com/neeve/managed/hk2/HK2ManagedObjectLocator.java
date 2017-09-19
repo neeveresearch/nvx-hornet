@@ -136,9 +136,4 @@ public class HK2ManagedObjectLocator implements ManagedObjectLocator {
     public ServiceLocator getApplicationServiceLocator() {
         return applicationServiceLocator;
     }
-
-    @Deprecated
-    public ServiceLocator getAppplicationServiceLocator() {
-        return applicationServiceLocator;
-    }
 }

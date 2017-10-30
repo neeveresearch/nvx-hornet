@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,8 +32,17 @@ public interface ServiceDefinitionLocator {
     /**
      * Locates service definition xml and adds the xml to provided 
      * set. 
+     * <p>
+     * Implementations must return service xmls that are valid with 
+     * respect to the x-tsml schema. Implementations may call:
+     * <ul> 
+     * <li> {@link AbstractServiceDefinitionLocator#isServiceDefinitionFile(URL)} to test if 
+     *      a resource represents a valid service definition
+     * <li> {@link AbstractServiceDefinitionLocator#validateServiceDefinitionFile(URL)} to assert 
+     *      that a resource represents a valid service definition.
+     * </ul>
      * 
-     * @param urls The collection into which to add the service urls. 
+     * @param urls The collection into which to add valid service definition urls. 
      */
     public void locateServices(final Set<URL> urls) throws Exception;
 }

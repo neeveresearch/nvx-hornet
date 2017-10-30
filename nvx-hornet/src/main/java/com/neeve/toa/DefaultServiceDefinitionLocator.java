@@ -98,8 +98,17 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
         }
     };
 
-    /* (non-Javadoc)
-     * @see com.neeve.toa.spi.ServiceDefinitionLocator#locateServices(java.util.Set)
+    /**
+     * Locates valid Hornet services.
+     * <p>
+     * This {@link ServiceDefinitionLocator} looks for services in the following locations:
+     * <ul>
+     * <li>file://${NVROOT}/conf/services/*.xml
+     * <li>file://${NVROOT}/resources/${application.name}/services/*.xml
+     * <li>classpath://services/*.xml
+     * </ul>
+     * This locator will return any .xml file found in the above locations that xml that 
+     * validates against the service definition schema x-tsml.xsd.
      */
     @Override
     public final void locateServices(final Set<URL> urls) throws Exception {

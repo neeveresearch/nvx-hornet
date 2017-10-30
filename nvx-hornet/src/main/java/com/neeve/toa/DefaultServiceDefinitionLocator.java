@@ -79,18 +79,19 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
 
     private final boolean strictValidation = XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION, XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION_DEPRECATED, PROP_STRICT_SERVICE_VALIDATION_DEFAULT));
 
-    private final static URLFilter SERVICE_FILTER = new URLFilter() {
+    private final URLFilter SERVICE_FILTER = new URLFilter() {
 
         @Override
         public boolean filter(URL url) {
-            if (XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION, PROP_STRICT_SERVICE_VALIDATION_DEFAULT)) {
+            if (strictValidation) {
                 if (url.getPath().endsWith(".xml")) {
                     AbstractServiceDefinitionLocator.validateServiceDefinitionFile(url);
+                    return false;
                 }
                 else {
                     if (tracer.debug) tracer.log("Ignoring service definition candidate, no xml suffix: " + url, Tracer.Level.DEBUG);
+                    return true;
                 }
-                return true;
             }
             else {
                 return !AbstractServiceDefinitionLocator.isServiceDefinitionFile(url);

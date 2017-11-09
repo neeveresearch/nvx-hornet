@@ -23,6 +23,7 @@ package com.neeve.toa.spi;
 
 import java.util.Properties;
 
+import com.neeve.sma.MessageChannel;
 import com.neeve.toa.TopicOrientedApplication;
 import com.neeve.toa.service.ToaService;
 import com.neeve.toa.service.ToaServiceChannel;
@@ -50,7 +51,7 @@ public interface ChannelInitialKeyResolutionTableProvider {
      * <li>An initial KRT returned by this method of: {"Region": "US", "HostName": MyPC}
      * </ul>
      * 
-     * With the above KRT, the channel would be intialized with a key of
+     * With the above KRT, the channel would be initialized with a key of
      * <code>ORDERS/US/${Product}</code>. The dynamic 'Region' portion of the
      * key has become static while the 'Product' portion remains dynamic and 
      * eligible for substitution with a runtime KRT or from values reflected
@@ -68,6 +69,15 @@ public interface ChannelInitialKeyResolutionTableProvider {
      * channel key resolution on a per service basis. In this sense the initial channel key
      * resolution is global to a channel name. The serviceName is provided here as a hint
      * to assist the application in locating a key resolution table for a channel. 
+     * <p>
+     * Initial Key Resolution adheres to the key resolution properties:
+     * <ul>
+     * <li> {@link MessageChannel#PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL} if set to true, then 
+     * initial channel key resolution will ignore values that are 0 length strings.  
+     * <li> Otherwise if {@link MessageChannel#PROP_ALLOW_EMPTY_KEY_FIELD} is set then 
+     * initial channel key resolution will fail with a ToaException if the key resolution
+     * table contains any value that are 0 length Strings.
+     * </ul>
      * 
      * @param service The service name. 
      * @param channel The channel for which to perform key resolution

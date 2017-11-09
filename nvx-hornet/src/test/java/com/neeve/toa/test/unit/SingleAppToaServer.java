@@ -39,7 +39,7 @@ import com.neeve.server.config.SrvConfigDescriptor;
 import com.neeve.server.embedded.EmbeddedServer;
 import com.neeve.toa.TopicOrientedApplication;
 import com.neeve.util.UtlStr;
-import com.neeve.util.UtlStr.ISubstResolver;
+import com.neeve.util.UtlTailoring.PropertySource;
 
 /**
  * Wraps an embedded Talon server for a single {@link TopicOrientedApplication}. 
@@ -60,13 +60,13 @@ public class SingleAppToaServer<T extends TopicOrientedApplication> extends Embe
 
     private T application;
 
-    private static class ToaSingleAppServerConfigurer<T extends TopicOrientedApplication> implements Configurer, ISubstResolver {
+    private static class ToaSingleAppServerConfigurer<T extends TopicOrientedApplication> implements Configurer, PropertySource {
         private final String appName;
 
         private final String instanceId;
         private final String serverName;
         private final Class<T> applicationClass;
-        private final ISubstResolver envResolver = new UtlStr.SubstResolverFromEnv();
+        private final PropertySource envResolver = new UtlStr.SubstResolverFromEnv();
         final Map<String, String> overrides = new HashMap<String, String>();
 
         ToaSingleAppServerConfigurer(final String appName, final String instanceId, final Class<T> applicationClass, Map<String, String> configOverrides) {

@@ -1340,7 +1340,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                             Properties krt = provider.getInitialChannelKeyResolutionTable(service, channel);
                             if (krt != null) {
                                 if (initialKRT != null) {
-                                    throw new ToaException("Duplicate Initial KRT providers for channel '" + channel.getSimpleName() + "' in service'" + service.getName() + "'!"
+                                    throw new ToaException("Duplicate Initial KRT providers for channel '" + channel.getSimpleName() + "' in service '" + service.getName() + "'!"
                                             + " '" + krtProvider.getClass().getName() + "' provided '" + initialKRT + "'"
                                             + ", and '" + provider.getClass().getName() + "' provided '" + krt + "'");
                                 }
@@ -1353,9 +1353,47 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                         channel.setKey(key);
 
                         if (initialKRT != null && key != null) {
-                            channel.setInitialKRT(initialKRT);
+                            // Handle empty ("") key fields in initial KRT: 
+                            Properties sanitizedKrt = initialKRT;
+                            final boolean treatEmptyKeyAsNull = XRuntime.getValue(MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL, MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL_DEFAULT);
+                            final boolean allowEmptyKey = XRuntime.getValue(MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD, MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD_DEFAULT);
+                            if (treatEmptyKeyAsNull || !allowEmptyKey) {
+                                for (Map.Entry<Object, Object> krtEntry : initialKRT.entrySet()) {
+                                    // Note that the null check here isn't really necessary as 
+                                    // java.util.Properties does not allow null values. We still
+                                    // check for null here as a safeguard against any future API
+                                    // changes. 
+                                    if (krtEntry.getValue() == null || "".equals(String.valueOf(krtEntry.getValue()))) {
+                                        // copy the KRT if 
+                                        if (sanitizedKrt == initialKRT) {
+                                            sanitizedKrt = new Properties();
+                                            sanitizedKrt.putAll(initialKRT);
+                                        }
+
+                                        // if configured to treat empty keys as null then remove the value
+                                        // from the initial KRT to ignore it: 
+                                        if (treatEmptyKeyAsNull) {
+                                            sanitizedKrt.remove(krtEntry.getKey());
+                                        }
+                                        else if (!allowEmptyKey) {
+                                            if ("".equals(String.valueOf(krtEntry.getValue()))) {
+                                                throw new ToaException("Initial KRT for channel '" + channel.getSimpleName() + "' in service '" + service.getName() + "' (provided by"
+                                                        + " '" + krtProvider.getClass().getName() + "') contains a blank value for key field '" + String.valueOf(krtEntry.getKey()) + "' but '"
+                                                        + MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD + "'is false!");
+                                            }
+                                            else if (krtEntry.getValue() == null) {
+                                                // otherwise if null remove the value so it doesn't lead to key substitution 
+                                                // via UtlTailoring.springScanAndReplace
+                                                sanitizedKrt.remove(krtEntry.getKey());
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            channel.setInitialKRT(sanitizedKrt);
                             _tracer.log(tracePrefix() + "......performing initial channel key resolution for channel '" + channel.getName() + "', key=" + key, Tracer.Level.CONFIG);
-                            key = UtlTailoring.springScanAndReplace(key, initialKRT, true);
+                            key = UtlTailoring.springScanAndReplace(key, sanitizedKrt, true);
                         }
                         //Update the model with the overridden key:
                         channel.setInitiallyResolvedKey(key);

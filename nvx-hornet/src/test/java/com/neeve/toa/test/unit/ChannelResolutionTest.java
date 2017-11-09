@@ -1071,6 +1071,65 @@ public class ChannelResolutionTest extends AbstractToaTest {
     }
 
     @Test
+    public final void testInitialKRTDoesntSubstituteEmptyWithTreatEmptyAsNull() throws Throwable {
+        XRuntime.getProps().setProperty(MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL, "true");
+        IKRT.setProperty("LongField", "");
+        try {
+            FixedKRTReceiverAppWithDefaultInChannelKey receiver = createApp("receiver", "standalone", FixedKRTReceiverAppWithDefaultInChannelKey.class);
+            FixedKRTSenderApp sender = createApp("sender", "standalone", FixedKRTSenderApp.class);
+
+            for (int i = 1; i <= 4; i++) {
+                ReceiverMessage4 m = ReceiverMessage4.create();
+                // note: the Long field in the channel key should not be 
+                // substituted by the initial KRT and thus remain dynamic
+                // meaning the receiver should only get message 3:
+                m.setLongField(i);
+                sender.sendTestMessage(m);
+            }
+
+            sender.waitForTransactionStability(4);
+            sender.assertExpectedSends(5, 4);
+
+            receiver.waitForTransactionStability(1);
+
+            if (verbose()) {
+                for (IRogMessage message : sender.sent) {
+                    System.out.println("Sent: " + message.toString());
+                }
+            }
+
+            receiver.assertExpectedReceipt(5, 1);
+
+            if (verbose()) {
+                for (IRogMessage message : receiver.received) {
+                    System.out.println("Received: " + message.toString());
+                }
+            }
+        }
+        finally {
+            IKRT.remove("LongField");
+            XRuntime.getProps().setProperty(MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL, "" + MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL_DEFAULT);
+        }
+    }
+
+    @Test
+    public final void testInitialKRTThrowsErrorOnEmptyWithAllowEmptyKeyFieldFalse() throws Throwable {
+        XRuntime.getProps().setProperty(MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD, "false");
+        IKRT.setProperty("LongField", "");
+        try {
+            createApp("receiver", "standalone", FixedKRTReceiverAppWithDefaultInChannelKey.class);
+            fail("Shouldn't have been able to launc application with empty initial KRT value");
+        }
+        catch (Exception e) {
+            assertTrue("Exception message should complain about blank key, but was: " + e.getMessage(), e.getMessage().indexOf("contains a blank value for key field") > 0);
+        }
+        finally {
+            IKRT.remove("LongField");
+            XRuntime.getProps().setProperty(MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD, "" + MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD_DEFAULT);
+        }
+    }
+
+    @Test
     public final void testApplicationProvidedTopicResolver() throws Throwable {
         FilteringReceiverApp receiver = createApp("receiver", "standalone", FilteringReceiverApp.class);
         ApplicationProvidedTopicResolverSender sender = createApp("sender", "standalone", ApplicationProvidedTopicResolverSender.class);
@@ -1457,5 +1516,46 @@ public class ChannelResolutionTest extends AbstractToaTest {
             assertTrue("Wrong exception for service channel conflict (expected '" + expectedText + "')", thrown.getMessage().indexOf(expectedText) >= 0);
             thrown.printStackTrace();
         }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static class EmptyStringFieldSender extends SenderApp {
+        volatile AepMessageSender aepMessageSender;
+
+        @EventHandler
+        public void onReceiver4Message(ReceiverMessage4 in) {
+            ReceiverMessage5 out = ReceiverMessage5.create();
+            out.setStringField(in.getStringField());
+            sendTestMessage(out);
+        }
+    }
+
+    /**
+     * Tests that channel key resolution with an empty channel key fails. 
+     */
+    @Test
+    public void testEmptyKeyChannelResolution() throws Throwable {
+        Map<String, String> props = new HashMap<String, String>();
+        props.put(MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD, "false");
+        props.put("x.apps." + testcaseName.getMethodName() + "Sender.appExceptionHandlingPolicy", "LogExceptionAndContinue");
+        props.put("x.apps." + testcaseName.getMethodName() + "Sender.sequenceUnsolicitedSendsWithSolicitedSend", "true");
+        JoinJoinProviderReceiverApp receiver = createApp(testcaseName.getMethodName() + "Receiver", "standalone", JoinJoinProviderReceiverApp.class, props);
+        receiver.holdMessages = true;
+        EmptyStringFieldSender sender = createApp(testcaseName.getMethodName() + "Sender", "standalone", EmptyStringFieldSender.class, props);
+        sender.holdMessages = true;
+
+        //First message sent should fail on empty key 
+        ReceiverMessage4 m1 = ReceiverMessage4.create();
+        m1.setStringField("");
+        sender.injectMessage(m1);
+
+        //Second message should succeed.
+        ReceiverMessage4 m2 = ReceiverMessage4.create();
+        m2.setStringField("2");
+        sender.injectMessage(m2);
+
+        //Receiver shouldn't receive any messages since sender should fail with empty key level. 
+        assertTrue("Receiver didn't receive message", receiver.waitForMessages(10, 1));
+        assertEquals("Receiver received wrong message", "2", ((ReceiverMessage5)receiver.received.get(0)).getStringField());
     }
 }

@@ -105,6 +105,7 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
      * This {@link ServiceDefinitionLocator} looks for services in the following locations:
      * <ul>
      * <li>file://${NVROOT}/conf/services/*.xml
+     * <li>file://${NVROOT}/resources/services/*.xml
      * <li>file://${NVROOT}/resources/${application.name}/services/*.xml
      * <li>classpath://services/*.xml
      * </ul>
@@ -114,8 +115,10 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
     @Override
     public final void locateServices(final Set<URL> urls) throws Exception {
         findFileSystemServices(new File(XRuntime.getRootDirectory().toString() + File.separator + "conf" + File.separator + "services"), urls);
+        findFileSystemServices(new File(XRuntime.getRootDirectory().toString() + File.separator + "resources" + File.separator + "services"), urls);
         String appName = XRuntime.getValue("application.name", null);
         if (appName != null) {
+            findFileSystemServices(new File(XRuntime.getRootDirectory().toString() + File.separator + "conf" + File.separator + appName + File.separator + "services"), urls);
             findFileSystemServices(new File(XRuntime.getRootDirectory().toString() + File.separator + "resources" + File.separator + appName + File.separator + "services"), urls);
         }
 

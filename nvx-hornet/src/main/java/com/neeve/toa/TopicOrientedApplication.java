@@ -115,6 +115,7 @@ import com.neeve.trace.Tracer;
 import com.neeve.trace.Tracer.Level;
 import com.neeve.util.UtlTailoring;
 import com.neeve.util.UtlThrowable;
+import com.neeve.util.UtlTime;
 
 /**
  * Base class for Hornet topic oriented applications.
@@ -670,6 +671,19 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             }
             else {
                 return System.currentTimeMillis();
+            }
+        }
+
+        /* (non-Javadoc)
+         * @see com.neeve.toa.EngineClock#getTimeMicros()
+         */
+        @Override
+        public long getTimeMicros() {
+            if (_engine != null) {
+                return _engine.getEngineTimeMicros();
+            }
+            else {
+                return UtlTime.nowSinceEpoch();
             }
         }
 

@@ -37,7 +37,7 @@ public interface ChannelFilterProvider {
      * Returns the channel filter for the given {@link ToaServiceChannel}.
      * <p>
      * <h2>ChannelJoinProvider Conflicts</h2>
-     * It is illegal for one {@link ChannelFilterProvider} to return a differnt channel
+     * It is illegal for one {@link ChannelFilterProvider} to return a different channel
      * filter than another provider. The application will fail to 
      * start in such a case. 
      * 

@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,8 +20,10 @@
  * limitations under the License.
  */
 /**
- * TOA HK2 Integration
+ * TOA HK2 Dependency Injection Integration.
  * 
- * TODO: Provide more information about how TOA HK2 Integration works as well as why an application developer might want to use it.
+ * This package provides support for applications using HK2 dependency injection.
+ * It provide the ability to discovery {@link com.neeve.managed.annotations.Managed @Managed}
+ * annotated objects to expose them to the platform for introspection. 
  */
 package com.neeve.managed.toa.hk2;

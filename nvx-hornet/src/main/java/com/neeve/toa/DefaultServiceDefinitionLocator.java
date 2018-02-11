@@ -97,7 +97,7 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
     public static final boolean PROP_SCAN_FOR_CLASSPATH_SERVICES_DEFAULT = true;
 
     private final boolean strictValidation = XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION, XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION_DEPRECATED, PROP_STRICT_SERVICE_VALIDATION_DEFAULT));
-    private final boolean scanForClassPathServices = XRuntime.getValue(PROP_SCAN_FOR_CLASSPATH_SERVICES, PROP_STRICT_SERVICE_VALIDATION_DEFAULT);
+    private final boolean scanForClassPathServices = XRuntime.getValue(PROP_SCAN_FOR_CLASSPATH_SERVICES, PROP_SCAN_FOR_CLASSPATH_SERVICES_DEFAULT);
 
     private final URLFilter SERVICE_FILTER = new URLFilter() {
 

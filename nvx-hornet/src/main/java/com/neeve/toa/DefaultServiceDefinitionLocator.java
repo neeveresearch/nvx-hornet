@@ -77,7 +77,27 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
      */
     public static final boolean PROP_STRICT_SERVICE_VALIDATION_DEFAULT = false;
 
+    /**
+     * This property controls whether or not the default service definition locator will scan the classpath for services. 
+     * <p>
+     * This property can be used to disable classpath scanning for services. 
+     * <p>
+     * <b>Property name:</b> {@value #PROP_SCAN_FOR_CLASSPATH_SERVICES}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_SCAN_FOR_CLASSPATH_SERVICES_DEFAULT}
+     * <br>
+     * @see #PROP_SCAN_FOR_CLASSPATH_SERVICES_DEFAULT
+     */
+    public static final String PROP_SCAN_FOR_CLASSPATH_SERVICES = "nv.toa.scanforclasspathservices";
+
+    /**
+     * The default value for strict service definition location validation ({@value #PROP_STRICT_SERVICE_VALIDATION_DEFAULT}).
+     * By default files that are not services are ignored and result in a trace log warning.  
+     */
+    public static final boolean PROP_SCAN_FOR_CLASSPATH_SERVICES_DEFAULT = true;
+
     private final boolean strictValidation = XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION, XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION_DEPRECATED, PROP_STRICT_SERVICE_VALIDATION_DEFAULT));
+    private final boolean scanForClassPathServices = XRuntime.getValue(PROP_SCAN_FOR_CLASSPATH_SERVICES, PROP_STRICT_SERVICE_VALIDATION_DEFAULT);
 
     private final URLFilter SERVICE_FILTER = new URLFilter() {
 
@@ -122,8 +142,10 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
             findFileSystemServices(new File(XRuntime.getRootDirectory().toString() + File.separator + "resources" + File.separator + appName + File.separator + "services"), urls);
         }
 
-        // search classpath
-        UtlResource.findClasspathResourcesIn("services", urls, SERVICE_FILTER);
+        // search classpath?
+        if (scanForClassPathServices) {
+            UtlResource.findClasspathResourcesIn("services", urls, SERVICE_FILTER);
+        }
     }
 
     private final void findFileSystemServices(final File directory, final Set<URL> urls) throws MalformedURLException {

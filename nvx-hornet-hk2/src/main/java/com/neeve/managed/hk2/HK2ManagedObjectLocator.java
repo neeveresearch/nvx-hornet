@@ -50,6 +50,13 @@ public class HK2ManagedObjectLocator implements ManagedObjectLocator {
 
     private ServiceLocator applicationServiceLocator;
 
+    /**
+     * Constructs an {@link HK2ManagedObjectLocator}. 
+     * 
+     * @param application The {@link TopicOrientedApplication} that owns this locator. 
+     * @param applicationName The name of the application (which is passed to {@link #createServiceLocator(String)}. 
+     * @param applicationModules The List of {@link Binder}s
+     */
     public HK2ManagedObjectLocator(TopicOrientedApplication application, String applicationName, List<Binder> applicationModules) {
         this.application = application;
         this.applicationName = applicationName;

@@ -79,7 +79,12 @@ public abstract class AbstractHK2TopicOrientedApplication extends TopicOrientedA
         managedObjectLocator.getApplicationServiceLocator().inject(this);
     }
 
-    private HK2ManagedObjectLocator createManagedObjectLocator() {
+    /**
+     * Subclasses may override this method to construct a subclass of HK2ManagedObjectLocator. 
+     * 
+     * @return An {@link HK2ManagedObjectLocator}
+     */
+    protected HK2ManagedObjectLocator createManagedObjectLocator() {
         List<Binder> applicationModules = new ArrayList<Binder>(getApplicationModules());
         return new HK2ManagedObjectLocator(this, getName(), applicationModules);
     }

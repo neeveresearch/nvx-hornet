@@ -44,6 +44,7 @@ import com.neeve.aep.AepEngine.State;
 import com.neeve.aep.AepEngineDescriptor.ChannelConfig;
 import com.neeve.aep.AepEngineDescriptor;
 import com.neeve.aep.AepEventDispatcher;
+import com.neeve.aep.AepMessageSender;
 import com.neeve.aep.IAepApplicationStateFactory;
 import com.neeve.aep.IAepPostdispatchMessageHandler;
 import com.neeve.aep.IAepPredispatchMessageHandler;
@@ -854,6 +855,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     private IStoreBinding.Role _role;
     private AepEngineDescriptor _engineDescriptor;
     private AepEngine _engine;
+    private AepMessageSender _aepMessageSender;
     private String _engineName;
     private Configurer configurer;
     private volatile boolean messagingConfigured = false;
@@ -2025,6 +2027,22 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         return this;
     }
 
+    /**
+     * Returns the {@link AepMessageSender} implementation for sending non service defined messages. 
+     * <p>
+     * An {@link AepMessageSender} assists in sending messages that are not defined in Hornet
+     * service definitions. This sender allows the caller to specify the bus and message channel 
+     * on which the message should be sent. 
+     * <p>
+     * Note that the thread safety of the returned implementation is the same as that
+     * for send calls done directly through an {@link AepEngine}
+     *  
+     * @return The {@link AepMessageSender} for this application. 
+     */
+    final public AepMessageSender getAepMessageSender() {
+        return _aepMessageSender;
+    }
+
     /* (non-Javadoc)
      * @see com.neeve.toa.MessageSender#sendMessage(com.neeve.rog.IRogMessage)
      */
@@ -2313,6 +2331,19 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         if (_tracer.getLevel().val >= Level.CONFIG.val) {
             _tracer.log(tracePrefix() + " Engine Injected, descriptor" + engine.getDescriptor().toString(), Level.CONFIG);
         }
+    }
+
+    /**
+     * This method is called by a Talon server during application initialization 
+     * to inject the application's {@link AepMessageSender}.
+     * <p>
+     * <b>This method should not be called by subclasses or application code.</b>  
+     * 
+     * @param engine The application's {@link AepMessageSender}.
+     */
+    @AppInjectionPoint
+    synchronized final private void setAepMessageSender(final AepMessageSender aepMessageSender) {
+        _aepMessageSender = aepMessageSender;
     }
 
     /**

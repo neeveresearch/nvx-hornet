@@ -39,8 +39,8 @@ import com.neeve.toa.TopicOrientedApplication;
  * <p>
  * 
  * </p>
- * <h1>Example Code</h1>
- * <h2>Using the inbound message in a separate thread</h2>
+ * <h2>Example Code</h2>
+ * <h3>Delaying Acknowledgment</h3>
  * <pre>
  * &#64;AppHAPolicy(HAPolicy.EventSourcing)
  * public class MyApp extends TopicOrientedApplication {
@@ -60,7 +60,7 @@ import com.neeve.toa.TopicOrientedApplication;
  *   }
  * }
  * </pre>
- * <h2>Using the inbound message in a separate thread</h2>
+ * <h3>Using the inbound message in a separate thread</h3>
  * Per the AepEngine contract, you should copy or acquire the message if you
  * plan to use it outside of a handler. The example below shows such a scenario:
  * <pre>

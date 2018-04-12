@@ -90,7 +90,7 @@
                         <group>
                             <title>Hornet Core (X Platform Topic Oriented Aplications)</title>
                             <packages>
-                                com.neeve.toa:com.neeve.managed:com.neeve.managed.*:com.neeve.toa.service:com.neeve.toa.spi
+                                com.neeve.toa:com.neeve.toa.opt:com.neeve.managed:com.neeve.managed.*:com.neeve.toa.service:com.neeve.toa.spi
                             </packages>
                         </group>
                         <group>
@@ -105,6 +105,7 @@
                         com.neeve.managed
                         com.neeve.managed.annotations
                         com.neeve.toa
+                        com.neeve.toa.opt
                         com.neeve.toa.service
                         com.neeve.toa.spi
                         <!-- Hornet HK2 -->
@@ -113,6 +114,7 @@
                     <excludePackageNames>
                         com.neeve.toa.service.jaxb
                         com.neeve.toa.tools
+                        com.neeve.toa.opt.impl
                     </excludePackageNames>
                 </configuration>
             </plugin>

@@ -101,6 +101,8 @@ import com.neeve.sma.MessageViewFactoryRegistry;
 import com.neeve.sma.SmaException;
 import com.neeve.sma.event.MessageEvent;
 import com.neeve.sma.event.UnhandledMessageEvent;
+import com.neeve.toa.opt.DelayedAcknowledgmentController;
+import com.neeve.toa.opt.impl.DelayedAckControllerImpl;
 import com.neeve.toa.service.ToaService;
 import com.neeve.toa.service.ToaServiceChannel;
 import com.neeve.toa.service.ToaServiceToRole;
@@ -466,7 +468,27 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     public static final boolean PROP_DISABLE_COMPAT_CHECK_DEFAULT = false;
 
-    final private static String MINIMUM_TALON_VERSION = "3.5.99";
+    final private static String MINIMUM_TALON_VERSION = "3.9.45";
+
+    /**
+     * Property used to enabled the delayed ack controller functionality. 
+     * <p>
+     * When true the {@link TopicOrientedApplication} will create a {@link DelayedAcknowledgmentController}
+     * which can be use to delay inbound message acknowledgements. Usage of the {@link DelayedAcknowledgmentController}
+     * requires that the application not be configured with a store. 
+     * <p>
+     * <b>Property name:</b> {@value #PROP_ENABLED_DELAYED_ACK_CONTROLLER}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT}
+     * <br>
+     * @see #PROP_DISABLE_COMPAT_CHECK_DEFAULT
+     */
+    public static final String PROP_ENABLED_DELAYED_ACK_CONTROLLER = "nv.toa.enabledelayedackcontroller";
+
+    /**
+     * The default value for {@link #PROP_ENABLED_DELAYED_ACK_CONTROLLER} ({@value #PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT}).
+     */
+    public static final boolean PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT = false;
 
     final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
     static {
@@ -848,6 +870,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     private final EngineTimeImpl _engineClock = new EngineTimeImpl();
     private final PredispatchMessageHandlerDispatcher predispatchMessageHandlerDispatcher = new PredispatchMessageHandlerDispatcher();
     private final PostdispatchMessageHandlerDispatcher postdispatchMessageHandlerDispatcher = new PostdispatchMessageHandlerDispatcher();
+    private final DelayedAckControllerImpl _delayedAckController;
     private final int defaultInjectionDelay = XRuntime.getValue(PROP_DEFAULT_INJECTION_DELAY, PROP_DEFAULT_INJECTION_DELAY_DEFAULT);
     private final Tracer.Level alertTraceLevel;
 
@@ -904,6 +927,13 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             if (method.isAnnotationPresent(AppFinalizer.class) && method.getDeclaringClass() != TopicOrientedApplication.class) {
                 throw new UnsupportedOperationException("Usage of " + AppFinalizer.class.getSimpleName() + " annotation is unsupported for " + TopicOrientedApplication.class.getSimpleName() + " subclasses. '" + method + "' is therefore not valid!");
             }
+        }
+
+        if (XRuntime.getValue(PROP_ENABLED_DELAYED_ACK_CONTROLLER, PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT)) {
+            _delayedAckController = new DelayedAckControllerImpl();
+        }
+        else {
+            _delayedAckController = null;
         }
     }
 
@@ -1953,6 +1983,21 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     }
 
     /**
+     * Return an interface which may be used to get the {@link AepEngine}
+     * time. 
+     * <p>
+     * The default implementation of {@link EngineClock} returned simply
+     * make a pass through call to the {@link AepEngine#getEngineTime()}
+     * unless the engine for this application has not yet been set in 
+     * which case the returned clock will just return {@link System#currentTimeMillis()}.
+     * 
+     * @return The {@link EngineClock}.
+     */
+    final public DelayedAcknowledgmentController getDelayedAcknowledgementController() {
+        return _delayedAckController;
+    }
+
+    /**
      * Returns this application's bootstrap configurer. 
      * <p>
      * For applications launched from the talon server {@link Main} class this will 
@@ -2178,6 +2223,11 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         }
         managedObjectLocator.locateManagedObjects(managedObjects);
 
+        if (_delayedAckController != null) {
+            _delayedAckController.initEngineDescriptor(engineDescriptor);
+            managedObjects.add(_delayedAckController);
+        }
+
         if (managedObjects.contains(null)) {
             throw new IllegalStateException("Addition of null objects to the set of managed objects is not supported.");
         }
@@ -2215,6 +2265,9 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         getServiceDefinitionLocator().locateServices(services);
         configureMessaging(services, containers);
         onConfigured();
+        if (_delayedAckController != null) {
+            containers.add(_delayedAckController);
+        }
         containers.add(new FirstMessageValidator());
         traceConfig(Tracer.Level.CONFIG);
     }
@@ -2315,6 +2368,10 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     synchronized final private void setEngine(final AepEngine engine) throws Exception {
         _engine = engine;
         _haPolicy = engine.getHAPolicy();
+
+        if (_delayedAckController != null) {
+            _delayedAckController.initEngine(engine);
+        }
 
         onEngineInjected(engine);
 
@@ -2488,6 +2545,9 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
     @AppFinalizer
     private final void appFinalized() throws Exception {
+        if (_delayedAckController != null) {
+            _delayedAckController.close();
+        }
         onAppFinalized();
     }
 

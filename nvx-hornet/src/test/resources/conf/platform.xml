@@ -25,14 +25,6 @@
 <model xmlns="http://www.neeveresearch.com/schema/x-ddl" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <env>
       <nv>
-        <server>
-          <stats>
-            <enable>false</enable>
-            <interval>10000</interval>
-            <pool.trace>config</pool.trace>
-          </stats>
-          <trace>info</trace>
-        </server>
         <adm>
           <enableimportcaching>true</enableimportcaching>
         </adm>
@@ -90,11 +82,21 @@
         </app>
     </apps>
 
-    <servers>
-        <server name="${application.server.name::noname}" discoveryDescriptor="${server.discoveryDescriptor}">
+    <xvms>
+        <xvm name="${application.server.name::noname}" discoveryDescriptor="${server.discoveryDescriptor}">
             <apps>
                 <app name="${application.name::noname}" autoStart="true"/>
             </apps>
-        </server>
-    </servers>
+            <heartbeats enabled="false" interval="10">
+              <tracing enabled="false">
+                <traceAdminClientStats>false</traceAdminClientStats>
+                <traceAppStats>false</traceAppStats>
+                <tracePoolStats>false</tracePoolStats>
+                <traceSysStats>false</traceSysStats>
+                <traceThreadStats>true</traceThreadStats>
+                <traceUserStats>true</traceUserStats>
+              </tracing>
+            </heartbeats>
+        </xvm>
+    </xvms>
 </model>

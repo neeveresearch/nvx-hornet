@@ -9,25 +9,24 @@ import com.neeve.toa.TopicOrientedApplication;
 
 /**
  * Provides the ability to delay acknowledgements for inbound messages for applications
- * that do additional processing on a separate thread from the applicaton's message handler
- * thread or that do processing that is acnkowledged asynchronously from another thread. 
+ * that do additional processing outside of a the messages handler.  
  * <p>
  * To facilitate this functionality a {@link DelayedAcknowledgmentController} provides a 
- * {@link #delayAcknowledgment()} method with when called from within an message dispatch thread
- * returns a {@link DelayedAcknowledger}. Acknowledgement of the AEP transaction in which the 
+ * {@link #delayAcknowledgment()} method. When this method is called from within a message handler, it
+ * returns a {@link DelayedAcknowledger DelayedAcknowledger}. Acknowledgement of the AEP transaction in which the 
  * message was dispatched to the application is suspended until the the application calls 
  * {@link DelayedAcknowledger#acknowledge()}.
  * <p>
  * A {@link TopicOrientedApplication} only creates a {@link DelayedAcknowledgmentController} when
- * the configuration property {@value TopicOrientedApplication#PROP_ENABLED_DELAYED_ACK_CONTROLLER} is
- * set to <code>true</code>. When enabled an additional executor bus is added to the application. Under
+ * the configuration property {@link TopicOrientedApplication#PROP_ENABLED_DELAYED_ACK_CONTROLLER nv.toa.enabledelayedackcontroller} is
+ * set to <code>true</code>. When enabled, an additional executor bus is added to the application. Under
  * the covers delayed acknowledgment is done by sending a DelayedAckMessage over the executor bus 
- * and attaching the returned {@link DelayedAcknowledger} to the message. The inbound message is 
- * acknowledged when both the application calls {@link DelayedAcknowledger#acknowledge()} and the 
- * executor bus processes the DelayedAckMessage. In this way acks are delayed in an ordered fashion
+ * and attaching the returned {@link DelayedAcknowledger DelayedAcknowledger} to the message. The inbound message is 
+ * acknowledged when both the application calls {@link DelayedAcknowledger#acknowledge() DelayedAcknowledger.acknowledged()}
+ * and the underlying executor bus processes the DelayedAckMessage. In this way acks are delayed in an ordered fashion
  * with respect to other messsages in the transacton flow -- namely on outbound send stability. 
  * <p>
- * Delayed acknowledgements are only supported on engine's that are not configured with a 
+ * Delayed acknowledgements are only supported on engines that are not configured with a 
  * store. This restriction exists because the processing done by a non message handler thread
  * can't be reliably performed from an HA standpoint on a backup instance or during recovery. 
  * Applications needing to do HA reliable work in a thread other the engine thread should use
@@ -35,12 +34,35 @@ import com.neeve.toa.TopicOrientedApplication;
  * ability to resume such work across failover and recovery. 
  * <p>
  * <i>The {@link DelayedAcknowledgmentController} is classified as an experimental feature provided
- * as a convenience to developers. Applications are encouraged to use an executor bus instead which
- * provides more robust support for HA.</i>
+ * mainly as a convenience to developers doing stateless work. Applications that need more flexibility 
+ * or have HA needs are encouraged to use an executor bus directly.</i>
  * <p>
  * 
  * </p>
  * <h1>Example Code</h1>
+ * <h2>Using the inbound message in a separate thread</h2>
+ * <pre>
+ * &#64;AppHAPolicy(HAPolicy.EventSourcing)
+ * public class MyApp extends TopicOrientedApplication {
+ *   ExecutorService executor = Executors.newSingleThreadExecutor();
+ *  
+ *   &#64;EventHandler
+ *   public void onMessage(MyMessage message) {
+ *     final DelayedAcknowledger delayedAck = getDelayedAcknowledgementController().delayAcknowledgment();
+ *     
+ *     //Do some potentially blocking work in a background thread:
+ *     executor.execute(new Runnable() {
+ *       public void run() {
+ *          EmailAlertUtil.sendEmail("I got a message!");
+ *          delayedAck.acknowledge();
+ *       }
+ *     });
+ *   }
+ * }
+ * </pre>
+ * <h2>Using the inbound message in a separate thread</h2>
+ * Per the AepEngine contract, you should copy or acquire the message if you
+ * plan to use it outside of a handler. The example below shows such a scenario:
  * <pre>
  * &#64;AppHAPolicy(HAPolicy.EventSourcing)
  * public class MyApp extends TopicOrientedApplication {

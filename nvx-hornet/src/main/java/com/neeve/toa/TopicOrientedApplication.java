@@ -229,7 +229,7 @@ import com.neeve.util.UtlTime;
  * <p>
  * Application designers must ensure that no unknown messages types flow on the channels that are joined
  * by the application or it will result in the emission of {@link UnhandledMessageEvent}s as the unrecognized
- * messages are received. This scenario is at best inefficient, and at worst can cause unintended acknowledgement of 
+ * messages are received. This scenario is at best inefficient, and at worst can cause unintended acknowledgment of 
  * of messages that are not processed by the application 
  * 
  * <p>
@@ -474,7 +474,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * Property used to enabled the delayed ack controller functionality. 
      * <p>
      * When true the {@link TopicOrientedApplication} will create a {@link DelayedAcknowledgmentController}
-     * which can be use to delay inbound message acknowledgements. Usage of the {@link DelayedAcknowledgmentController}
+     * which can be use to delay inbound message acknowledgments. Usage of the {@link DelayedAcknowledgmentController}
      * requires that the application not be configured with a store. 
      * <p>
      * <b>Property name:</b> {@value #PROP_ENABLED_DELAYED_ACK_CONTROLLER}
@@ -1983,17 +1983,16 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     }
 
     /**
-     * Return an interface which may be used to get the {@link AepEngine}
-     * time. 
+     * Return the DelayedAcknowledgment Controller for the application. 
      * <p>
-     * The default implementation of {@link EngineClock} returned simply
-     * make a pass through call to the {@link AepEngine#getEngineTime()}
-     * unless the engine for this application has not yet been set in 
-     * which case the returned clock will just return {@link System#currentTimeMillis()}.
+     * The delayed acknowledgment controller can be used from within a message handler
+     * to suspend the acknowledgment (and consequently transaction completion) of the 
+     * message being processed. 
      * 
-     * @return The {@link EngineClock}.
+     * @see DelayedAcknowledgmentController
+     * @return The {@link DelayedAcknowledgmentController} or null if not enabled. 
      */
-    final public DelayedAcknowledgmentController getDelayedAcknowledgementController() {
+    final public DelayedAcknowledgmentController getDelayedAcknowledgmentController() {
         return _delayedAckController;
     }
 

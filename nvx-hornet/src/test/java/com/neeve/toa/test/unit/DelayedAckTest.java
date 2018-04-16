@@ -84,7 +84,7 @@ public class DelayedAckTest extends AbstractToaTest {
         }
 
         public IRogMessage recordReceipt(IRogMessage message) {
-            delayedAcks.add(getDelayedAcknowledgementController().delayAcknowledgment());
+            delayedAcks.add(getDelayedAcknowledgmentController().delayAcknowledgment());
             return super.recordReceipt(message);
         }
 
@@ -234,7 +234,7 @@ public class DelayedAckTest extends AbstractToaTest {
             fail("Expected an illegal state exception on double acknowledge");
         }
         catch (IllegalStateException e) {
-            assertEquals("Wrong execption text", "Attempt to acknowledge an already acknowledged delayed acknowledgement!", e.getMessage());
+            assertEquals("Wrong execption text", "Attempt to acknowledge an already acknowledged delayed acknowledgment!", e.getMessage());
         }
         finally {
             forwarder.delayedAcks.remove(0);
@@ -249,7 +249,7 @@ public class DelayedAckTest extends AbstractToaTest {
         ForwarderApp forwarder = createApp("testDelayedAcknowledgmentNotSupportedFromNonEngineThread", "standalone", ForwarderApp.class);
         forwarder.getEngine().waitForMessagingToStart();
         try {
-            forwarder.getDelayedAcknowledgementController().delayAcknowledgment();
+            forwarder.getDelayedAcknowledgmentController().delayAcknowledgment();
             fail("Shouldn't have been able to delay ack from outside of engine thread.");
         }
         catch (Exception e) {

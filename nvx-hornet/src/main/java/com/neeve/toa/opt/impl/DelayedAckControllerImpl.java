@@ -46,7 +46,7 @@ public class DelayedAckControllerImpl implements DelayedAcknowledgmentController
          */
         Init,
         /**
-         * Started and ready for delay acknowledgement creation. 
+         * Started and ready for delay acknowledgment creation. 
          */
         Started,
         /**
@@ -56,11 +56,11 @@ public class DelayedAckControllerImpl implements DelayedAcknowledgmentController
     }
 
     /**
-     * This DelayedAcknowledger implementation waits for both the executor bus acknowledgement
-     * and the callers acknowledgement before dispatching the executor bus acknowledgement. 
+     * This DelayedAcknowledger implementation waits for both the executor bus acknowledgment
+     * and the callers acknowledgment before dispatching the executor bus acknowledgment. 
      * <p>
      * The ordered processing of the delayed-acknowledger bus executions orders 
-     * acknowledgements both within a given transaction in the case of multiple delayed 
+     * acknowledgments both within a given transaction in the case of multiple delayed 
      * acks and across transactions so that AEP transactions are committed in order. In this
      * way a delayed ack call from transaction T2 completing before a delayed ack in transaction
      * T1 will still be still result in T1 being acknowledged first. 
@@ -128,7 +128,7 @@ public class DelayedAckControllerImpl implements DelayedAcknowledgmentController
          * @param acknowledger The {@link Acknowledger ExecutorBusProcessor.Acknowledger}.
          */
         final void setBusAcknowledger(final ExecutorBusProcessor.Acknowledger acknowledger) {
-            if (tracer.debug) tracer.log("Delayed acknowledgement bus processing completed for " + engineDescriptor.getName(), Tracer.Level.DEBUG);
+            if (tracer.debug) tracer.log("Delayed acknowledgment bus processing completed for " + engineDescriptor.getName(), Tracer.Level.DEBUG);
             this.busAcknowledger = acknowledger;
             acknowledge(null);
         }
@@ -154,10 +154,10 @@ public class DelayedAckControllerImpl implements DelayedAcknowledgmentController
                 refTracker.onDispose(count);
             }
             if (count < 0) {
-                throw new IllegalStateException("Attempt to acknowledge an already acknowledged delayed acknowledgement!");
+                throw new IllegalStateException("Attempt to acknowledge an already acknowledged delayed acknowledgment!");
             }
             else if (count == 0) {
-                if (tracer.debug) tracer.log("Releasing delayed acknowledgement for " + engineDescriptor.getName(), Tracer.Level.DEBUG);
+                if (tracer.debug) tracer.log("Releasing delayed acknowledgment for " + engineDescriptor.getName(), Tracer.Level.DEBUG);
 
                 // note that busAcknowledger has to have been set for count to have dropped to 0:
                 busAcknowledger.acknowledge(status);
@@ -175,7 +175,7 @@ public class DelayedAckControllerImpl implements DelayedAcknowledgmentController
      * <p>
      * As delayed acks are dispatched through the executor bus, the executor bus' acknowledger
      * is tagged onto the {@link DelayedAcknowledger}. When both the executor bus processing and
-     * the application's delayed acknowledgement is called the executor bus' acknowledger is called
+     * the application's delayed acknowledgment is called the executor bus' acknowledger is called
      * which results in the transactions being completed. 
      */
     static final class DelayedAckProcessor implements ExecutorBusProcessor {
@@ -223,9 +223,9 @@ public class DelayedAckControllerImpl implements DelayedAcknowledgmentController
     private AtomicLong delayedAcksPendingCount = new AtomicLong(0);
 
     public void initEngineDescriptor(AepEngineDescriptor engineDescriptor) throws SmaException {
-        if (tracer.isEnabled(Level.CONFIG)) tracer.log("Initializing delayed acknowledgement controller for " + engineDescriptor.getName(), Tracer.Level.CONFIG);
+        if (tracer.isEnabled(Level.CONFIG)) tracer.log("Initializing delayed acknowledgment controller for " + engineDescriptor.getName(), Tracer.Level.CONFIG);
         if (engineDescriptor.getStore() != null) {
-            throw new UnsupportedOperationException("Delayed acknowledgement is not supported for engines configured with a store");
+            throw new UnsupportedOperationException("Delayed acknowledgment is not supported for engines configured with a store");
         }
 
         this.engineDescriptor = engineDescriptor;
@@ -274,7 +274,7 @@ public class DelayedAckControllerImpl implements DelayedAcknowledgmentController
 
     public void close() {
         if (engineDescriptor != null) {
-            if (tracer.isEnabled(Level.CONFIG)) tracer.log("Closing delayed acknowledgement controller for " + engineDescriptor.getName(), Tracer.Level.INFO);
+            if (tracer.isEnabled(Level.CONFIG)) tracer.log("Closing delayed acknowledgment controller for " + engineDescriptor.getName(), Tracer.Level.INFO);
             this.engine = null;
             this.engineDescriptor = null;
             this.delayedAcknowledgePool.close();
@@ -302,11 +302,11 @@ public class DelayedAckControllerImpl implements DelayedAcknowledgmentController
     @Override
     public final DelayedAcknowledger delayAcknowledgment() {
         if (state != State.Started) {
-            throw new IllegalStateException("Delayed acknowledgement controller is not Started (" + state + ")");
+            throw new IllegalStateException("Delayed acknowledgment controller is not Started (" + state + ")");
         }
 
         if (engine.getStore() != null) {
-            throw new UnsupportedOperationException("Delayed acknowledgement is not supported for engines configured with a store");
+            throw new UnsupportedOperationException("Delayed acknowledgment is not supported for engines configured with a store");
         }
 
         if (!engine.isMessageDispatchThread()) {

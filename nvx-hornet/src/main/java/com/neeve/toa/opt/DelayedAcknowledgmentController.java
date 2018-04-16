@@ -8,12 +8,12 @@ package com.neeve.toa.opt;
 import com.neeve.toa.TopicOrientedApplication;
 
 /**
- * Provides the ability to delay acknowledgements for inbound messages for applications
+ * Provides the ability to delay acknowledgments for inbound messages for applications
  * that do additional processing outside of a the messages handler.  
  * <p>
  * To facilitate this functionality a {@link DelayedAcknowledgmentController} provides a 
  * {@link #delayAcknowledgment()} method. When this method is called from within a message handler, it
- * returns a {@link DelayedAcknowledger DelayedAcknowledger}. Acknowledgement of the AEP transaction in which the 
+ * returns a {@link DelayedAcknowledger DelayedAcknowledger}. Acknowledgment of the AEP transaction in which the 
  * message was dispatched to the application is suspended until the the application calls 
  * {@link DelayedAcknowledger#acknowledge()}.
  * <p>
@@ -26,11 +26,11 @@ import com.neeve.toa.TopicOrientedApplication;
  * and the underlying executor bus processes the DelayedAckMessage. In this way acks are delayed in an ordered fashion
  * with respect to other messsages in the transacton flow -- namely on outbound send stability. 
  * <p>
- * Delayed acknowledgements are only supported on engines that are not configured with a 
+ * Delayed acknowledgments are only supported on engines that are not configured with a 
  * store. This restriction exists because the processing done by a non message handler thread
  * can't be reliably performed from an HA standpoint on a backup instance or during recovery. 
  * Applications needing to do HA reliable work in a thread other the engine thread should use
- * an executor bus which provides asynchrononus acknowledgement capabilities <b>and</b> and the 
+ * an executor bus which provides asynchrononus acknowledgment capabilities <b>and</b> and the 
  * ability to resume such work across failover and recovery. 
  * <p>
  * <i>The {@link DelayedAcknowledgmentController} is classified as an experimental feature provided
@@ -48,7 +48,7 @@ import com.neeve.toa.TopicOrientedApplication;
  *  
  *   &#64;EventHandler
  *   public void onMessage(MyMessage message) {
- *     final DelayedAcknowledger delayedAck = getDelayedAcknowledgementController().delayAcknowledgment();
+ *     final DelayedAcknowledger delayedAck = getDelayedAcknowledgmentController().delayAcknowledgment();
  *     
  *     //Do some potentially blocking work in a background thread:
  *     executor.execute(new Runnable() {
@@ -71,7 +71,7 @@ import com.neeve.toa.TopicOrientedApplication;
  *  
  *   &#64;EventHandler
  *   public void onMessage(MyMessage message) {
- *     final DelayedAcknowledger delayedAck = getDelayedAcknowledgementController().delayAcknowledgment();
+ *     final DelayedAcknowledger delayedAck = getDelayedAcknowledgmentController().delayAcknowledgment();
  *     
  *     final MyMessage messageCopy = message.copy();
  *     
@@ -100,8 +100,8 @@ public interface DelayedAcknowledgmentController {
      * A delayed acknowledger handle. 
      * <p>
      * An application may create a delayed acknowldeger via {@link DelayedAcknowledgmentController#delayAcknowledgment()}. Doing
-     * so suspends acknowledgement of the inbound message being processed until {@link #acknowledge()} is called in which case 
-     * the inbound messages acknowledgement is resumed. 
+     * so suspends acknowledgment of the inbound message being processed until {@link #acknowledge()} is called in which case 
+     * the inbound messages acknowledgment is resumed. 
      */
     public static interface DelayedAcknowledger {
 

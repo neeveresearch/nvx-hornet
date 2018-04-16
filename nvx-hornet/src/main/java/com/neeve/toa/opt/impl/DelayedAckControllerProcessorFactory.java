@@ -10,7 +10,7 @@ import com.neeve.sma.spi.executor.AbstractExecutorBusProcessorFactory;
 import com.neeve.sma.spi.executor.ExecutorBusProcessor;
 
 /**
- * Factory class for delayed acknowledgement controllers' bus processors. 
+ * Factory class for delayed acknowledgment controllers' bus processors. 
  */
 public class DelayedAckControllerProcessorFactory extends AbstractExecutorBusProcessorFactory {
 

@@ -119,7 +119,7 @@ public final class PlatformModules extends AbstractBinder {
 
         @Override
         public DelayedAcknowledgmentController provide() {
-            return application.getDelayedAcknowledgementController();
+            return application.getDelayedAcknowledgmentController();
         }
     }
 }

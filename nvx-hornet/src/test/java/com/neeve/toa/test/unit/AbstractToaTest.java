@@ -33,7 +33,7 @@ import org.junit.After;
 import com.neeve.rog.IRogMessage;
 import com.neeve.rog.log.RogLogUtil;
 import com.neeve.rog.log.RogLogUtil.JsonPrettyPrintStyle;
-import com.neeve.server.embedded.EmbeddedServer;
+import com.neeve.server.embedded.EmbeddedXVM;
 import com.neeve.test.UnitTest;
 import com.neeve.toa.TopicOrientedApplication;
 
@@ -43,8 +43,7 @@ import com.neeve.toa.TopicOrientedApplication;
 public abstract class AbstractToaTest extends UnitTest {
     private static final HashSet<String> DIVERGENT_PRIMARY_BACKUP_FIELD_EXCEPTIONS = new HashSet<String>();
     private static final HashSet<String> DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS = new HashSet<String>();
-    static
-    {
+    static {
         //Ownership count can diverge between backup and primary because we lazily
         //recycle commit queue entries
         DIVERGENT_PRIMARY_BACKUP_FIELD_EXCEPTIONS.add("ownershipCount");
@@ -110,12 +109,12 @@ public abstract class AbstractToaTest extends UnitTest {
 
     };
 
-    protected final HashSet<EmbeddedServer> servers = new HashSet<EmbeddedServer>();
+    protected final HashSet<EmbeddedXVM> servers = new HashSet<EmbeddedXVM>();
 
     @After
     public void cleanup() throws Throwable {
         Throwable error = null;
-        for (EmbeddedServer server : servers) {
+        for (EmbeddedXVM server : servers) {
             try {
                 server.shutdown();
                 if (server.getStartupError() == null) {

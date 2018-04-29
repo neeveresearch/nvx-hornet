@@ -21,7 +21,7 @@
  */
 package com.neeve.toa.test.unit;
 
-import static com.neeve.server.embedded.EmbeddedServer.State.Started;
+import static com.neeve.server.embedded.EmbeddedXVM.State.Started;
 
 import java.io.File;
 import java.net.URL;
@@ -36,7 +36,7 @@ import com.neeve.server.Main;
 import com.neeve.server.app.SrvAppLoader;
 import com.neeve.server.config.ESrvConfigException;
 import com.neeve.server.config.SrvConfigDescriptor;
-import com.neeve.server.embedded.EmbeddedServer;
+import com.neeve.server.embedded.EmbeddedXVM;
 import com.neeve.toa.TopicOrientedApplication;
 import com.neeve.util.UtlStr;
 import com.neeve.util.UtlTailoring.PropertySource;
@@ -48,7 +48,7 @@ import com.neeve.util.UtlTailoring.PropertySource;
  * not created until start is called which narrows the window for multiple
  * servers with conflicting {@link VMConfigurer} values to conflict. 
  */
-public class SingleAppToaServer<T extends TopicOrientedApplication> extends EmbeddedServer {
+public class SingleAppToaServer<T extends TopicOrientedApplication> extends EmbeddedXVM {
 
     public static final String PROP_NAME_STORE_ENABLED = "store.enabled";
     public static final String PROP_NAME_STORE_CLUSTERING_ENABLED = "store.clustering.enabled";

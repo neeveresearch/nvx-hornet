@@ -29,10 +29,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.PrintWriter;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Ignore;
@@ -164,6 +167,60 @@ public class ToaMessagingTest extends AbstractToaTest {
         protected Qos getChannelQos(ToaService service, ToaServiceChannel channel) {
             return qos;
         }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class DelayedPriorityInjectionForwarderApp extends AbstractToaTestApp {
+        ScheduledExecutorService timer = Executors.newScheduledThreadPool(1);
+        volatile int numSent = 0;
+
+        @Override
+        public void onEngineInjected(AepEngine engine) {
+            timer.scheduleAtFixedRate(new Runnable() {
+
+                @Override
+                public void run() {
+                    injectMessage(ForwarderMessage2.create(), false, -1);
+                }
+
+            }, 0, 1, TimeUnit.SECONDS);
+        }
+
+        @EventHandler
+        public void onForwarder1Message(ForwarderMessage1 message) {
+            System.out.println(new Date() + " FORWARDER Received message");
+            recordReceipt(message);
+        }
+
+        @EventHandler
+        public void onForwarder2Message(ForwarderMessage2 message) {
+            while (numSent < receivedMessageCount) {
+                ReceiverMessage1 outbound = ReceiverMessage1.create();
+                outbound.setIntField(++numSent);
+                System.out.println(new Date() + " FORWARDER Sending receiver message: " + numSent);
+                sendMessage(recordSend(outbound));
+            }
+        }
+
+        @Override
+        protected Properties getInitialChannelKeyResolutionTable(ToaService service, ToaServiceChannel channel) {
+            Properties props = new Properties();
+            props.setProperty("IntField", "0");
+            return props;
+        }
+
+        protected Qos getChannelQos(ToaService service, ToaServiceChannel channel) {
+            return qos;
+        }
+
+        /**
+         * Called at the end of a testcase to perform cleanup
+         */
+        @Override
+        public void cleanup() {
+            timer.shutdown();
+        }
+
     }
 
     @AppHAPolicy(HAPolicy.EventSourcing)
@@ -649,5 +706,25 @@ public class ToaMessagingTest extends AbstractToaTest {
         assertEquals("Wrong message for message 6", 6, ((ReceiverMessage2)receiver.received.get(5)).getLongField());
         assertEquals("Wrong message for message 7", 7, ((ReceiverMessage2)receiver.received.get(6)).getLongField());
 
+    }
+
+    /**
+     * Tests that a message injected with priority will close out a transaction batch. 
+     */
+    @Test
+    public final void testPriorityInjectionForwarderAdaptiveBatch() throws Throwable {
+        ToaMessagingTest.qos = qos;
+        ReceiverApp receiver = createApp("testSenderForwarderAdaptiveBatchTimeoutReceiver" + qos, "standalone", ReceiverApp.class);
+        Map<String, String> overrides = new HashMap<String, String>();
+        overrides.put("adaptiveCommitBatchCeiling", "64");
+        DelayedPriorityInjectionForwarderApp forwarder = createApp("testSenderForwarderAdaptiveBatchTimeoutForwarder" + qos, "standalone", DelayedPriorityInjectionForwarderApp.class, overrides);
+
+        forwarder.injectMessage(forwarder.populateMessage(ForwarderMessage1.create()));
+
+        forwarder.waitForTransactionStability(2);
+        receiver.waitForTransactionStability(2);
+        assertTrue("Receiver didn't receive message in allotted time", receiver.waitForMessages(10, 1));
+
+        assertSentAndReceivedMessageEqual(forwarder, receiver);
     }
 }

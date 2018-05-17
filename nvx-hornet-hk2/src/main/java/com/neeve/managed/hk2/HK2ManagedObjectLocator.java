@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -50,6 +50,13 @@ public class HK2ManagedObjectLocator implements ManagedObjectLocator {
 
     private ServiceLocator applicationServiceLocator;
 
+    /**
+     * Constructs an {@link HK2ManagedObjectLocator}. 
+     * 
+     * @param application The {@link TopicOrientedApplication} that owns this locator. 
+     * @param applicationName The name of the application (which is passed to {@link #createServiceLocator(String)}. 
+     * @param applicationModules The List of {@link Binder}s
+     */
     public HK2ManagedObjectLocator(TopicOrientedApplication application, String applicationName, List<Binder> applicationModules) {
         this.application = application;
         this.applicationName = applicationName;
@@ -61,15 +68,15 @@ public class HK2ManagedObjectLocator implements ManagedObjectLocator {
     public void locateManagedObjects(Set<Object> managedObjects) throws Exception {
         List<Object> applicationManagedObjects = findManagedObjects();
 
-        if (applicationManagedObjects.isEmpty()) 
-        	tracer.log("No Managed Objects found", Tracer.Level.WARNING);
-        
+        if (applicationManagedObjects.isEmpty())
+            tracer.log("No Managed Objects found", Tracer.Level.WARNING);
+
         if (tracer.debug) {
             for (Object object : applicationManagedObjects) {
                 tracer.log(this + " found ManagedObject=" + object, Tracer.Level.DEBUG);
             }
         }
-        
+
         //Inject Service Locator in managed objects
         for (Object object : applicationManagedObjects) {
             applicationServiceLocator.inject(object);
@@ -133,7 +140,7 @@ public class HK2ManagedObjectLocator implements ManagedObjectLocator {
      * @return the Application Service Locator
      */
 
-    public ServiceLocator getAppplicationServiceLocator() {
+    public ServiceLocator getApplicationServiceLocator() {
         return applicationServiceLocator;
     }
 }

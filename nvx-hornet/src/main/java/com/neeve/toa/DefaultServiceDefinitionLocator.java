@@ -50,11 +50,26 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
 
     /**
      * This property controls whether or not strict validation is done on service definition
-     * files located by this locator. When validation is not strict, files found at the locations
+     * files located by this locator. 
+     * <p>
+     * When validation is not strict, files found at the locations
      * for this locator are ignored with a warning, when set to <code>true</code>, an exception
-     * will be thrown if a file is encountered that is not a valid service definition.   
+     * will be thrown if a file is encountered that is not a valid service definition.
+     * <p>
+     * <b>Property name:</b> {@value #PROP_STRICT_SERVICE_VALIDATION}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_STRICT_SERVICE_VALIDATION_DEFAULT}
+     * <br>
+     * @see #PROP_STRICT_SERVICE_VALIDATION_DEFAULT
      */
-    public static final String PROP_STRICT_SERVICE_VALIDATION = "nv.toa.strictServiceLocatorValidation";
+    public static final String PROP_STRICT_SERVICE_VALIDATION = "nv.toa.strictservicelocatorvalidation";
+
+    /**
+     * Deprecated property name
+     * @deprecated use {@link #PROP_STRICT_SERVICE_VALIDATION} instead.
+     */
+    @Deprecated
+    private static final String PROP_STRICT_SERVICE_VALIDATION_DEPRECATED = "nv.toa.strictServiceLocatorValidation";
 
     /**
      * The default value for strict service definition location validation ({@value #PROP_STRICT_SERVICE_VALIDATION_DEFAULT}).
@@ -62,20 +77,41 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
      */
     public static final boolean PROP_STRICT_SERVICE_VALIDATION_DEFAULT = false;
 
-    private final boolean strictValidation = XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION, PROP_STRICT_SERVICE_VALIDATION_DEFAULT);
+    /**
+     * This property controls whether or not the default service definition locator will scan the classpath for services. 
+     * <p>
+     * This property can be used to disable classpath scanning for services. 
+     * <p>
+     * <b>Property name:</b> {@value #PROP_SCAN_FOR_CLASSPATH_SERVICES}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_SCAN_FOR_CLASSPATH_SERVICES_DEFAULT}
+     * <br>
+     * @see #PROP_SCAN_FOR_CLASSPATH_SERVICES_DEFAULT
+     */
+    public static final String PROP_SCAN_FOR_CLASSPATH_SERVICES = "nv.toa.scanforclasspathservices";
 
-    private final static URLFilter SERVICE_FILTER = new URLFilter() {
+    /**
+     * The default value for strict service definition location validation ({@value #PROP_STRICT_SERVICE_VALIDATION_DEFAULT}).
+     * By default files that are not services are ignored and result in a trace log warning.  
+     */
+    public static final boolean PROP_SCAN_FOR_CLASSPATH_SERVICES_DEFAULT = true;
+
+    private final boolean strictValidation = XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION, XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION_DEPRECATED, PROP_STRICT_SERVICE_VALIDATION_DEFAULT));
+    private final boolean scanForClassPathServices = XRuntime.getValue(PROP_SCAN_FOR_CLASSPATH_SERVICES, PROP_SCAN_FOR_CLASSPATH_SERVICES_DEFAULT);
+
+    private final URLFilter SERVICE_FILTER = new URLFilter() {
 
         @Override
         public boolean filter(URL url) {
-            if (XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION, PROP_STRICT_SERVICE_VALIDATION_DEFAULT)) {
+            if (strictValidation) {
                 if (url.getPath().endsWith(".xml")) {
                     AbstractServiceDefinitionLocator.validateServiceDefinitionFile(url);
+                    return false;
                 }
                 else {
                     if (tracer.debug) tracer.log("Ignoring service definition candidate, no xml suffix: " + url, Tracer.Level.DEBUG);
+                    return true;
                 }
-                return true;
             }
             else {
                 return !AbstractServiceDefinitionLocator.isServiceDefinitionFile(url);
@@ -83,19 +119,33 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
         }
     };
 
-    /* (non-Javadoc)
-     * @see com.neeve.toa.spi.ServiceDefinitionLocator#locateServices(java.util.Set)
+    /**
+     * Locates valid Hornet services.
+     * <p>
+     * This {@link ServiceDefinitionLocator} looks for services in the following locations:
+     * <ul>
+     * <li>file://${NVROOT}/conf/services/*.xml
+     * <li>file://${NVROOT}/resources/services/*.xml
+     * <li>file://${NVROOT}/resources/${application.name}/services/*.xml
+     * <li>classpath://services/*.xml
+     * </ul>
+     * This locator will return any .xml file found in the above locations that xml that 
+     * validates against the service definition schema x-tsml.xsd.
      */
     @Override
     public final void locateServices(final Set<URL> urls) throws Exception {
         findFileSystemServices(new File(XRuntime.getRootDirectory().toString() + File.separator + "conf" + File.separator + "services"), urls);
+        findFileSystemServices(new File(XRuntime.getRootDirectory().toString() + File.separator + "resources" + File.separator + "services"), urls);
         String appName = XRuntime.getValue("application.name", null);
         if (appName != null) {
+            findFileSystemServices(new File(XRuntime.getRootDirectory().toString() + File.separator + "conf" + File.separator + appName + File.separator + "services"), urls);
             findFileSystemServices(new File(XRuntime.getRootDirectory().toString() + File.separator + "resources" + File.separator + appName + File.separator + "services"), urls);
         }
 
-        // search classpath
-        UtlResource.findClasspathResourcesIn("services", urls, SERVICE_FILTER);
+        // search classpath?
+        if (scanForClassPathServices) {
+            UtlResource.findClasspathResourcesIn("services", urls, SERVICE_FILTER);
+        }
     }
 
     private final void findFileSystemServices(final File directory, final Set<URL> urls) throws MalformedURLException {

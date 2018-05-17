@@ -21,10 +21,9 @@
  */
 package com.neeve.toa.test.unit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -33,6 +32,7 @@ import java.util.Set;
 import org.junit.Test;
 
 import com.neeve.aep.AepBusManager;
+import com.neeve.aep.AepMessageSender;
 import com.neeve.aep.AepEngine.HAPolicy;
 import com.neeve.aep.annotations.EventHandler;
 import com.neeve.aep.event.AepUnhandledMessageEvent;
@@ -45,16 +45,17 @@ import com.neeve.sma.MessageChannel;
 import com.neeve.sma.MessageChannel.Qos;
 import com.neeve.sma.MessageChannel.RawKeyResolutionTable;
 import com.neeve.sma.MessageChannelDescriptor;
-import com.neeve.sma.SmaException;
-import com.neeve.sma.impl.MessageChannelBase;
-import com.neeve.toa.ToaException;
+import com.neeve.toa.TopicOrientedApplication;
 import com.neeve.toa.service.ToaService;
 import com.neeve.toa.service.ToaServiceChannel;
+import com.neeve.toa.spi.AbstractServiceDefinitionLocator;
 import com.neeve.toa.spi.AbstractTopicResolver;
 import com.neeve.toa.spi.ChannelFilterProvider;
 import com.neeve.toa.spi.ChannelJoinProvider;
 import com.neeve.toa.spi.ChannelQosProvider;
+import com.neeve.toa.spi.ServiceDefinitionLocator;
 import com.neeve.toa.spi.TopicResolver;
+import com.neeve.toa.test.unit.modelB.ModelBMessage1;
 import com.neeve.util.UtlTailoring;
 
 /**
@@ -65,12 +66,12 @@ public class ChannelResolutionTest extends AbstractToaTest {
     static {
         //Initialize clean key property (it is static):
         XRuntime.getProps().setProperty(MessageChannel.PROP_CLEAN_MESSAGE_KEY, "true");
-        MessageChannelBase.parseKey("foo");
         IKRT.put("IntField", "5");
     }
 
     @AppHAPolicy(HAPolicy.EventSourcing)
     public static class SenderApp extends AbstractToaTestApp {
+        volatile AepMessageSender aepMessageSender;
 
         public void sendTestMessage(IRogMessage message) {
             recordSend(message);
@@ -268,6 +269,36 @@ public class ChannelResolutionTest extends AbstractToaTest {
                 @Override
                 public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
                     if (channel.getSimpleName().equals("ReceiverChannel2")) {
+                        return ChannelJoin.Join;
+                    }
+                    return null;
+                }
+            });
+        }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class UnmappedChannelJoinReceiverApp extends AbstractToaTestApp {
+        @EventHandler
+        public void onUnhandledMessage(AepUnhandledMessageEvent event) {
+            System.out.println("GOT AEP UNHANDLED MESSAGE");
+            recordReceipt((IRogMessage)event.getTriggeringMessage());
+        }
+
+        @EventHandler
+        public void onUnmappedMessage(ModelBMessage1 message) {
+            System.out.println("GOT ModelBMessage1");
+            recordReceipt(message);
+        }
+
+        @Override
+        public void addChannelJoinProviders(Set<Object> providers) {
+            super.addChannelJoinProviders(providers);
+            providers.add(new ChannelJoinProvider() {
+
+                @Override
+                public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel) {
+                    if (channel.getSimpleName().equals("UnmappedChannel")) {
                         return ChannelJoin.Join;
                     }
                     return null;
@@ -555,310 +586,6 @@ public class ChannelResolutionTest extends AbstractToaTest {
         }
     }
 
-    public static class ReceiverMessage1OnReceiver1Channel extends AbstractTopicResolver<ReceiverMessage1> {
-        private final String modeledKey = "Receiver1/${IntField}/${ShortField}/${NonMessageField}";
-
-        private final XString keyBuilder = XString.create(32, true, true);
-
-        private final boolean[] preResolved = new boolean[3];
-        private final XString[] defaults = new XString[3];
-
-        private boolean matchesServiceKey = true;
-        private XString[] channelKeyParts;
-        private String[][] variableKeyComponents;
-        private RawKeyResolutionTable variableKeyDefaults;
-
-        @Override
-        public void initialize(ToaServiceChannel serviceChannel) {
-            super.initialize(serviceChannel);
-            channelKeyParts = MessageChannelBase.parseKey(channelKey.getValue());
-            variableKeyComponents = MessageChannelBase.parseChannelKeyVariables(channelKeyParts);
-            variableKeyDefaults = MessageChannelBase.parseChannelKeyVariableDefaults(channelKey.getValue());
-
-            if (!modeledKey.equals(serviceChannel.getKey())) {
-                matchesServiceKey = false;
-
-            }
-            else
-            {
-                if (variableKeyDefaults != null) {
-                    defaults[0] = variableKeyDefaults.get("IntField");
-                    defaults[1] = variableKeyDefaults.get("ShortField");
-                    defaults[2] = variableKeyDefaults.get("NonMessageField");
-                }
-
-                Properties props = serviceChannel.getInitialKRT() != null ? serviceChannel.getInitialKRT() : new Properties();
-                preResolved[0] = props.containsKey("IntField");
-                preResolved[1] = props.containsKey("ShortField");
-                preResolved[2] = props.containsKey("NonMessageField");
-            }
-        }
-
-        /* (non-Javadoc)
-         * @see com.neeve.toa.spi.TopicResolver#resolveTopic(com.neeve.sma.MessageView)
-         */
-        @Override
-        public XString resolveTopic(ReceiverMessage1 message, RawKeyResolutionTable krt) throws Exception {
-            keyBuilder.clear();
-
-            if (matchesServiceKey) {
-
-                //'Receiver1/'
-                int pos = 0;
-                if (channelKeyParts[0] != null) {
-                    keyBuilder.append(channelKeyParts[0]);
-                }
-                pos++;
-
-                //'${IntField}'
-                if (!preResolved[0]) {
-                    if (message.hasIntField()) {
-                        keyBuilder.append(message.getIntField());
-                    }
-                    else if (defaults[0] != null) {
-                        keyBuilder.append(defaults[0]);
-                    }
-                    else {
-                        final XString krtValue = krt == null ? null : krt.get("IntField");
-                        if (krtValue == null) {
-                            throw new ToaException("Value for ${IntField} not in message or KRT and no default value specified!");
-                        }
-                        else {
-                            keyBuilder.append(krtValue);
-                        }
-                    }
-                    pos++;
-
-                    //'/'
-                    if (channelKeyParts[pos] != null) {
-                        keyBuilder.append(channelKeyParts[pos]);
-                    }
-                    pos++;
-                }
-
-                //'${ShortField}'
-                if (!preResolved[1]) {
-                    if (message.hasIntField()) {
-                        keyBuilder.append(String.valueOf(message.getDoubleField()));
-                    }
-                    else if (defaults[1] != null) {
-                        keyBuilder.append(defaults[1]);
-                    }
-                    else {
-                        final XString krtValue = krt == null ? null : krt.get("ShortField");
-                        if (krtValue == null) {
-                            throw new ToaException("Value for ${ShortField} not in message or KRT and no default value specified!");
-                        }
-                        else {
-                            keyBuilder.append(krtValue);
-                        }
-                    }
-                    pos++;
-
-                    //'/'
-                    if (channelKeyParts[pos] != null) {
-                        keyBuilder.append(channelKeyParts[pos]);
-                    }
-                    pos++;
-                }
-
-                //'${NonMessageField}'
-                if (!preResolved[2]) {
-                    if (defaults[2] != null) {
-                        keyBuilder.append(defaults[2]);
-                    }
-                    else {
-                        final XString krtValue = krt == null ? null : krt.get("NonMessageField");
-                        if (krtValue == null) {
-                            throw new ToaException("Value for ${NonMessageField} not in message or KRT and no default value specified!");
-                        }
-                        else {
-                            keyBuilder.append(krtValue);
-                        }
-                    }
-                    pos++;
-
-                    //'/'
-                    if (channelKeyParts[pos] != null) {
-                        keyBuilder.append(channelKeyParts[pos]);
-                    }
-                    pos++;
-                }
-
-            }
-            else {
-                MessageChannelBase.resolveMessageKey(keyBuilder, channelKeyParts, variableKeyComponents, message, null, krt, variableKeyDefaults);
-            }
-            return keyBuilder;
-        }
-
-        /* (non-Javadoc)
-         * @see com.neeve.toa.spi.TopicResolver#resolveTopic(com.neeve.sma.MessageView)
-         */
-        @Override
-        public XString resolveTopic(ReceiverMessage1 message, Properties krt) throws SmaException {
-            keyBuilder.clear();
-            if (matchesServiceKey) {
-
-            }
-            else {
-                keyBuilder.append(MessageChannelBase.resolveMessageKey(channelKeyParts, variableKeyComponents, message, null, krt, variableKeyDefaults));
-            }
-            return keyBuilder;
-        }
-    }
-
-    public static class BasicKeyResolver extends AbstractTopicResolver<ReceiverMessage1> {
-        private final String modeledKey = "Receiver1/${IntField}/${ShortField}/${NonMessageField}";
-
-        private final XString keyBuilder = XString.create(32, true, true);
-
-        private final boolean[] preResolved = new boolean[3];
-        private final XString[] defaults = new XString[3];
-
-        private boolean matchesServiceKey = true;
-        private XString[] channelKeyParts;
-        private String[][] variableKeyComponents;
-        private RawKeyResolutionTable variableKeyDefaults;
-
-        @Override
-        public void initialize(ToaServiceChannel serviceChannel) {
-            super.initialize(serviceChannel);
-            channelKeyParts = MessageChannelBase.parseKey(channelKey.getValue());
-            variableKeyComponents = MessageChannelBase.parseChannelKeyVariables(channelKeyParts);
-            variableKeyDefaults = MessageChannelBase.parseChannelKeyVariableDefaults(channelKey.getValue());
-
-            if (!modeledKey.equals(serviceChannel.getKey())) {
-                matchesServiceKey = false;
-
-            }
-            else
-            {
-                defaults[0] = variableKeyDefaults.get("IntField");
-                defaults[1] = variableKeyDefaults.get("ShortField");
-                defaults[2] = variableKeyDefaults.get("NonMessageField");
-
-                Properties props = serviceChannel.getInitialKRT() != null ? serviceChannel.getInitialKRT() : new Properties();
-                preResolved[0] = props.containsKey("IntField");
-                preResolved[0] = props.containsKey("ShortField");
-                preResolved[0] = props.containsKey("NonMessageField");
-            }
-        }
-
-        /* (non-Javadoc)
-         * @see com.neeve.toa.spi.TopicResolver#resolveTopic(com.neeve.sma.MessageView)
-         */
-        @Override
-        public XString resolveTopic(ReceiverMessage1 message, RawKeyResolutionTable krt) throws Exception {
-            keyBuilder.clear();
-
-            if (matchesServiceKey) {
-
-                //'Receiver1/'
-                int pos = 0;
-                if (channelKeyParts[0] != null) {
-                    keyBuilder.append(channelKeyParts[0]);
-                }
-                pos++;
-
-                //'${IntField}'
-                if (!preResolved[0]) {
-                    if (message.hasIntField()) {
-                        keyBuilder.append(message.getIntField());
-                    }
-                    else if (defaults[0] != null) {
-                        keyBuilder.append(defaults[0]);
-                    }
-                    else {
-                        final XString krtValue = krt.get("IntField");
-                        if (krtValue == null) {
-                            throw new ToaException("Value for ${IntField} not in message or KRT and no default value specified!");
-                        }
-                        else {
-                            keyBuilder.append(krtValue);
-                        }
-                    }
-                    pos++;
-
-                    //'/'
-                    if (channelKeyParts[pos] != null) {
-                        keyBuilder.append(channelKeyParts[pos]);
-                    }
-                    pos++;
-                }
-
-                //'${ShortField}'
-                if (!preResolved[1]) {
-                    if (message.hasIntField()) {
-                        keyBuilder.append(String.valueOf(message.getDoubleField()));
-                    }
-                    else if (defaults[1] != null) {
-                        keyBuilder.append(defaults[0]);
-                    }
-                    else {
-                        final XString krtValue = krt.get("ShortField");
-                        if (krtValue == null) {
-                            throw new ToaException("Value for ${ShortField} not in message or KRT and no default value specified!");
-                        }
-                        else {
-                            keyBuilder.append(krtValue);
-                        }
-                    }
-                    pos++;
-
-                    //'/'
-                    if (channelKeyParts[pos] != null) {
-                        keyBuilder.append(channelKeyParts[pos]);
-                    }
-                    pos++;
-                }
-
-                //'${NonMessageField}'
-                if (!preResolved[1]) {
-                    if (defaults[1] != null) {
-                        keyBuilder.append(defaults[0]);
-                    }
-                    else {
-                        final XString krtValue = krt.get("NonMessageField");
-                        if (krtValue == null) {
-                            throw new ToaException("Value for ${NonMessageField} not in message or KRT and no default value specified!");
-                        }
-                        else {
-                            keyBuilder.append(krtValue);
-                        }
-                    }
-                    pos++;
-
-                    //'/'
-                    if (channelKeyParts[pos] != null) {
-                        keyBuilder.append(channelKeyParts[pos]);
-                    }
-                    pos++;
-                }
-
-            }
-            else {
-                MessageChannelBase.resolveMessageKey(keyBuilder, channelKeyParts, variableKeyComponents, message, null, krt, variableKeyDefaults);
-            }
-            return keyBuilder;
-        }
-
-        /* (non-Javadoc)
-         * @see com.neeve.toa.spi.TopicResolver#resolveTopic(com.neeve.sma.MessageView)
-         */
-        @Override
-        public XString resolveTopic(ReceiverMessage1 message, Properties krt) throws SmaException {
-            keyBuilder.clear();
-            if (matchesServiceKey) {
-
-            }
-            else {
-                keyBuilder.append(MessageChannelBase.resolveMessageKey(channelKeyParts, variableKeyComponents, message, null, krt, variableKeyDefaults));
-            }
-            return keyBuilder;
-        }
-    }
-
     /**
      * Tests that dynamic portion of a channel key are left untouched if they aren't
      * in the initial KRT and that no exception is thrown. 
@@ -1038,6 +765,65 @@ public class ChannelResolutionTest extends AbstractToaTest {
     }
 
     @Test
+    public final void testInitialKRTDoesntSubstituteEmptyWithTreatEmptyAsNull() throws Throwable {
+        XRuntime.getProps().setProperty(MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL, "true");
+        IKRT.setProperty("LongField", "");
+        try {
+            FixedKRTReceiverAppWithDefaultInChannelKey receiver = createApp("receiver", "standalone", FixedKRTReceiverAppWithDefaultInChannelKey.class);
+            FixedKRTSenderApp sender = createApp("sender", "standalone", FixedKRTSenderApp.class);
+
+            for (int i = 1; i <= 4; i++) {
+                ReceiverMessage4 m = ReceiverMessage4.create();
+                // note: the Long field in the channel key should not be 
+                // substituted by the initial KRT and thus remain dynamic
+                // meaning the receiver should only get message 3:
+                m.setLongField(i);
+                sender.sendTestMessage(m);
+            }
+
+            sender.waitForTransactionStability(4);
+            sender.assertExpectedSends(5, 4);
+
+            receiver.waitForTransactionStability(1);
+
+            if (verbose()) {
+                for (IRogMessage message : sender.sent) {
+                    System.out.println("Sent: " + message.toString());
+                }
+            }
+
+            receiver.assertExpectedReceipt(5, 1);
+
+            if (verbose()) {
+                for (IRogMessage message : receiver.received) {
+                    System.out.println("Received: " + message.toString());
+                }
+            }
+        }
+        finally {
+            IKRT.remove("LongField");
+            XRuntime.getProps().setProperty(MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL, "" + MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL_DEFAULT);
+        }
+    }
+
+    @Test
+    public final void testInitialKRTThrowsErrorOnEmptyWithAllowEmptyKeyFieldFalse() throws Throwable {
+        XRuntime.getProps().setProperty(MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD, "false");
+        IKRT.setProperty("LongField", "");
+        try {
+            createApp("receiver", "standalone", FixedKRTReceiverAppWithDefaultInChannelKey.class);
+            fail("Shouldn't have been able to launc application with empty initial KRT value");
+        }
+        catch (Exception e) {
+            assertTrue("Exception message should complain about blank key, but was: " + e.getMessage(), e.getMessage().indexOf("contains a blank value for key field") > 0);
+        }
+        finally {
+            IKRT.remove("LongField");
+            XRuntime.getProps().setProperty(MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD, "" + MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD_DEFAULT);
+        }
+    }
+
+    @Test
     public final void testApplicationProvidedTopicResolver() throws Throwable {
         FilteringReceiverApp receiver = createApp("receiver", "standalone", FilteringReceiverApp.class);
         ApplicationProvidedTopicResolverSender sender = createApp("sender", "standalone", ApplicationProvidedTopicResolverSender.class);
@@ -1195,69 +981,6 @@ public class ChannelResolutionTest extends AbstractToaTest {
     }
 
     @Test
-    public void testStaticKeyResolver() throws Exception {
-        ReceiverMessage1OnReceiver1Channel resolver = new ReceiverMessage1OnReceiver1Channel();
-        ToaService service = ToaService.unmarshal(getClass().getResource("/services/receiverService.xml"));
-        ToaServiceChannel channel = null;
-        for (ToaServiceChannel c : service.getChannels()) {
-            if (c.getSimpleName().equals("ReceiverChannel1")) {
-                channel = c;
-                break;
-            }
-        }
-        Properties initialKRT = new Properties();
-        initialKRT.put("NonMessageField", "NMVALUE");
-        channel.setInitialKRT(initialKRT);
-        String key = "Receiver1/${IntField}/${ShortField}/${NonMessageField}";
-        channel.setKey(key);
-        channel.setInitiallyResolvedKey(UtlTailoring.springScanAndReplace(channel.getKey(), initialKRT));
-        resolver.initialize(channel);
-
-        RawKeyResolutionTable krt = MessageBusBindingFactory.createRawKeyResolutionTable();
-        ReceiverMessage1 message = ReceiverMessage1.create();
-        message.setIntField(10);
-        message.setShortField((short)20);
-
-        final int CYCLES = 100;
-
-        final XString channelKey = XString.create(channel.getInitiallyResolvedKey(), true, true);
-        final XString keyBuilder = XString.create(32, true, true);
-        final XString[] channelKeyParts = MessageChannelBase.parseKey(channelKey.getValue());
-        final String[][] variableKeyComponents = MessageChannelBase.parseChannelKeyVariables(channelKeyParts);
-        final RawKeyResolutionTable variableKeyDefaults = MessageChannelBase.parseChannelKeyVariableDefaults(channelKey.getValue());
-
-        long start = System.nanoTime();
-        for (int i = 0; i < CYCLES; i++) {
-            resolver.resolveTopic(message, krt);
-        }
-        long duration = System.nanoTime() - start;
-        System.out.println("Static Key Resolution: " + duration + "(" + duration / CYCLES + " ns/resolution)");
-
-        start = System.nanoTime();
-        for (int i = 0; i < CYCLES; i++) {
-            keyBuilder.clear();
-            MessageChannelBase.resolveMessageKey(keyBuilder, channelKeyParts, variableKeyComponents, message, null, krt, variableKeyDefaults);
-        }
-        duration = System.nanoTime() - start;
-        System.out.println("Dynamic Key Resolution: " + duration + "(" + duration / CYCLES + " ns/resolution)");
-
-        start = System.nanoTime();
-        for (int i = 0; i < CYCLES; i++) {
-            resolver.resolveTopic(message, krt);
-        }
-        duration = System.nanoTime() - start;
-        System.out.println("Static Key Resolution: " + duration + "(" + duration / CYCLES + " ns/resolution)");
-
-        start = System.nanoTime();
-        for (int i = 0; i < CYCLES; i++) {
-            keyBuilder.clear();
-            MessageChannelBase.resolveMessageKey(keyBuilder, channelKeyParts, variableKeyComponents, message, null, krt, variableKeyDefaults);
-        }
-        duration = System.nanoTime() - start;
-        System.out.println("Dynamic Key Resolution: " + duration + "(" + duration / CYCLES + " ns/resolution)");
-    }
-
-    @Test
     public void testCleanMessageKey() throws Throwable {
         Map<String, String> props = new HashMap<String, String>();
         props.put(MessageChannel.PROP_CLEAN_MESSAGE_KEY, "true");
@@ -1350,5 +1073,120 @@ public class ChannelResolutionTest extends AbstractToaTest {
         receiver.assertExpectedReceipt(5, 2);
         assertEquals("Wrong type for received message", ReceiverMessage1.class, receiver.received.get(0).getClass());
         assertEquals("Wrong type for received message", ReceiverMessage2.class, receiver.received.get(1).getClass());
+    }
+
+    @Test
+    public void testUnMappedChannelJoinProviderDefault() throws Throwable {
+        XRuntime.getProps().setProperty(TopicOrientedApplication.PROP_IGNORE_UNMAPPED_CHANNELS, "false");
+        try {
+            UnmappedChannelJoinReceiverApp receiver = createApp("testUnMappedChannelJoinProviderJoin", "standalone", UnmappedChannelJoinReceiverApp.class);
+            receiver.holdMessages = true;
+            SenderApp sender = createApp("testChannelJoinProviderDefaultSender", "standalone", SenderApp.class);
+
+            // send a message on UnmappedChannel which has no message mapped to it.
+            MessageChannel unmappedChannel = null;
+            for (AepBusManager busManager : sender.getAepEngine().getBusManagers()) {
+                if (!busManager.getBusBinding().getName().equals("testChannelJoinProviderDefaultSender")) {
+                    continue;
+                }
+                unmappedChannel = busManager.getChannel("receiverservice-UnmappedChannel");
+                break;
+            }
+            assertNotNull("receiverservice-UnmappedChannel not found in sender's bus", unmappedChannel);
+
+            ModelBMessage1 message = ModelBMessage1.create();
+            message.setMessageBusAsRaw(unmappedChannel.getMessageBusBinding().getNameAsRaw());
+            message.setMessageChannelAsRaw(unmappedChannel.getNameAsRaw());
+            sender.getAepEngine().sendMessage(unmappedChannel, message);
+
+            sender.waitForTransactionStability(1);
+            receiver.waitForTransactionStability(1);
+
+            // receiver should only get ReceiverMessage2 since ReceiverMessage1 channel 
+            // join was set to false
+            receiver.assertExpectedReceipt(5, 1);
+            assertEquals("Wrong type for received message", ModelBMessage1.class, receiver.received.get(0).getClass());
+        }
+        finally {
+            XRuntime.getProps().remove(TopicOrientedApplication.PROP_IGNORE_UNMAPPED_CHANNELS);
+        }
+    }
+
+    private static final class ConflictServiceDefinitionLocator extends AbstractServiceDefinitionLocator {
+
+        /* (non-Javadoc)
+         * @see com.neeve.toa.spi.ServiceDefinitionLocator#locateServices(java.util.Set)
+         */
+        @Override
+        public void locateServices(Set<URL> urls) throws Exception {
+            urls.add(getClass().getResource("/services/forwarderService.xml"));
+            urls.add(getClass().getResource("/conflictingForwarderService.xml"));
+        }
+
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class ConflictingServiceChannelTestApp extends AbstractToaTestApp {
+
+        @Override
+        public ServiceDefinitionLocator getServiceDefinitionLocator() {
+            return new ConflictServiceDefinitionLocator();
+        }
+    }
+
+    /**
+     * Tests that 2 services with the same simple name using the same channel name fails. 
+     */
+    @Test
+    public void testConflictingServiceAndChannelNameFails() {
+        try {
+            createApp("testConflictingServiceAndChannelNameFails", "standalone", ConflictingServiceChannelTestApp.class);
+        }
+        catch (Throwable thrown) {
+            String expectedText = "Service channel name collision detected";
+            assertTrue("Wrong exception for service channel conflict (expected '" + expectedText + "')", thrown.getMessage().indexOf(expectedText) >= 0);
+            thrown.printStackTrace();
+        }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static class EmptyStringFieldSender extends SenderApp {
+        volatile AepMessageSender aepMessageSender;
+
+        @EventHandler
+        public void onReceiver4Message(ReceiverMessage4 in) {
+            ReceiverMessage5 out = ReceiverMessage5.create();
+            out.setStringField(in.getStringField());
+            sendTestMessage(out);
+        }
+    }
+
+    /**
+     * Tests that channel key resolution with an empty channel key fails. 
+     */
+    @Test
+    public void testEmptyKeyChannelResolution() throws Throwable {
+        Map<String, String> props = new HashMap<String, String>();
+        props.put(MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD, "false");
+        props.put("x.apps." + testcaseName.getMethodName() + "Sender.appExceptionHandlingPolicy", "LogExceptionAndContinue");
+        props.put("x.apps." + testcaseName.getMethodName() + "Sender.sequenceUnsolicitedSendsWithSolicitedSend", "true");
+        JoinJoinProviderReceiverApp receiver = createApp(testcaseName.getMethodName() + "Receiver", "standalone", JoinJoinProviderReceiverApp.class, props);
+        receiver.holdMessages = true;
+        EmptyStringFieldSender sender = createApp(testcaseName.getMethodName() + "Sender", "standalone", EmptyStringFieldSender.class, props);
+        sender.holdMessages = true;
+
+        //First message sent should fail on empty key 
+        ReceiverMessage4 m1 = ReceiverMessage4.create();
+        m1.setStringField("");
+        sender.injectMessage(m1);
+
+        //Second message should succeed.
+        ReceiverMessage4 m2 = ReceiverMessage4.create();
+        m2.setStringField("2");
+        sender.injectMessage(m2);
+
+        //Receiver shouldn't receive any messages since sender should fail with empty key level. 
+        assertTrue("Receiver didn't receive message", receiver.waitForMessages(10, 1));
+        assertEquals("Receiver received wrong message", "2", ((ReceiverMessage5)receiver.received.get(0)).getStringField());
     }
 }

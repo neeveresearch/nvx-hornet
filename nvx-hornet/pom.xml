@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.neeve</groupId>
         <artifactId>nvx-hornet-parent</artifactId>
-        <version>1.3.0</version>
+        <version>1.9.0</version>
     </parent>
 
     <licenses>
@@ -57,18 +57,29 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <excludePackageNames>com.neeve.toa.service.jaxb</excludePackageNames>
+                    <excludePackageNames>com.neeve.toa.service.jaxb:com.neeve.toa.opt.impl</excludePackageNames>
                 </configuration>
             </plugin>
 
             <plugin>
                 <groupId>com.neeve</groupId>
-                <artifactId>nvx-core-maven-plugin</artifactId>
+                <artifactId>nvx-adm-maven-plugin</artifactId>
                 <executions>
+                    <execution>
+                        <id>generate-hornet-messages</id>
+                        <goals>
+                            <goal>adm-generate</goal>
+                        </goals>
+                        <configuration>
+                            <modelFile>${basedir}/src/main/models/com/neeve/toa/messages/messages.xml</modelFile>
+                            <encodingType>Xbuf</encodingType>
+                            <protoXbufGenerationCompatibility>Protobuf</protoXbufGenerationCompatibility>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>generate-test-model-a</id>
                         <goals>
-                            <goal>generateTest</goal>
+                            <goal>adm-generateTest</goal>
                         </goals>
                         <configuration>
                             <modelFile>${basedir}/src/test/models/com/neeve/toa/test/unit/modelA/modelA.xml</modelFile>
@@ -79,7 +90,7 @@
                     <execution>
                         <id>generate-test-model-b</id>
                         <goals>
-                            <goal>generateTest</goal>
+                            <goal>adm-generateTest</goal>
                         </goals>
                         <configuration>
                             <modelFile>${basedir}/src/test/models/com/neeve/toa/test/unit/modelB/modelB.xml</modelFile>
@@ -90,7 +101,7 @@
                     <execution>
                         <id>generate-hornet-test-model</id>
                         <goals>
-                            <goal>generateTest</goal>
+                            <goal>adm-generateTest</goal>
                         </goals>
                         <configuration>
                             <modelFile>${basedir}/src/test/models/com/neeve/toa/test/unit/toaTestModel.xml</modelFile>
@@ -100,7 +111,7 @@
                     <execution>
                         <id>generate-hornet-injection-test-model</id>
                         <goals>
-                            <goal>generateTest</goal>
+                            <goal>adm-generateTest</goal>
                         </goals>
                         <configuration>
                             <modelFile>${basedir}/src/test/models/com/neeve/toa/test/unit/injectionTestModel.xml</modelFile>

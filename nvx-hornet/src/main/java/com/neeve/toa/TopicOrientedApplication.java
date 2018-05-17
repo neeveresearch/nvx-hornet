@@ -41,8 +41,10 @@ import com.neeve.adm.runtime.annotations.AdmGenerated;
 import com.neeve.aep.AepEngine;
 import com.neeve.aep.AepEngine.MessagingStartFailPolicy;
 import com.neeve.aep.AepEngine.State;
+import com.neeve.aep.AepEngineDescriptor.ChannelConfig;
 import com.neeve.aep.AepEngineDescriptor;
 import com.neeve.aep.AepEventDispatcher;
+import com.neeve.aep.AepMessageSender;
 import com.neeve.aep.IAepApplicationStateFactory;
 import com.neeve.aep.IAepPostdispatchMessageHandler;
 import com.neeve.aep.IAepPredispatchMessageHandler;
@@ -53,6 +55,8 @@ import com.neeve.aep.event.AepBusBindingOpenFailedEvent;
 import com.neeve.aep.event.AepChannelUpEvent;
 import com.neeve.aep.event.AepEngineActiveEvent;
 import com.neeve.aep.event.AepEngineStartedEvent;
+import com.neeve.aep.event.AepEngineStoppedEvent;
+import com.neeve.aep.event.AepEngineStoppingEvent;
 import com.neeve.aep.event.AepMessagingPrestartEvent;
 import com.neeve.ci.ManifestProductInfo;
 import com.neeve.ci.ProductInfo;
@@ -94,9 +98,11 @@ import com.neeve.sma.MessageChannel.RawKeyResolutionTable;
 import com.neeve.sma.MessageChannelDescriptor;
 import com.neeve.sma.MessageView;
 import com.neeve.sma.MessageViewFactoryRegistry;
-import com.neeve.sma.MessageViewTags;
 import com.neeve.sma.SmaException;
 import com.neeve.sma.event.MessageEvent;
+import com.neeve.sma.event.UnhandledMessageEvent;
+import com.neeve.toa.opt.DelayedAcknowledgmentController;
+import com.neeve.toa.opt.impl.DelayedAckControllerImpl;
 import com.neeve.toa.service.ToaService;
 import com.neeve.toa.service.ToaServiceChannel;
 import com.neeve.toa.service.ToaServiceToRole;
@@ -107,18 +113,175 @@ import com.neeve.toa.spi.ChannelQosProvider;
 import com.neeve.toa.spi.ServiceDefinitionLocator;
 import com.neeve.toa.spi.TopicResolver;
 import com.neeve.toa.spi.TopicResolverProvider;
-import com.neeve.toa.tools.ToaCodeGenerator;
 import com.neeve.trace.Tracer;
 import com.neeve.trace.Tracer.Level;
 import com.neeve.util.UtlTailoring;
 import com.neeve.util.UtlThrowable;
+import com.neeve.util.UtlTime;
 
 /**
- * Base class for topic oriented applications.
+ * Base class for Hornet topic oriented applications.
  * <p>
- * <h2>Restrictions on AEP Usage</h2>
- * The {@link TopicOrientedApplication} class reserves usage of several AepEngine features for its
- * own use:
+ * Hornet's primary function is to simplify application with a rich topic space by mapping messages to {@link MessageChannel message channels}
+ * via configuration rather than via application code. To accomplish this a light weight xml 'service' schema (x-tsml) is 
+ * used that allows the mapping of message types to a channel. Each message may be mapped to a single channel, though several message may 
+ * map to the same channel. 
+ * <p>
+ * The simplest usage of Hornet is for an application to configure a single bus with the same 
+ * name as the application that specifies only the provider and connection details. The channel definitions and the messages that 
+ * flow over them will be provided by service definitions returned by the application's {@link ServiceDefinitionLocator}. 
+ * Messages will be sent on the channel that the message type is mapped to, and subscription are issued on the channel if 
+ * there is a message handler for a type mapped to it.
+ * <p>
+ * Using these service definitions a Hornet application:
+ * <ul>
+ * <li> Adds the service defined channels to the application's messaging bus (or buses) on behalf of the application.
+ * <li> Allows message to be {@link #sendMessage(IRogMessage) sent} without specifying a message channel (the service defined 
+ *      mapping indicates the channel to use).
+ * <li> Allows the presence of discovered event handlers to implicitly {@link MessageChannel#join(int) join} the channel 
+ *      to which the message is mapped. 
+ * </ul>
+ * 
+ * <h2>Message to MessageChannel Mapping and Configuration</h2>
+ * As discussed above, Hornet's primary function is to map messages to message channels that Hornet will configure 
+ * on behalf of the application. For more advanced usecases and more control over customizing the configuration of 
+ * message channels, this section describes the mapping process in detail.  
+ * <p>
+ * To perform the mapping the set of services is solicited from the application via a {@link ServiceDefinitionLocator}. 
+ * The services are then iterated in 2 passes:
+ * <ol>
+ * <li> Pass 1 (map messages to a channel). In this pass, services are iterated over their declared message types to map 
+ *      messages to the channel on which they should be sent, and to look for application defined message handlers that
+ *      match the type of the message to determine if the application is expressing interest in joining the channel.  
+ *      <p>
+ *      <i><b>Note:</b> If two services map the same message to a different channel, the last mapping iterated is the one 
+ *      used for sending messages .</i>
+ * <li> Pass 2 (configure buses and channels). In this pass, services are iterated by the channels that they define
+ *      and are added to the bus. Depending on the value of {@value #PROP_IGNORE_UNMAPPED_CHANNELS}, channels are 
+ *      only considered if they are mapped by a channel. 
+ *      <ul>
+ *      <li><b>Channel Key:</b> The channel key comes from the service definition. If the service doesn't 
+ *          define a channel key, then the key predefined for the channel in the DDL configuration is used.
+ *          Otherwise, no key will be specified for the channel. 
+ *          <p> 
+ *          If the key is not null and a {@link ChannelInitialKeyResolutionTableProvider} returns a key 
+ *          resolution table for the channel then it will be used to resolve variable portions of the key 
+ *          up front.   
+ *      <li><b>Channel Qos:</b> The {@link com.neeve.sma.MessageChannel.Qos Qos} of the channel is initially
+ *          set to value predefined via the initial configuration in DDL if the channel is preconfigured.
+ *          If the channel is not specified in configuration the {@link Qos} is set to {@link Qos#Guaranteed}.
+ *          <p>
+ *          If any {@link ChannelQosProvider} returns a Qos for the channel then that Qos will be used
+ *          for the channel and if two providers return different Qos values the the highest Qos (Guaranteed) will
+ *          be used. See {@link ChannelQosProvider} for specifics. 
+ *          
+ *          <i><b>Note:</b> some binding implementations may require both the sending and receiving parties use
+ *          the same Qos for a channel (for example the loopback and direct bus implementations). Therefore care
+ *          must be taken when using ChannelQosProviders to ensure that the same Qos is elected across applications.</i>
+ *      <li><b>Channel Join:</b> 
+ *          A channel is {@link MessageChannel#join(int) joined} if the application has an {@link EventHandler}
+ *          annotated method for a type that was determined to map to the channel for the service in the first
+ *          pass above. 
+ *          <p>
+ *          If any {@link ChannelJoinProvider} returns a non Default {@link ChannelJoin} value for the channel then it will
+ *          determine whether or not the channel is joined. It is not legal for two providers to return a different value. 
+ *          See {@link ChannelJoinProvider#getChannelJoin(ToaService, ToaServiceChannel) 
+ *          ChannelJoinProvider.getChannelJoin(..)} for additional specifics.
+ *          <p>
+ *          If there isn't a handler for the message and no {@link ChannelJoinProvider} returns a
+ *          value, but the channel is pre-configured for the application via DDL configuration then the preconfigured
+ *          value for join will be used. In summary, the precedence for determining channel join is as follows:
+ *          <ul>
+ *          <li> ChannelJoinProvider returning non {@link ChannelJoin#Default Default} join value. 
+ *          <li> Presence of a handler for a message mapped to the channel in the service
+ *          <li> Pre-configured value in configuration DDL for the application
+ *          <li> ... if none of the above then default is not to join. 
+ *          </ul>
+ *      <li><b>Channel Filter:</b>
+ *          For channels with variable key components, the application can provide filters to be used when joining
+ *          the channel. 
+ *          <p>
+ *          If any {@link ChannelFilterProvider} returns a channel filter that filter will be used to filter the join
+ *          in the event that the application joins the channel. It is not legal for two providers to return a different value. 
+ *          See {@link ChannelFilterProvider#getChannelFilter(ToaService, ToaServiceChannel) 
+ *          ChannelFilterProvider.getChannelFilter(..)} for additional details.
+ *          <p>
+ *          If no channel filter provider returns a filter, but one is pre-configured via DDL configuration
+ *          that filter will be used, otherwise no channel filter will be defined. 
+ *      </ul>
+ *      <i><b>Note:</b> If two services define the same channel then the values from the last service processed will be used.</i>
+ * </ol>
+ * <p>
+ * <b>Mapping Channels to Buses:</b><br>
+ * If the channel definition in the service doesn't declare a bus, the bus name defaults to a bus with the 
+ * same name as the application being configured. This means that applications may simply configure a single bus 
+ * with the same name as the application via DDL configuration and rely on Hornet to fill in the channel definitions
+ * based on those discovered in services.
+ * <p>
+ * If multiple message buses are needed, then well named buses must be defined via DDL configuration that match
+ * those named in services.
+ * <p>
+ * <b>Message Factory Registration</b><br>
+ * Talon requires that messages being received from a message bus or written to a transaction log have
+ * their corresponding factories registered with the runtime to allow the message to be deserialized. Hornet
+ * will automatically register factories for ADM generated messages that are declared in a service or are
+ * discovered in an application exposed message handler. 
+ * <p>
+ * Application designers must ensure that no unknown messages types flow on the channels that are joined
+ * by the application or it will result in the emission of {@link UnhandledMessageEvent}s as the unrecognized
+ * messages are received. This scenario is at best inefficient, and at worst can cause unintended acknowledgment of 
+ * of messages that are not processed by the application 
+ * 
+ * <p>
+ * <h2>Hornet Application Lifecycle</h2>
+ * Apps loaded by a Talon server are initialized using annotations on the application's main class. Hornet applications hook into this 
+ * lifecycle and handles several of the configuration and startup lifecycle operations that a standard Talon application would normally 
+ * implement on its own. This section describes the lifecycle of a Hornet application.
+ * <ol>
+ * <li> Instantiate the main class which must have a public 0 argument constructor
+ * <li> Inspect the main class for Talon app annotations.
+ * <li> Inject {@link SrvAppLoader} into a {@link AppInjectionPoint} annotated method to let the application first see the server and its {@link SrvConfigAppDescriptor}.
+ * The SrvAppLoader provides the application with the ability to inspect the identity of the server in which it is being launched.
+ * <br><i>Note: because TopicOrientedApplication provides this injection point it is illegal for subclasses to implement an {@link AppInjectionPoint} for  {@link SrvAppLoader},
+ * subclasses can instead override {@link #onAppLoaderInjected(SrvAppLoader)}.</i> 
+ * <li> Inject the {@link AepEngineDescriptor} into an {@link AppInjectionPoint} annotated method to let the app customize its {@link AepEngine}. The application may
+ * augment the {@link AepEngineDescriptor}, and to inspect the configuration of the application being launched. 
+ * <br><i>Note: because TopicOrientedApplication provides this injection point it is illegal for subclasses to implement an {@link AppInjectionPoint} for  {@link AepEngineDescriptor},
+ * subclasses can instead override {@link #onEngineDescriptorInjected(AepEngineDescriptor)}.</i> 
+ * <li>Call {@link #getManagedObjectLocator()} and call its {@link ManagedObjectLocator#locateManagedObjects(Set)} method to find objects that expose
+ * {@link AppCommandHandler}, {@link AppStat}, {@link Configured} or {@link EventHandler} annotations.
+ * <li>Perform {@link Configured} configuration injection on the set of objects returned by the {@link ManagedObjectLocator}.  
+ * <li>Call {@link #getServiceDefinitionLocator()} and invoke its {@link ServiceDefinitionLocator#locateServices(Set)}. {@link TopicOrientedApplication} parses the 
+ * service models returned by the {@link ServiceDefinitionLocator} and maps service defined messages to channels. Based on interest defined by the application's 
+ * {@link EventHandler}s determines which channels to join. 
+ * <li>Call {@link #onConfigured()}. At this point the application can call {@link #getServiceModels()} or {@link #getServiceModel(String)} to examine the parsed
+ * service model.
+ * <li> Call to {@link AppStateFactoryAccessor} annotated method to retrieve the application's state factory (for use with state replication engines). 
+ * <li> Construct the AepEngine using the configured {@link AepEngineDescriptor}, {@link IAepApplicationStateFactory}, and {@link EventHandler}s, registering the 
+ * {@link SrvAppLoader} as a {@link IAepWatcher} for the engine. 
+ * <li> Inject {@link AepEngine} into a {@link AppInjectionPoint} annotated method to provide the application access to its {@link AepEngine}. 
+ * <br><i>Note: because TopicOrientedApplication provides this injection point it is illegal for subclasses to implement an {@link AppInjectionPoint} for  {@link AepEngine},
+ * subclasses can instead override {@link #onEngineInjected(AepEngine)}. In most cases, the application should not use the {@link AepEngine} directly and instead use the 
+ * corresponding facilities provided by {@link TopicOrientedApplication} ({@link MessageSender}, {@link MessageInjector}, {@link EngineClock} etc).</i>  
+ * <li> Inspects Managed Object for User defined stats (annotated with @{@link AppStat}. <i>This implies that by the time the call to {@link #onEngineInjected(AepEngine)} returns,
+ * all application defined stats should have been constucted by the application.</i>
+ * <li> Call {@link #onAppInitialized()} to indicate that the applications has been successfully initialized.
+ * <br><i>Note because {@link TopicOrientedApplication} utilizes the {@link AppInitializer} annotation to implement this, applications must not use the {@link AppInitializer}
+ * annotation.</i>
+ * <li> If the application is annotated with an {@link AppMain} annotation, spin up Main Thread for the application when the AepEngine becomes Primary and invoke it. 
+ * For an application that is responsive (i.e. reacts to messages), an application may register additional Aep {@link LifecycleEvent} {@link EventHandler}s to 
+ * respond to various application lifecycle events (see link below)
+ * <li> When the app is issued a close or unload command, invoke the {@link #onAppFinalized()} method on the app and join its {@link AppMain}n thread if started.
+ * <br><i>Note because {@link TopicOrientedApplication} utilizes the {@link AppFinalizer} annotation to implement this, applications must not use the {@link AppInitializer}
+ * annotation.</i>
+ * </ol>
+ * (For an indepth discussion of the underlying {@link AepEngine} lifecycle, see 
+ * <a href="http://docs.neeveresearch.com/display/KB/X+Application+Lifecycle">X Application Lifecycle</a>)
+ * <p>
+ * 
+ * <h3>Restrictions on AEP Usage</h3>
+ * The {@link TopicOrientedApplication} class reserves usage of several AepEngine features for its own use. For the most part this allows it to implement
+ * the lifecycle describer above, and in some cases it allows functionality that extends that supported by Talon. 
  * <ol>
  * <li><b>Predispatch Message Handler:</b><br>
  * {@link TopicOrientedApplication} reserves the sole right to set {@link AepEngine#setPredispatchMessageHandler(IAepPredispatchMessageHandler)}.
@@ -157,56 +320,176 @@ import com.neeve.util.UtlThrowable;
  * </li> 
  * </ul>
  * </ol>
- * <h2>Lifecycle</h2>
- * Apps loaded by a Talon server are initialized using annotations on the application's main class. 
- * The sequence for loading a Talon server application is as follows:
- * <ol>
- * <li> Instantiate the main class which must have a public 0 argument constructor
- * <li> Inspect the main class for Talon app annotations.
- * <li> Inject {@link SrvAppLoader} into a {@link AppInjectionPoint} annotated method to let the application first see the server and its {@link SrvConfigAppDescriptor}.
- * The SrvAppLoader provides the application with the ability to inspect the identity of the server in which it is being launched.
- * <br><i>Note: because TopicOrientedApplication provides this injection point it is illegal for subclasses to implement an {@link AppInjectionPoint} for  {@link SrvAppLoader},
- * subclasses can instead override {@link #onAppLoaderInjected(SrvAppLoader)}.</i> 
- * <li> Inject the {@link AepEngineDescriptor} into an {@link AppInjectionPoint} annotated method to let the app customize its {@link AepEngine}. The application may
- * augment the {@link AepEngineDescriptor}, and to inspect the configuration of the application being launched. 
- * <br><i>Note: because TopicOrientedApplication provides this injection point it is illegal for subclasses to implement an {@link AppInjectionPoint} for  {@link AepEngineDescriptor},
- * subclasses can instead override {@link #onEngineDescriptorInjected(AepEngineDescriptor)}.</i> 
- * <li>Call {@link #getManagedObjectLocator()} and call its {@link ManagedObjectLocator#locateManagedObjects(Set)} method to find objects that expose
- * {@link AppCommandHandler}, {@link AppStat}, {@link Configured} or {@link EventHandler} annotations.
- * <li>Perform {@link Configured} configuration injection on the set of objects returned by the {@link ManagedObjectLocator}.  
- * <li>Call {@link #getServiceDefinitionLocator()} and invoke its {@link ServiceDefinitionLocator#locateServices(Set)}. {@link TopicOrientedApplication} parses the 
- * service models returned by the {@link ServiceDefinitionLocator} and based on interest defined by the application's {@link EventHandler}s determines which
- * channels to join. 
- * <li>Call {@link #onConfigured()}. At this point the application can call {@link #getServiceModels()} or {@link #getServiceModel(String)} to examine the parsed
- * service model.
- * <li> Call to {@link AppStateFactoryAccessor} annotated method to retrieve the application's state factory (for use with state replication engines). 
- * <li> Construct the AepEngine using the configured {@link AepEngineDescriptor}, {@link IAepApplicationStateFactory}, and {@link EventHandler}s, registering the 
- * {@link SrvAppLoader} as a {@link IAepWatcher} for the engine. 
- * <li> Inject {@link AepEngine} into a {@link AppInjectionPoint} annotated method to provide the application access to its {@link AepEngine}. 
- * <br><i>Note: because TopicOrientedApplication provides this injection point it is illegal for subclasses to implement an {@link AppInjectionPoint} for  {@link AepEngine},
- * subclasses can instead override {@link #onEngineInjected(AepEngine)}. In most cases, the application should not use the {@link AepEngine} directly and instead use the 
- * corresponding facilities provided by {@link TopicOrientedApplication} ({@link MessageSender}, {@link MessageInjector}, {@link EngineClock} etc).</i>  
- * <li> Insepects Managed Object for User defined stats (annotated with @{@link AppStat}. <i>This implies that by the time the call to {@link #onEngineInjected(AepEngine)} returns,
- * all application defined stats should have been constucted by the application.</i>
- * <li> Call {@link #onAppInitialized()} to indicate that the applications has been successfully initialized.
- * <br><i>Note because {@link TopicOrientedApplication} utilizes the {@link AppInitializer} annotation to implement this, applications must not use the {@link AppInitializer}
- * annotation.</i>
- * <li> If the application is annotated with an {@link AppMain} annotation, spin up Main Thread for the application when the AepEngine becomes Primary and invoke it. 
- * For an application that is responsive (i.e. reacts to messages), an application may register additional Aep {@link LifecycleEvent} {@link EventHandler}s to 
- * respond to various application lifecycle events (see link below)
- * <li> When the app is issued a close or unload command, invoke the {@link #onAppFinalized()} method on the app and join its {@link AppMain}n thread if started.
- * <br><i>Note because {@link TopicOrientedApplication} utilizes the {@link AppFinalizer} annotation to implement this, applications must not use the {@link AppInitializer}
- * annotation.</i>
- * </ol>
- * (For an indepth discussion of the underlying {@link AepEngine} lifecycle, see 
- * <a href="http://docs.neeveresearch.com/display/KB/X+Application+Lifecycle">X Application Lifecycle</a>)
  * <p>
  * <h2>Clustering</h2>
  * For a {@link TopicOrientedApplication} to support clustering, subclasses
  * must be annotated with an {@link AppHAPolicy} annotation. 
  */
 abstract public class TopicOrientedApplication implements MessageSender, MessageInjector {
-    final private static String MINIMUM_TALON_VERSION = "3.2.86";
+
+    /*
+     * configuration properties.  
+     */
+
+    /**
+     * Property that controls the default level at which alert events are traced to the 
+     * 'nv.toa' trace logger.
+     * <p>
+     * When the 'nv.toa' trace level is at or above this level given by the name of a
+     * {@link Level}, then alerts will be trace logged. 
+     * <p>
+     * <p>
+     * <b>Property name:</b> {@value #PROP_ALERT_TRACE_LEVEL}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_ALERT_TRACE_LEVEL_DEFAULT}
+     * <br>
+     * <b>Valid values:</b> Any valid {@link Level} other than {@link Level#ALL}. If
+     * {@link Level#ALL} is specified the trace level will use {@value #PROP_ALERT_TRACE_LEVEL_DEFAULT}.
+     * <br>
+     * 
+     * @see #PROP_ALERT_TRACE_LEVEL_DEFAULT
+     */
+    public static final String PROP_ALERT_TRACE_LEVEL = "nv.toa.alerttracelevel";
+
+    /**
+     * The default value for {@link #PROP_ALERT_TRACE_LEVEL_DEFAULT} ({@value #PROP_ALERT_TRACE_LEVEL_DEFAULT}).
+     */
+    public static final String PROP_ALERT_TRACE_LEVEL_DEFAULT = "warning";
+
+    /**
+     * Property that controls the default delay (or priority) for messages injected by this application. 
+     * <p>
+     * This is the default value delay value used for injection via {@link #injectMessage(IRogMessage, boolean, int)}
+     * when called from a variant that doesn't supply the delay.
+     * <p>
+     * <b>Property name:</b> {@value #PROP_DEFAULT_INJECTION_DELAY}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_DEFAULT_INJECTION_DELAY_DEFAULT}
+     * <br>
+     * @see #PROP_DEFAULT_INJECTION_DELAY_DEFAULT
+     */
+    public static final String PROP_DEFAULT_INJECTION_DELAY = "nv.toa.defaultinjectiondelay";
+
+    /**
+     * The default value for {@link #PROP_ALERT_TRACE_LEVEL_DEFAULT} ({@value #PROP_ALERT_TRACE_LEVEL_DEFAULT}).
+     */
+    public static final int PROP_DEFAULT_INJECTION_DELAY_DEFAULT = 0;
+
+    /**
+     * Property that indicates whether a MessageView or MessageEvent handler will cause all channel types to be joined.
+     * <p>
+     * {@link TopicOrientedApplication}'s default behavior is to join channels for which the application exposes
+     * an {@link EventHandler} annotated method. When this property is set to "true" if an event handler 
+     * discovered that handles a {@link MessageView} or a {@link MessageEvent} then the channel join logic will
+     * join channels associated with any type. 
+     * <p>
+     * Note that an application registered {@link ChannelJoinProvider} takes precedence over this setting so if
+     * this property is set to true and a {@link ChannelJoinProvider} {@link ChannelJoin#NoJoin}
+     * then the channel will not be joined. 
+     * <p>
+     * <b>Property name:</b> {@value #PROP_GENERIC_HANDLER_JOINS_ALL}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT}
+     * <br>
+     * @see #PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT
+     */
+    public static final String PROP_GENERIC_HANDLER_JOINS_ALL = "nv.toa.generichandlerjoinsall";
+
+    /**
+     * The default value for {@link #PROP_GENERIC_HANDLER_JOINS_ALL} ({@value #PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT}).
+     */
+    public static final boolean PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT = false;
+
+    /**
+     * Property used to indicate whether Hornet processes service channels that are not mapped
+     * by a message type.
+     * <p>
+     * By default Hornet will add channels to a message bus even if they are not mapped by a message
+     * type. Setting this property to <code>true</code> will ignore unmapped channels. 
+     * <p>
+     * <b>Property name:</b> {@value #PROP_IGNORE_UNMAPPED_CHANNELS}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_IGNORE_UNMAPPED_CHANNELS_DEFAULT}
+     * <br>
+     */
+    public static final String PROP_IGNORE_UNMAPPED_CHANNELS = "nv.toa.ignoreunmappedchannels";
+
+    /**
+     * The default value for {@link #PROP_IGNORE_UNMAPPED_CHANNELS} ({@value #PROP_IGNORE_UNMAPPED_CHANNELS_DEFAULT}).
+     */
+    public static final boolean PROP_IGNORE_UNMAPPED_CHANNELS_DEFAULT = false;
+
+    /**
+     * Property used to indicate whether Hornet messaging configuration should fail if two services
+     * result in the same channel name being used on the same bus. 
+     * <p>
+     * By default Hornet prefixes channels declared in a service by the lowercase value of the 
+     * of the service name to prevent collisions between channels declared in two separate services.
+     * <p>
+     * In cases where either (a) the service is declared not to prefix channel names or (b) where
+     * two services in different namespaces, but with the same name declare the same channel name
+     * it can result in both services creating the same channel resulting in the messages from both
+     * services flowing over the same message channel. In most cases this behavior is undesirable and
+     * configuration of messaging should fail.
+     * <p>
+     * This property allows changing the behavior not to fail when two services create channels with
+     * the same name. 
+     *   
+     * <p>
+     * <b>Property name:</b> {@value #PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION_DEFAULT}
+     * <br>
+     */
+    public static final String PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION = "nv.toa.failonchannelnamecollision";
+
+    /**
+     * The default value for {@link #PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION} ({@value #PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION_DEFAULT}).
+     */
+    public static final boolean PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION_DEFAULT = true;
+
+    /**
+     * Property used to disable the runtime check against compatibility with nvxtalon. 
+     * <p>
+     * When the Hornet runtime is loaded a compatibility check against 
+     * the version of nvx-talon found on the class path is performed to check for a version of 
+     * nvx-talon that is known to be incompatible with the current Hornet runtime.
+     * <p>
+     * <b>Property name:</b> {@value #PROP_DISABLE_COMPAT_CHECK}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_DISABLE_COMPAT_CHECK_DEFAULT}
+     * <br>
+     * @see #PROP_DISABLE_COMPAT_CHECK_DEFAULT
+     */
+    public static final String PROP_DISABLE_COMPAT_CHECK = "nv.toa.disablecompatcheck";
+
+    /**
+     * The default value for {@link #PROP_DISABLE_COMPAT_CHECK} ({@value #PROP_DISABLE_COMPAT_CHECK_DEFAULT}).
+     */
+    public static final boolean PROP_DISABLE_COMPAT_CHECK_DEFAULT = false;
+
+    final private static String MINIMUM_TALON_VERSION = "3.9.45";
+
+    /**
+     * Property used to enabled the delayed ack controller functionality. 
+     * <p>
+     * When true the {@link TopicOrientedApplication} will create a {@link DelayedAcknowledgmentController}
+     * which can be use to delay inbound message acknowledgments. Usage of the {@link DelayedAcknowledgmentController}
+     * requires that the application not be configured with a store. 
+     * <p>
+     * <b>Property name:</b> {@value #PROP_ENABLED_DELAYED_ACK_CONTROLLER}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT}
+     * <br>
+     * @see #PROP_DISABLE_COMPAT_CHECK_DEFAULT
+     */
+    public static final String PROP_ENABLED_DELAYED_ACK_CONTROLLER = "nv.toa.enabledelayedackcontroller";
+
+    /**
+     * The default value for {@link #PROP_ENABLED_DELAYED_ACK_CONTROLLER} ({@value #PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT}).
+     */
+    public static final boolean PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT = false;
+
     final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
     static {
         ProductInfo productInfo = ManifestProductInfo.loadProductInfo("nvx-hornet");
@@ -413,6 +696,19 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             }
         }
 
+        /* (non-Javadoc)
+         * @see com.neeve.toa.EngineClock#getTimeMicros()
+         */
+        @Override
+        public long getTimeMicros() {
+            if (_engine != null) {
+                return _engine.getEngineTimeMicros();
+            }
+            else {
+                return UtlTime.nowSinceEpoch();
+            }
+        }
+
     }
 
     /**
@@ -574,17 +870,20 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     private final EngineTimeImpl _engineClock = new EngineTimeImpl();
     private final PredispatchMessageHandlerDispatcher predispatchMessageHandlerDispatcher = new PredispatchMessageHandlerDispatcher();
     private final PostdispatchMessageHandlerDispatcher postdispatchMessageHandlerDispatcher = new PostdispatchMessageHandlerDispatcher();
+    private final DelayedAckControllerImpl _delayedAckController;
+    private final int defaultInjectionDelay = XRuntime.getValue(PROP_DEFAULT_INJECTION_DELAY, PROP_DEFAULT_INJECTION_DELAY_DEFAULT);
+    private final Tracer.Level alertTraceLevel;
 
     private AepEngine.HAPolicy _haPolicy;
     private IStoreBinding.Role _role;
     private AepEngineDescriptor _engineDescriptor;
     private AepEngine _engine;
+    private AepMessageSender _aepMessageSender;
     private String _engineName;
     private Configurer configurer;
     private volatile boolean messagingConfigured = false;
     private LinkedHashSet<Object> managedObjects = new LinkedHashSet<Object>(); //The managed objects (important to maintain addition order)
     private ManagedObjectLocator managedObjectLocator;
-    private Tracer.Level alertTraceLevel = Tracer.getLevel(XRuntime.getValue("nv.toa.alerttracelevel", Tracer.Level.WARNING.name()));
 
     /**
      * Default constructor.
@@ -593,6 +892,15 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         _channelMessageMapByBus = new HashMap<String, Map<String, List<Long>>>();
         _messageChannelMap = XLongLinkedHashMap.newInstance();
         _factoryRegisteredTypesById = XLongLinkedHashMap.newInstance();
+
+        // validate the alert trace level. A value of ALL is ignored.
+        Tracer.Level alertTraceLevel = Tracer.getLevel(XRuntime.getValue(PROP_ALERT_TRACE_LEVEL, PROP_ALERT_TRACE_LEVEL_DEFAULT));
+        if (alertTraceLevel == Level.ALL) {
+            this.alertTraceLevel = Tracer.getLevel(PROP_ALERT_TRACE_LEVEL_DEFAULT);
+        }
+        else {
+            this.alertTraceLevel = alertTraceLevel;
+        }
 
         // validate that the subclass isn't using unsupported annotations:
         for (Method method : getClass().getDeclaredMethods()) {
@@ -620,13 +928,20 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                 throw new UnsupportedOperationException("Usage of " + AppFinalizer.class.getSimpleName() + " annotation is unsupported for " + TopicOrientedApplication.class.getSimpleName() + " subclasses. '" + method + "' is therefore not valid!");
             }
         }
+
+        if (XRuntime.getValue(PROP_ENABLED_DELAYED_ACK_CONTROLLER, PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT)) {
+            _delayedAckController = new DelayedAckControllerImpl();
+        }
+        else {
+            _delayedAckController = null;
+        }
     }
 
     /**
      * Checks compatibility with Core X
      */
     private static void runtimeCompatibilityCheck() {
-        if (!XRuntime.getValue("nv.toa.disablecompatcheck", false)) {
+        if (!XRuntime.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT)) {
             final com.neeve.nvx.talon.Version talonVersion = new com.neeve.nvx.talon.Version();
             final String[] requiredMinVersionComponents = MINIMUM_TALON_VERSION.split("\\.");
             final String[] componentVersions = talonVersion.getFullVersion().split("\\.");
@@ -755,10 +1070,13 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             }
 
             try {
-                _tracer.log(tracePrefix() + "......'" + url + "'.", Tracer.Level.CONFIG);
+                _tracer.log(tracePrefix() + "......loading '" + url + "'.", Tracer.Level.CONFIG);
                 final ToaService service = ToaService.unmarshal(url);
                 if (!services.add(service)) {
-                    _tracer.log(tracePrefix() + "...ignore duplicate service '" + service.getName() + "' from " + url, Tracer.Level.CONFIG);
+                    _tracer.log(tracePrefix() + ".........ignore duplicate service '" + service.getName() + "' from " + url, Tracer.Level.CONFIG);
+                }
+                else {
+                    _tracer.log(tracePrefix() + ".........loaded service '" + service.getName() + "'.", Tracer.Level.CONFIG);
                 }
 
                 defaultChannels.put(service, service.getDefaultChannel());
@@ -791,12 +1109,29 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
         // prepare map that contains the channels to join and the map containing the messages to send for each channel
         _tracer.log(tracePrefix() + "...preparing join channel list and message channel map...", Tracer.Level.CONFIG);
-        final boolean genericHandlerJoinsAll = XRuntime.getValue("nv.toa.generichandlerjoinsall", true);
-        final EventHandlerContext genericMessageViewHandler = eventHandlersByClass.get(MessageView.class);
-        final EventHandlerContext genericMessageEventHandler = eventHandlersByClass.get(MessageEvent.class);
+        final boolean genericHandlerJoinsAll = XRuntime.getValue(PROP_GENERIC_HANDLER_JOINS_ALL, PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT);
+        final boolean ignoreUnmappedChannels = XRuntime.getValue(PROP_IGNORE_UNMAPPED_CHANNELS, PROP_IGNORE_UNMAPPED_CHANNELS_DEFAULT);
+        final EventHandlerContext genericMessageViewHandler = eventHandlersByClass.get(MessageView.class.getName());
+        final EventHandlerContext genericMessageEventHandler = eventHandlersByClass.get(MessageEvent.class.getName());
         final Map<ToaService, Set<ToaServiceChannel>> channelsWithHandlers = new HashMap<ToaService, Set<ToaServiceChannel>>();
         final HashMap<String, ServiceMessageContext> serviceDeclaredMessages = new HashMap<String, ServiceMessageContext>();
         for (ToaService service : services) {
+
+            // prepare the message channel map entry for the channel
+            for (ToaServiceChannel toaChannel : service.getChannels()) {
+                // if the bus name isn't 
+                if (toaChannel.getBusName() == null) {
+                    toaChannel.setBusName(_engineName);
+                }
+
+                // add the message to the list of messages to be sent on the channel
+                Map<String, List<Long>> channelMap = _channelMessageMapByBus.get(toaChannel.getBusName());
+                if (channelMap == null) {
+                    channelMap = new HashMap<String, List<Long>>();
+                    _channelMessageMapByBus.put(toaChannel.getBusName(), channelMap);
+                }
+            }
+
             for (ToaServiceToRole to : service.getToRoles()) {
                 for (AdmMessage admMessage : to.getMessages()) {
                     // trace
@@ -816,10 +1151,6 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                     // fail if interface based handlers are detected:
                     String interfaceName = admMessage.getNamespace() + ".I" + admMessage.getJavaTypeName();
                     boolean interfaceHandler = eventHandlersByClass.containsKey(interfaceName);
-
-                    if (toaChannel.getBusName() == null) {
-                        toaChannel.setBusName(_engineName);
-                    }
 
                     if (interfaceHandler) {
                         List<Method> invalidHandlers = new ArrayList<Method>();
@@ -855,8 +1186,8 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                     // join the channel if event handlers are not marked for only local message dispatch
                     if ((eventHandler != null && !eventHandler.localOnly) ||
                             (genericHandlerJoinsAll &&
-                            ((genericMessageEventHandler != null && !genericMessageEventHandler.localOnly) ||
-                            (genericMessageViewHandler != null && !genericMessageViewHandler.localOnly)))) {
+                                    ((genericMessageEventHandler != null && !genericMessageEventHandler.localOnly) ||
+                                            (genericMessageViewHandler != null && !genericMessageViewHandler.localOnly)))) {
                         Set<ToaServiceChannel> serviceJoinChannels = channelsWithHandlers.get(service);
                         if (serviceJoinChannels == null) {
                             channelsWithHandlers.put(service, serviceJoinChannels = new HashSet<ToaServiceChannel>());
@@ -866,10 +1197,6 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
                     // add the message to the list of messages to be sent on the channel
                     Map<String, List<Long>> channelMap = _channelMessageMapByBus.get(toaChannel.getBusName());
-                    if (channelMap == null) {
-                        channelMap = new HashMap<String, List<Long>>();
-                        _channelMessageMapByBus.put(toaChannel.getBusName(), channelMap);
-                    }
                     List<Long> ids = channelMap.get(toaChannel.getName());
                     if (ids == null) {
                         channelMap.put(toaChannel.getName(), ids = new ArrayList<Long>());
@@ -912,6 +1239,14 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
                     _messageChannelMap.put(uniqueMessageId, new MessageSendContext(XString.create(toaChannel.getBusName(), true, true), XString.create(toaChannel.getName(), true, true), admMessage.getFullName(), toaChannel, topicResolver));
                 }
+            }
+        }
+
+        // trace channel mappings established...
+        if (_tracer.getLevel().val <= Tracer.Level.CONFIG.val) {
+            _tracer.log(tracePrefix() + "......messages channel mappings...", Tracer.Level.CONFIG);
+            for (MessageSendContext sendContext : _messageChannelMap.values()) {
+                _tracer.log(tracePrefix() + ".........message '" + sendContext.messageType + "' -> " + sendContext.channelName + "@" + sendContext.busName + "(from service '" + sendContext.serviceChannel.getService().getName() + "')", Tracer.Level.CONFIG);
             }
         }
 
@@ -965,16 +1300,45 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         }
 
         // prepare the bus descriptor and, while doing so, add channels to the engine descriptor to register interest
+        final boolean failOnServiceChannelNameCollision = XRuntime.getValue(PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION, PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION_DEFAULT);
+        final HashMap<String, ToaService> channelNameToServiceMap = new HashMap<String, ToaService>();
         try {
             for (String busName : _channelMessageMapByBus.keySet()) {
                 _tracer.log(tracePrefix() + "...adding channels to bus descriptor '" + busName + "'...", Tracer.Level.CONFIG);
                 final MessageBusDescriptor busDescriptor = MessageBusDescriptor.load(busName);
+                Map<String, List<Long>> channelMessageMap = _channelMessageMapByBus.get(busName);
                 for (ToaService service : services) {
                     for (ToaServiceChannel channel : service.getChannels()) {
-                        if (!busName.equals(channel.getBusName())) {
+                        _tracer.log(tracePrefix() + "......processing channel '" + channel.getName() + "'...", Tracer.Level.CONFIG);
+
+                        // ignore unmapped channels? 
+                        if (ignoreUnmappedChannels && !channelMessageMap.containsKey(channel.getName())) {
+                            _tracer.log(tracePrefix() + "......channel not mapped by a message, ignoring.", Tracer.Level.CONFIG);
                             continue;
                         }
 
+                        // channel using a different bus
+                        if (!busName.equals(channel.getBusName())) {
+                            _tracer.log(tracePrefix() + "......channel not on bus, ignoring.", Tracer.Level.CONFIG);
+                            continue;
+                        }
+
+                        // check for channel name collision between services: 
+                        ToaService existing = channelNameToServiceMap.put(channel.getName(), service);
+                        if (existing != null) {
+                            if (failOnServiceChannelNameCollision) {
+                                throw new ToaException("Service channel name collision detected: channel '" + channel.getName() + "' is declared in both "
+                                        + "service '" + service.getName() + " and "
+                                        + "service '" + existing.getName() + "'!");
+                            }
+                            else {
+                                _tracer.log(tracePrefix() + "Service channel name collision detected: channel '" + channel.getName() + "' is declared in both "
+                                        + "service '" + service.getName() + " and "
+                                        + "service '" + existing.getName() + "'!", Tracer.Level.WARNING);
+                            }
+                        }
+
+                        // look up the message channel
                         MessageChannelDescriptor channelDescriptor = busDescriptor.getChannel(channel.getName());
                         if (channelDescriptor == null) {
                             channelDescriptor = MessageChannelDescriptor.create(channel.getName(), busDescriptor);
@@ -1021,7 +1385,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                             Properties krt = provider.getInitialChannelKeyResolutionTable(service, channel);
                             if (krt != null) {
                                 if (initialKRT != null) {
-                                    throw new ToaException("Duplicate Initial KRT providers for channel '" + channel.getSimpleName() + "' in service'" + service.getName() + "'!"
+                                    throw new ToaException("Duplicate Initial KRT providers for channel '" + channel.getSimpleName() + "' in service '" + service.getName() + "'!"
                                             + " '" + krtProvider.getClass().getName() + "' provided '" + initialKRT + "'"
                                             + ", and '" + provider.getClass().getName() + "' provided '" + krt + "'");
                                 }
@@ -1034,9 +1398,47 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                         channel.setKey(key);
 
                         if (initialKRT != null && key != null) {
-                            channel.setInitialKRT(initialKRT);
+                            // Handle empty ("") key fields in initial KRT: 
+                            Properties sanitizedKrt = initialKRT;
+                            final boolean treatEmptyKeyAsNull = XRuntime.getValue(MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL, MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL_DEFAULT);
+                            final boolean allowEmptyKey = XRuntime.getValue(MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD, MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD_DEFAULT);
+                            if (treatEmptyKeyAsNull || !allowEmptyKey) {
+                                for (Map.Entry<Object, Object> krtEntry : initialKRT.entrySet()) {
+                                    // Note that the null check here isn't really necessary as 
+                                    // java.util.Properties does not allow null values. We still
+                                    // check for null here as a safeguard against any future API
+                                    // changes. 
+                                    if (krtEntry.getValue() == null || "".equals(String.valueOf(krtEntry.getValue()))) {
+                                        // copy the KRT if 
+                                        if (sanitizedKrt == initialKRT) {
+                                            sanitizedKrt = new Properties();
+                                            sanitizedKrt.putAll(initialKRT);
+                                        }
+
+                                        // if configured to treat empty keys as null then remove the value
+                                        // from the initial KRT to ignore it: 
+                                        if (treatEmptyKeyAsNull) {
+                                            sanitizedKrt.remove(krtEntry.getKey());
+                                        }
+                                        else if (!allowEmptyKey) {
+                                            if ("".equals(String.valueOf(krtEntry.getValue()))) {
+                                                throw new ToaException("Initial KRT for channel '" + channel.getSimpleName() + "' in service '" + service.getName() + "' (provided by"
+                                                        + " '" + krtProvider.getClass().getName() + "') contains a blank value for key field '" + String.valueOf(krtEntry.getKey()) + "' but '"
+                                                        + MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD + "'is false!");
+                                            }
+                                            else if (krtEntry.getValue() == null) {
+                                                // otherwise if null remove the value so it doesn't lead to key substitution 
+                                                // via UtlTailoring.springScanAndReplace
+                                                sanitizedKrt.remove(krtEntry.getKey());
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            channel.setInitialKRT(sanitizedKrt);
                             _tracer.log(tracePrefix() + "......performing initial channel key resolution for channel '" + channel.getName() + "', key=" + key, Tracer.Level.CONFIG);
-                            key = UtlTailoring.springScanAndReplace(key, initialKRT, true);
+                            key = UtlTailoring.springScanAndReplace(key, sanitizedKrt, true);
                         }
                         //Update the model with the overridden key:
                         channel.setInitiallyResolvedKey(key);
@@ -1059,12 +1461,27 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                             }
                         }
 
+                        // Join and Filter can come from DDL. They will be used if not overridden by a provider. 
+                        AepEngineDescriptor.ChannelConfig engineChannelConfig = _engineDescriptor.getChannelConfig(busName, channel.getName());
+                        boolean preConfiguredChannel = true;
+                        if (engineChannelConfig == null) {
+                            preConfiguredChannel = false;
+                            engineChannelConfig = ChannelConfig.from("join=false");
+                        }
+
                         if (channelFilter != null) {
-                            channelDescriptor.setChannelFilter(channelFilter);
+                            if (engineChannelConfig.getFilter() != null) {
+                                _tracer.log(tracePrefix() + ".........overrides preconfigured filter '" + engineChannelConfig.getFilter() + ".", Tracer.Level.CONFIG);
+                            }
+                            engineChannelConfig.setFilter(channelFilter);
                         }
                         else {
-                            channelFilter = channelDescriptor.getChannelFilter();
-                            _tracer.log(tracePrefix() + "......channel filter for '" + channelDescriptor.getName() + "' '" + channelFilter + "' already defined in channel descriptor.", Tracer.Level.CONFIG);
+                            if (engineChannelConfig.getFilter() != null) {
+                                _tracer.log(tracePrefix() + "......channel filter for '" + channelDescriptor.getName() + "' '" + engineChannelConfig.getFilter() + "' already defined in app's bus channel descriptor.", Tracer.Level.CONFIG);
+                            }
+                            else if (channelDescriptor.getChannelFilter() != null) {
+                                _tracer.log(tracePrefix() + "......channel filter for '" + channelDescriptor.getName() + "' '" + channelDescriptor.getChannelFilter() + "' already defined in bus channel descriptor.", Tracer.Level.CONFIG);
+                            }
                         }
 
                         ChannelJoin channelJoin = ChannelJoin.Default;
@@ -1095,16 +1512,30 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                                 break;
                             default:
                             case Default:
-                                join = hasHandler;
+                                if (hasHandler) {
+                                    join = true;
+                                    _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' to '" + ChannelJoin.Join + "' implicitly joined by presense of message handler.", Tracer.Level.CONFIG);
+                                }
+                                else if (preConfiguredChannel) {
+                                    join = engineChannelConfig.getJoin();
+                                    channelJoin = join ? ChannelJoin.Join : ChannelJoin.NoJoin;
+                                    _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' to '" + channelJoin + "' as preconfigured for application.", Tracer.Level.CONFIG);
+                                }
+                                else {
+                                    _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' to '" + ChannelJoin.NoJoin + "' (no join provider, message handler, or preconfiguration).", Tracer.Level.CONFIG);
+                                    join = false;
+                                }
                                 break;
                         }
+
+                        engineChannelConfig.setJoin(join);
 
                         // add to engine
                         _engineDescriptor.addChannel(busDescriptor.getName(),
                                                      channel.getName(),
-                                                     AepEngineDescriptor.ChannelConfig.from("join=" + join));
+                                                     engineChannelConfig);
                         // trace
-                        _tracer.log(tracePrefix() + "......channel '" + channelDescriptor.getName() + "' configured (qos=" + channelDescriptor.getChannelQos() + ", key=" + channelDescriptor.getChannelKey() + ", filter=" + channelDescriptor.getChannelFilter() + ", join=" + join + ")...", Tracer.Level.CONFIG);
+                        _tracer.log(tracePrefix() + "......channel '" + channelDescriptor.getName() + "' configured (qos=" + channelDescriptor.getChannelQos() + ", key=" + channelDescriptor.getChannelKey() + ", filter=" + channelFilter + ", join=" + join + ")...", Tracer.Level.CONFIG);
                     }
                 }
                 busDescriptor.save(busName);
@@ -1139,8 +1570,6 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             //                StringBuilder warning = new StringBuilder();
             //                warning.append("'" + eventClass + "' is declared in an event handler, but not found in a corresponding service definition"); 
             //                warning.append("]?");
-            //
-            //                _tracer.log(tracePrefix() + "......'" + context.eventClass.getName() + "' was declared in an event han.", Tracer.Level.WARN);
             //            }
 
         }
@@ -1270,15 +1699,12 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * <p>
      * The default implementation of this method adds 2 {@link TopicResolverProvider}s:
      * <ul>
-     * <li>A {@link GeneratedTopicResolverProvider} which will search the classpath for channel resolvers
-     * generated by the {@link ToaCodeGenerator}.
      * <li>A TopicResolverProvider that calls {@link #getChannelFilter(ToaService, ToaServiceChannel)}, allowing
      * subclasses to return a {@link TopicResolver}.
      * </ul>
      * @param containers Objects implementing {@link ChannelFilterProvider} should be added to this set.
      */
     protected void addTopicResolverProviders(final Set<Object> containers) {
-        containers.add(new GeneratedTopicResolverProvider());
         containers.add(new TopicResolverProvider() {
 
             @Override
@@ -1335,6 +1761,10 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * <p>
      * The default implementation of this method adds a {@link ChannelQosProvider} that calls
      * {@link #getChannelQos(ToaService, ToaServiceChannel)} on this class.
+     * <p>
+     * If multiple {@link ChannelQosProvider}s return differing {@link Qos} values 
+     * for the same service and channel the highest quality of service will be 
+     * selected (e.g. Guaranteeed).
      * 
      * @param containers Objects implementing {@link ChannelQosProvider} should be added to this set.
      */
@@ -1350,13 +1780,13 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
     /**
      * This method may be overridden by subclasses to specify the {@link Qos} for 
-     * the provided service channel. 
-     * <p>
-     * The default implementation returns null which in the absense of .
+     * the provided service channel.
      * <p>
      * This method will not be called unless {@link #addChannelQosProviders(Set)} is
      * called on this class. This is done by the {@link DefaultManagedObjectLocator}, 
-     * but may not be called if the application defines its own {@link ManagedObjectLocator}.
+     * but may not be called if the application defines its own {@link ManagedObjectLocator}
+     * or overrides {@link #addChannelQosProviders(Set)} without delegating to this
+     * base class. 
      * 
      * @param service The service
      * @param channel The channel.
@@ -1553,6 +1983,20 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     }
 
     /**
+     * Return the DelayedAcknowledgment Controller for the application. 
+     * <p>
+     * The delayed acknowledgment controller can be used from within a message handler
+     * to suspend the acknowledgment (and consequently transaction completion) of the 
+     * message being processed. 
+     * 
+     * @see DelayedAcknowledgmentController
+     * @return The {@link DelayedAcknowledgmentController} or null if not enabled. 
+     */
+    final public DelayedAcknowledgmentController getDelayedAcknowledgmentController() {
+        return _delayedAckController;
+    }
+
+    /**
      * Returns this application's bootstrap configurer. 
      * <p>
      * For applications launched from the talon server {@link Main} class this will 
@@ -1627,6 +2071,22 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         return this;
     }
 
+    /**
+     * Returns the {@link AepMessageSender} implementation for sending non service defined messages. 
+     * <p>
+     * An {@link AepMessageSender} assists in sending messages that are not defined in Hornet
+     * service definitions. This sender allows the caller to specify the bus and message channel 
+     * on which the message should be sent. 
+     * <p>
+     * Note that the thread safety of the returned implementation is the same as that
+     * for send calls done directly through an {@link AepEngine}
+     *  
+     * @return The {@link AepMessageSender} for this application. 
+     */
+    final public AepMessageSender getAepMessageSender() {
+        return _aepMessageSender;
+    }
+
     /* (non-Javadoc)
      * @see com.neeve.toa.MessageSender#sendMessage(com.neeve.rog.IRogMessage)
      */
@@ -1689,7 +2149,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @Override
     final public void injectMessage(final IRogMessage message) {
-        injectMessage(message, false, 0);
+        injectMessage(message, false, defaultInjectionDelay);
     }
 
     /* (non-Javadoc)
@@ -1697,7 +2157,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @Override
     final public void injectMessage(final IRogMessage message, boolean nonBlocking) {
-        injectMessage(message, nonBlocking, 0);
+        injectMessage(message, nonBlocking, defaultInjectionDelay);
     }
 
     /* (non-Javadoc)
@@ -1708,34 +2168,16 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         if (_engine.getState() == State.Started && _engine.isPrimary()) {
             if (!_engine.isDispatchThread()) {
 
-                if (message == null) {
-                    throw new IllegalArgumentException("cannot inject a null message");
-                }
-
                 if (!_factoryRegisteredTypesById.containsKey(uniqueMessageId(message.getVfid(), message.getType()))) {
                     throw new ToaException("Can't inject '" + message.getClass().getName() + "' it was not registered with the application during initialization. This probably means that you don't have an @EventHandler for it in your application.");
                 }
 
-                if (delay == 0) {
-
-                    try {
-                        _engine.multiplexMessage(message, nonBlocking);
-                    }
-                    catch (IllegalStateException ise) {
-                        //engine may have been stopped during multiplex...
-                        _tracer.log("Injection of message canceled: " + ise.getMessage(), Tracer.Level.WARNING);
-                    }
+                try {
+                    _engine.injectMessage(message, nonBlocking, delay);
                 }
-                else {
-                    final MessageEvent messageEvent = MessageEvent.create(null, null, message, null);
-                    messageEvent.setDelay(delay);
-                    try {
-                        message.setTag(MessageViewTags.TAG_SMA_MESSAGE_EVENT, messageEvent);
-                        _engine.getEventMultiplexer().scheduleEvent(messageEvent);
-                    }
-                    finally {
-                        messageEvent.dispose();
-                    }
+                catch (IllegalStateException ise) {
+                    //engine may have been stopped during multiplex...
+                    _tracer.log("Injection of message canceled: " + ise.getMessage(), Tracer.Level.WARNING);
                 }
             }
             else {
@@ -1780,6 +2222,11 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         }
         managedObjectLocator.locateManagedObjects(managedObjects);
 
+        if (_delayedAckController != null) {
+            _delayedAckController.initEngineDescriptor(engineDescriptor);
+            managedObjects.add(_delayedAckController);
+        }
+
         if (managedObjects.contains(null)) {
             throw new IllegalStateException("Addition of null objects to the set of managed objects is not supported.");
         }
@@ -1817,6 +2264,9 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         getServiceDefinitionLocator().locateServices(services);
         configureMessaging(services, containers);
         onConfigured();
+        if (_delayedAckController != null) {
+            containers.add(_delayedAckController);
+        }
         containers.add(new FirstMessageValidator());
         traceConfig(Tracer.Level.CONFIG);
     }
@@ -1918,6 +2368,10 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         _engine = engine;
         _haPolicy = engine.getHAPolicy();
 
+        if (_delayedAckController != null) {
+            _delayedAckController.initEngine(engine);
+        }
+
         onEngineInjected(engine);
 
         predispatchMessageHandlerDispatcher.closeHandlerAddition();
@@ -1933,6 +2387,19 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         if (_tracer.getLevel().val >= Level.CONFIG.val) {
             _tracer.log(tracePrefix() + " Engine Injected, descriptor" + engine.getDescriptor().toString(), Level.CONFIG);
         }
+    }
+
+    /**
+     * This method is called by a Talon server during application initialization 
+     * to inject the application's {@link AepMessageSender}.
+     * <p>
+     * <b>This method should not be called by subclasses or application code.</b>  
+     * 
+     * @param engine The application's {@link AepMessageSender}.
+     */
+    @AppInjectionPoint
+    synchronized final private void setAepMessageSender(final AepMessageSender aepMessageSender) {
+        _aepMessageSender = aepMessageSender;
     }
 
     /**
@@ -2077,6 +2544,9 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
     @AppFinalizer
     private final void appFinalized() throws Exception {
+        if (_delayedAckController != null) {
+            _delayedAckController.close();
+        }
         onAppFinalized();
     }
 
@@ -2095,7 +2565,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @EventHandler
     private final void onApplicationAlert(IAlertEvent alert) {
-        if (_tracer.getLevel().val > alertTraceLevel.val) {
+        if (_tracer.getLevel().val > alertTraceLevel.val || alertTraceLevel == Level.OFF) {
             return;
         }
 
@@ -2104,6 +2574,19 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                 return;
             }
         }
+
+        if (alert instanceof AepEngineStoppedEvent) {
+            if (((AepEngineStoppedEvent)alert).getCause() == null) {
+                return;
+            }
+        }
+
+        if (alert instanceof AepEngineStoppingEvent) {
+            if (((AepEngineStoppingEvent)alert).getCause() == null) {
+                return;
+            }
+        }
+
         MessageView backing = alert.getBackingMessage();
         _tracer.log(tracePrefix() + "ALERT: " + alert.toString() + (backing != null ? ": " + backing.toString() : ""), alertTraceLevel);
     }

@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,7 +21,7 @@
  */
 package com.neeve.toa.test.unit;
 
-import static com.neeve.server.embedded.EmbeddedServer.State.Started;
+import static com.neeve.server.embedded.EmbeddedXVM.State.Started;
 
 import java.io.File;
 import java.net.URL;
@@ -36,10 +36,10 @@ import com.neeve.server.Main;
 import com.neeve.server.app.SrvAppLoader;
 import com.neeve.server.config.ESrvConfigException;
 import com.neeve.server.config.SrvConfigDescriptor;
-import com.neeve.server.embedded.EmbeddedServer;
+import com.neeve.server.embedded.EmbeddedXVM;
 import com.neeve.toa.TopicOrientedApplication;
 import com.neeve.util.UtlStr;
-import com.neeve.util.UtlStr.ISubstResolver;
+import com.neeve.util.UtlTailoring.PropertySource;
 
 /**
  * Wraps an embedded Talon server for a single {@link TopicOrientedApplication}. 
@@ -48,9 +48,10 @@ import com.neeve.util.UtlStr.ISubstResolver;
  * not created until start is called which narrows the window for multiple
  * servers with conflicting {@link VMConfigurer} values to conflict. 
  */
-public class SingleAppToaServer<T extends TopicOrientedApplication> extends EmbeddedServer {
+public class SingleAppToaServer<T extends TopicOrientedApplication> extends EmbeddedXVM {
 
     public static final String PROP_NAME_STORE_ENABLED = "store.enabled";
+    public static final String PROP_NAME_STORE_CLUSTERING_ENABLED = "store.clustering.enabled";
 
     private final Class<T> applicationClass;
     private final String appName;
@@ -59,13 +60,13 @@ public class SingleAppToaServer<T extends TopicOrientedApplication> extends Embe
 
     private T application;
 
-    private static class ToaSingleAppServerConfigurer<T extends TopicOrientedApplication> implements Configurer, ISubstResolver {
+    private static class ToaSingleAppServerConfigurer<T extends TopicOrientedApplication> implements Configurer, PropertySource {
         private final String appName;
 
         private final String instanceId;
         private final String serverName;
         private final Class<T> applicationClass;
-        private final ISubstResolver envResolver = new UtlStr.SubstResolverFromEnv();
+        private final PropertySource envResolver = new UtlStr.SubstResolverFromEnv();
         final Map<String, String> overrides = new HashMap<String, String>();
 
         ToaSingleAppServerConfigurer(final String appName, final String instanceId, final Class<T> applicationClass, Map<String, String> configOverrides) {
@@ -80,9 +81,8 @@ public class SingleAppToaServer<T extends TopicOrientedApplication> extends Embe
             overrides.put("application.server.name", appName + "-" + instanceId);
             overrides.put("application.main.class", applicationClass.getName());
             overrides.put("transport.descriptor", "loopback://.");
-            overrides.put("store.descriptor", "native://loopback://clusterdiscovery&amp;initWaitTime=1000");
-            overrides.put("store.discovery.descriptor", "loopback://clusterdiscovery&amp;initWaitTime=1&amp;memberName=" + serverName);
-            overrides.put("server.discoveryDescriptor", "loopback://serverdiscovery&amp;initWaitTime=1");
+            overrides.put("store.discovery.descriptor", "loopback://clusterdiscovery&initWaitTime=2");
+            overrides.put("server.discoveryDescriptor", "local://serverdiscovery&initWaitTime=0");
             if (configOverrides != null) {
                 overrides.putAll(configOverrides);
                 XRuntime.getProps().putAll(overrides);
@@ -186,7 +186,7 @@ public class SingleAppToaServer<T extends TopicOrientedApplication> extends Embe
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onInitEnd(Throwable error) throws Exception {
+    public void onStartEnd(Throwable error) throws Exception {
         if (error == null) {
             SrvAppLoader loader = getServerController().getAppManager().getAppLoader(appName);
 

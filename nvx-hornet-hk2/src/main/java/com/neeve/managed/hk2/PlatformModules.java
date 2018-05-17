@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,6 +30,7 @@ import com.neeve.toa.EngineClock;
 import com.neeve.toa.MessageInjector;
 import com.neeve.toa.MessageSender;
 import com.neeve.toa.TopicOrientedApplication;
+import com.neeve.toa.opt.DelayedAcknowledgmentController;
 
 /**
  * Implements the {@link Binder} for a {@link TopicOrientedApplication}'s injectable
@@ -42,6 +43,9 @@ import com.neeve.toa.TopicOrientedApplication;
  * <li> {@link MessageInjector} Provides access to the {@link MessageInjector} interface for a {@link TopicOrientedApplication}.
  * <li> {@link AepEngine} Provides access to the applications underlying {@link AepEngine}. Most applications will not need 
  * access to the AepEngine and will be using the other services provided by {@link TopicOrientedApplication}
+ * <li> {@link DelayedAcknowledgmentController} Provides access to the applications underlying {@link DelayedAcknowledgmentController}. 
+ * Most applications will not need access to {@link DelayedAcknowledgmentController} and it will be only be created when 
+ * {@link TopicOrientedApplication#PROP_ENABLED_DELAYED_ACK_CONTROLLER} is set to true. 
  * </u>
  */
 public final class PlatformModules extends AbstractBinder {
@@ -59,6 +63,7 @@ public final class PlatformModules extends AbstractBinder {
         bindFactory(new MessageSenderFactory()).to(MessageSender.class);
         bindFactory(new MessageInjectorFactory()).to(MessageInjector.class);
         bindFactory(new AepEngineFactory()).to(AepEngine.class);
+        bindFactory(new DelayedAcknowledgmentControllerFactory()).to(DelayedAcknowledgmentController.class);
     }
 
     private final class EngineClockFactory implements Factory<EngineClock> {
@@ -104,6 +109,17 @@ public final class PlatformModules extends AbstractBinder {
         @Override
         public AepEngine provide() {
             return application.getEngine();
+        }
+    }
+
+    private final class DelayedAcknowledgmentControllerFactory implements Factory<DelayedAcknowledgmentController> {
+
+        @Override
+        public void dispose(DelayedAcknowledgmentController instance) {}
+
+        @Override
+        public DelayedAcknowledgmentController provide() {
+            return application.getDelayedAcknowledgmentController();
         }
     }
 }

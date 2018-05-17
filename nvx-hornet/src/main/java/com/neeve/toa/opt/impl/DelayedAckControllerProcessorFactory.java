@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
+ * with the License.  You may obtain a copy of the License at:
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,11 +19,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.neeve.toa.opt.impl;
+
+import com.neeve.sma.MessageBusBinding;
+import com.neeve.sma.spi.executor.AbstractExecutorBusProcessorFactory;
+import com.neeve.sma.spi.executor.ExecutorBusProcessor;
+
 /**
- * TOA HK2 Dependency Injection Integration.
- * 
- * This package provides support for applications using HK2 dependency injection.
- * It provide the ability to discovery {@link com.neeve.managed.annotations.Managed @Managed}
- * annotated objects to expose them to the platform for introspection. 
+ * Factory class for delayed acknowledgment controllers' bus processors. 
  */
-package com.neeve.managed.toa.hk2;
+public class DelayedAckControllerProcessorFactory extends AbstractExecutorBusProcessorFactory {
+
+    /* (non-Javadoc)
+     * @see com.neeve.sma.spi.executor.AbstractExecutorBusProcessorFactory#createExecutorBusProcessor(com.neeve.sma.MessageBusBinding)
+     */
+    @Override
+    public ExecutorBusProcessor createExecutorBusProcessor(MessageBusBinding binding) {
+        return new DelayedAckControllerImpl.DelayedAckProcessor();
+    }
+
+}

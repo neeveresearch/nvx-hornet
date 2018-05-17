@@ -9,9 +9,9 @@
  *
  * Neeve Research licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at:
+ * with the License. You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -76,10 +76,15 @@ public abstract class AbstractHK2TopicOrientedApplication extends TopicOrientedA
     protected void onEngineDescriptorInjected(AepEngineDescriptor engineDescriptor) throws Exception {
         super.onEngineDescriptorInjected(engineDescriptor);
         this.managedObjectLocator = createManagedObjectLocator();
-        managedObjectLocator.getAppplicationServiceLocator().inject(this);
+        managedObjectLocator.getApplicationServiceLocator().inject(this);
     }
 
-    private HK2ManagedObjectLocator createManagedObjectLocator() {
+    /**
+     * Subclasses may override this method to construct a subclass of HK2ManagedObjectLocator. 
+     * 
+     * @return An {@link HK2ManagedObjectLocator}
+     */
+    protected HK2ManagedObjectLocator createManagedObjectLocator() {
         List<Binder> applicationModules = new ArrayList<Binder>(getApplicationModules());
         return new HK2ManagedObjectLocator(this, getName(), applicationModules);
     }
@@ -102,7 +107,7 @@ public abstract class AbstractHK2TopicOrientedApplication extends TopicOrientedA
      * 		   has not been invoked yet or if the Application has been shutdown
      */
     protected/*@Nonnull*/ServiceLocator getApplicationServiceLocator() {
-        if (managedObjectLocator != null) return managedObjectLocator.getAppplicationServiceLocator();
+        if (managedObjectLocator != null) return managedObjectLocator.getApplicationServiceLocator();
         else
             throw new IllegalStateException("Application ServiceLocator unavailable.");
     }

@@ -34,6 +34,8 @@ import com.neeve.toa.service.ToaServiceChannel;
  * finds an {@link EventHandler} for a message type that is mapped to the channel in a 
  * service definition. An application may provide a {@link ChannelJoinProvider} to override 
  * this behavior. 
+ * 
+ * @see TopicOrientedApplication TopicOrientedApplication messaging configuration
  */
 public interface ChannelJoinProvider {
 
@@ -54,6 +56,17 @@ public interface ChannelJoinProvider {
      * defined for a type mapped to the channel, that the channel should not be joined.
      * </ul>
      * 
+     * <p>
+     * Otherwise, if there isn't a handler for the message and no {@link ChannelJoinProvider} returns a
+     * value, but the channel is preconfigured for the application via DDL configuration then the preconfigured
+     * value for join will be used. In summary, the precendence for determining channel join is as follows:
+     * <ul>
+     * <li> ChannelJoinProvider returning non {@link ChannelJoin#Default Default} join value. 
+     * <li> Presence of a handler for a message mapped to the channel in the service
+     * <li> Preconfigured value in configuration DDL for the application
+     * <li> ... if none of the above then default is not to join. 
+     * </ul>
+     * 
      * <h2>ChannelJoinProvider Conflicts</h2>
      * It is illegal for one {@link ChannelJoinProvider} returns {@link ChannelJoin#Join Join} 
      * and another to return {@link ChannelJoin#NoJoin NoJoin}. The application will fail to 
@@ -62,7 +75,8 @@ public interface ChannelJoinProvider {
      * @param service The service that defined the channel.
      * @param channel The channel. 
      * 
-     * @return A value indicating whether or not the channel should be joined. 
+     * @return A value indicating whether or not the channel should be joined.
+     * @see TopicOrientedApplication TopicOrientedApplication messaging configuration 
      */
     public ChannelJoin getChannelJoin(ToaService service, ToaServiceChannel channel);
 }

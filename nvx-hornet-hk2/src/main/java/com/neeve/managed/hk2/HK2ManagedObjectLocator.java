@@ -32,6 +32,7 @@ import org.glassfish.hk2.api.ServiceLocatorFactory.CreatePolicy;
 import org.glassfish.hk2.utilities.Binder;
 import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
 
+import com.neeve.ci.XRuntime;
 import com.neeve.managed.ManagedObjectLocator;
 import com.neeve.managed.annotations.Managed;
 import com.neeve.root.RootConfig;
@@ -42,6 +43,22 @@ import com.neeve.trace.Tracer;
  * A {@link ManagedObjectLocator} that uses {@link Binder} HK2 Modules to discover the {@link Managed} objects in the {@link TopicOrientedApplication}. 
  */
 public class HK2ManagedObjectLocator implements ManagedObjectLocator {
+
+    /**
+     * Property used to control whether the Immediate scrope is enabled on ServiceLocators.  
+     * <p>
+     * <b>Property name:</b> {@value #PROP_ENABLE_HK2_IMMEDIATE_SCOPE}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_ENABLE_HK2_IMMEDIATE_SCOPE_DEFAULT}
+     * <br>
+     * @see #PROP_ENABLE_HK2_IMMEDIATE_SCOPE_DEFAULT
+     */
+    public static final String PROP_ENABLE_HK2_IMMEDIATE_SCOPE = "nv.toa.hk2.enableimmediatescope";
+
+    /**
+     * The default value for {@link #PROP_ENABLE_HK2_IMMEDIATE_SCOPE} ({@value #PROP_ENABLE_HK2_IMMEDIATE_SCOPE_DEFAULT}).
+     */
+    public static final boolean PROP_ENABLE_HK2_IMMEDIATE_SCOPE_DEFAULT = false;
 
     final protected static Tracer tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
     final private TopicOrientedApplication application;
@@ -96,6 +113,9 @@ public class HK2ManagedObjectLocator implements ManagedObjectLocator {
 
     private ServiceLocator initializeApplicationServiceLocator() {
         ServiceLocator serviceLocator = createServiceLocator(applicationName);
+        if (XRuntime.getValue(PROP_ENABLE_HK2_IMMEDIATE_SCOPE, PROP_ENABLE_HK2_IMMEDIATE_SCOPE_DEFAULT)) {
+            ServiceLocatorUtilities.enableImmediateScope(serviceLocator);
+        }
         List<Binder> modules = new ArrayList<Binder>(createPlatformModules());
         modules.addAll(applicationModules);
         ServiceLocatorUtilities.bind(serviceLocator, modules.toArray(new Binder[modules.size()]));

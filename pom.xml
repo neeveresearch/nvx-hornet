@@ -27,7 +27,7 @@
     </organization>
 
     <scm>
-        <url>https://github.com/neeveresearch/nvx-eagle</url>
+        <url>https://github.com/neeveresearch/nvx-hornet</url>
         <connection>scm:git:git://github.com/neeveresearch/nvx-hornet.git</connection>
     </scm>
 

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>nvx-hornet-parent</artifactId>
     <packaging>pom</packaging>
-    <version>1.10-SNAPSHOT</version>
+    <version>1.11-SNAPSHOT</version>
     <name>Hornet Parent (X Platform Topic Oriented Applications)</name>
 
     <parent>
@@ -32,8 +32,8 @@
     </scm>
 
     <properties>
-        <nvx.core.version>3.10-SNAPSHOT</nvx.core.version>
-        <nvx.core.minorversion>3.10</nvx.core.minorversion>
+        <nvx.core.version>3.11-SNAPSHOT</nvx.core.version>
+        <nvx.core.minorversion>3.11</nvx.core.minorversion>
         <build.version.display>${project.version}</build.version.display>
     </properties>
 

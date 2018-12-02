@@ -64,6 +64,7 @@
             <plugin>
                 <groupId>com.neeve</groupId>
                 <artifactId>nvx-adm-maven-plugin</artifactId>
+                <version>${nvx.core.version}</version>
                 <executions>
                     <execution>
                         <id>generate-hornet-messages</id>

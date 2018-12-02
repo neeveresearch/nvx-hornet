@@ -545,8 +545,9 @@ public class ToaMessagingTest extends AbstractToaTest {
         assertNotNull("PredispatchMessageHandler was not invoked", app.predispatchMessage);
         assertSame(app.received.get(0), app.predispatchMessage);
 
-        if (app.appExceptionMessage == null) {
-            Thread.sleep(1000);
+        long timeout = System.currentTimeMillis() + 5000;
+        while (app.appExceptionMessage == null && System.currentTimeMillis() < timeout) {
+            Thread.sleep(100);
         }
         assertNotNull("AppException was not invoked", app.appExceptionMessage);
         assertSame(app.received.get(0), app.appExceptionMessage);
@@ -574,6 +575,11 @@ public class ToaMessagingTest extends AbstractToaTest {
         assertNull("App should not have received message when pre dispatch handler throws exception", app.receivedMessage);
         assertNull("PostdispatchMessageHandler was invoked after pre dispatch handler failed.", app.postdispatchMessage);
 
+        long timeout = System.currentTimeMillis() + 5000;
+        while (app.appExceptionMessage == null && System.currentTimeMillis() < timeout) {
+            Thread.sleep(100);
+        }
+
         assertNotNull("AppException was not invoked", app.appExceptionMessage);
         assertSame(app.received.get(0), app.appExceptionMessage);
 
@@ -597,6 +603,11 @@ public class ToaMessagingTest extends AbstractToaTest {
         assertNotNull("PredispatchMessageHandler was not invoked", app.predispatchMessage);
         assertNotNull("App have received message", app.receivedMessage);
         assertNotNull("PostdispatchMessageHandler was not invoked.", app.postdispatchMessage);
+
+        long timeout = System.currentTimeMillis() + 5000;
+        while (app.appExceptionMessage == null && System.currentTimeMillis() < timeout) {
+            Thread.sleep(100);
+        }
 
         assertNotNull("AppException was not invoked", app.appExceptionMessage);
         assertSame(app.received.get(0), app.appExceptionMessage);
@@ -642,7 +653,7 @@ public class ToaMessagingTest extends AbstractToaTest {
         RogLogUtil.dumpObjectAsJson(backingMessage.getMetadata(), backingMessage, false, true, false, JsonPrettyPrintStyle.PrettyPrint, new PrintWriter(System.out));
 
         assertTrue("Wrong exception, expected 'View factory '-201' could not be found', but was " + backingMessage.getException(), backingMessage.getException().indexOf("View factory '-201' could not be found") >= 0);
-        assertEquals("Unexpected timestamp", event.getEventTime(), backingMessage.getTimestamp());
+        assertEquals("Unexpected timestamp", event.getEventTime(), backingMessage.getEventTimestampAsTimestamp());
         assertEquals("Unexpected triggeringMessageMessageBusName", "testUnhandledMessageEventReceiver", backingMessage.getTriggeringMessageMessageBusName());
         assertEquals("Unexpected triggeringMessageMessageChannelName", sender.receiverChannel1.getName(), backingMessage.getTriggeringMessageMessageChannelName());
         assertEquals("Unexpected triggeringMessageMessageEncodingType", message.getMessageEncodingType(), backingMessage.getTriggeringMessageMessageEncodingType());

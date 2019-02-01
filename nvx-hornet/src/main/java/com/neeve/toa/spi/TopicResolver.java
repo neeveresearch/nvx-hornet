@@ -34,10 +34,10 @@ import com.neeve.toa.service.ToaServiceChannel;
  * on a given channel.
  * 
  * <h2>Threading</h2>
- * TopicResolvers are <b><i>NOT</i></b> and their methods are not safe for
+ * TopicResolvers are <b><i>NOT</i></b> safe for
  * concurrent access by multiple threads.
  * 
- * <i><b>Note</b>Topic Resolvers are currently an experimental feature</i>
+ * <i><b>Note: </b>Topic Resolvers are currently an experimental feature.</i>
  */
 public interface TopicResolver<T extends MessageView> {
 

@@ -33,7 +33,7 @@ import com.neeve.toa.service.ToaServiceChannel;
  * more efficiently resolve the topic, and in such cases may want to provide their own 
  * {@link TopicResolver}s.
  * 
- * <i><b>Note</b>Topic Resolvers are currently an experimental feature</i>
+ * <i><b>Note</b>Topic Resolvers are currently an experimental feature.</i>
  */
 public interface TopicResolverProvider {
 

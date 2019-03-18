@@ -468,7 +468,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     public static final boolean PROP_DISABLE_COMPAT_CHECK_DEFAULT = false;
 
-    final private static String MINIMUM_TALON_VERSION = "3.9.45";
+    final private static String MINIMUM_TALON_VERSION = "3.11.61";
 
     /**
      * Property used to enabled the delayed ack controller functionality. 
@@ -2197,6 +2197,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     @AppInjectionPoint
     final private void setEngineConfiguration(final AepEngineDescriptor engineDescriptor) throws Exception {
         _engineDescriptor = engineDescriptor;
+        _engineDescriptor.setEnableAlertTrace(false); // Hornet provides its own alert event handler. 
         _engineName = engineDescriptor.getName();
         onEngineDescriptorInjected(engineDescriptor);
         if (!_engineName.equals(engineDescriptor.getName())) {

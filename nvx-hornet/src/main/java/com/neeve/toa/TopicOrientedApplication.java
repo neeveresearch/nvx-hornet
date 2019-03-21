@@ -61,6 +61,7 @@ import com.neeve.aep.event.AepMessagingPrestartEvent;
 import com.neeve.ci.ManifestProductInfo;
 import com.neeve.ci.ProductInfo;
 import com.neeve.ci.XRuntime;
+import com.neeve.cli.annotations.Command;
 import com.neeve.cli.annotations.Configured;
 import com.neeve.event.alert.IAlertEvent;
 import com.neeve.event.lifecycle.LifecycleEvent;
@@ -76,7 +77,6 @@ import com.neeve.root.RootConfig;
 import com.neeve.server.Configurer;
 import com.neeve.server.Main;
 import com.neeve.server.app.SrvAppLoader;
-import com.neeve.server.app.annotations.AppCommandHandler;
 import com.neeve.server.app.annotations.AppCommandHandlerContainersAccessor;
 import com.neeve.server.app.annotations.AppConfiguredAccessor;
 import com.neeve.server.app.annotations.AppEventHandlerAccessor;
@@ -249,7 +249,7 @@ import com.neeve.util.UtlTime;
  * <br><i>Note: because TopicOrientedApplication provides this injection point it is illegal for subclasses to implement an {@link AppInjectionPoint} for  {@link AepEngineDescriptor},
  * subclasses can instead override {@link #onEngineDescriptorInjected(AepEngineDescriptor)}.</i> 
  * <li>Call {@link #getManagedObjectLocator()} and call its {@link ManagedObjectLocator#locateManagedObjects(Set)} method to find objects that expose
- * {@link AppCommandHandler}, {@link AppStat}, {@link Configured} or {@link EventHandler} annotations.
+ * {@link Command}, {@link AppStat}, {@link Configured} or {@link EventHandler} annotations.
  * <li>Perform {@link Configured} configuration injection on the set of objects returned by the {@link ManagedObjectLocator}.  
  * <li>Call {@link #getServiceDefinitionLocator()} and invoke its {@link ServiceDefinitionLocator#locateServices(Set)}. {@link TopicOrientedApplication} parses the 
  * service models returned by the {@link ServiceDefinitionLocator} and maps service defined messages to channels. Based on interest defined by the application's 
@@ -468,7 +468,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     public static final boolean PROP_DISABLE_COMPAT_CHECK_DEFAULT = false;
 
-    final private static String MINIMUM_TALON_VERSION = "3.9.45";
+    final private static String MINIMUM_TALON_VERSION = "3.11.61";
 
     /**
      * Property used to enabled the delayed ack controller functionality. 
@@ -1602,7 +1602,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
     /**
      * This method may be overridden by subclasses to add additional objects that contain
-     * methods with {@link AppCommandHandler} annotations.
+     * methods with {@link Command} annotations.
      * <p>
      * This method is called by the {@link DefaultManagedObjectLocator}, if an application
      * provides its own {@link ManagedObjectLocator} then it is up to that locator as
@@ -1610,13 +1610,13 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * <p>
      * This method is called by the application during the configuration phase
      * allowing the application subclass to register command handler containers
-     * by adding objects having methods annotated with {@link AppCommandHandler} that 
+     * by adding objects having methods annotated with {@link Command} that 
      * will serve as the application's command handlers. 
      * <p>
      * This class is automatically added as an command handler container, subclasses
      * should not add itself to the set.
      * 
-     * @param containers Objects with {@link AppCommandHandler} methods should be added to this set.
+     * @param containers Objects with {@link Command} methods should be added to this set.
      */
     protected void addAppCommandHandlerContainers(Set<Object> containers) {}
 
@@ -2197,6 +2197,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     @AppInjectionPoint
     final private void setEngineConfiguration(final AepEngineDescriptor engineDescriptor) throws Exception {
         _engineDescriptor = engineDescriptor;
+        _engineDescriptor.setEnableAlertTrace(false); // Hornet provides its own alert event handler. 
         _engineName = engineDescriptor.getName();
         onEngineDescriptorInjected(engineDescriptor);
         if (!_engineName.equals(engineDescriptor.getName())) {

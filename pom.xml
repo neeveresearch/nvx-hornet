@@ -217,7 +217,7 @@
 
                 <plugin>
                     <groupId>com.neeve</groupId>
-                    <artifactId>nvx-core-maven-plugin</artifactId>
+                    <artifactId>nvx-adm-maven-plugin</artifactId>
                     <version>${nvx.core.version}</version>
                 </plugin>
 

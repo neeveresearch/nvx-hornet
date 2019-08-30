@@ -240,9 +240,6 @@ public class DelayedAckControllerImpl implements DelayedAcknowledgmentController
 
     public void initEngineDescriptor(AepEngineDescriptor engineDescriptor) throws SmaException {
         if (tracer.isEnabled(Level.CONFIG)) tracer.log("Initializing delayed acknowledgment controller for " + engineDescriptor.getName(), Tracer.Level.CONFIG);
-        if (engineDescriptor.getStore() != null) {
-            throw new UnsupportedOperationException("Delayed acknowledgment is not supported for engines configured with a store");
-        }
 
         this.engineDescriptor = engineDescriptor;
 
@@ -321,12 +318,12 @@ public class DelayedAckControllerImpl implements DelayedAcknowledgmentController
             throw new IllegalStateException("Delayed acknowledgment controller is not Started (" + state + ")");
         }
 
-        if (engine.getStore() != null) {
-            throw new UnsupportedOperationException("Delayed acknowledgment is not supported for engines configured with a store");
-        }
-
         if (!engine.isMessageDispatchThread()) {
             throw new IllegalStateException("createDelayedAck cannot be called from outside of a message handler!");
+        }
+
+        if (engine.getApplicationState(engine.getCurrentMessage()) != null) {
+            throw new UnsupportedOperationException("Delayed acknowledgment is not supported for state replication engines with a state repository");
         }
 
         if (engine.isPrimary() && engine.getState() == AepEngine.State.Started) {

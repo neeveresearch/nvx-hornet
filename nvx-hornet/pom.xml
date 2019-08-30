@@ -119,6 +119,16 @@
                             <encodingType>Xbuf</encodingType>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>generate-hornet-delayedack-test-model</id>
+                        <goals>
+                            <goal>adm-generateTest</goal>
+                        </goals>
+                        <configuration>
+                            <modelFile>${basedir}/src/test/models/com/neeve/toa/test/unit/delayedAckTestModel.xml</modelFile>
+                            <encodingType>Xbuf</encodingType>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>

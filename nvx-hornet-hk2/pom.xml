@@ -25,10 +25,6 @@
         <url>http://www.neeveresearch.com</url>
     </organization>
 
-    <properties>
-        <hk2.version>2.4.0-b16</hk2.version>
-    </properties>
-
     <build>
         <plugins>
             <plugin>
@@ -58,7 +54,7 @@
         <dependency>
             <groupId>org.glassfish.hk2</groupId>
             <artifactId>hk2-locator</artifactId>
-            <version>${hk2.version}</version>
+            <version>2.5.0</version>
         </dependency>
     </dependencies>
 

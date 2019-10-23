@@ -64,7 +64,7 @@
             <plugin>
                 <groupId>com.neeve</groupId>
                 <artifactId>nvx-adm-maven-plugin</artifactId>
-                <version>${nvx.core.version}</version>
+                <version>${nvx.talon.version}</version>
                 <executions>
                     <execution>
                         <id>generate-hornet-messages</id>
@@ -163,8 +163,8 @@
     <dependencies>
         <dependency>
             <groupId>com.neeve</groupId>
-            <artifactId>nvx-core-all</artifactId>
-            <version>${nvx.core.version}</version>
+            <artifactId>nvx-talon</artifactId>
+            <version>${nvx.talon.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

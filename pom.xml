@@ -32,8 +32,8 @@
     </scm>
 
     <properties>
-        <nvx.core.version>3.13-SNAPSHOT</nvx.core.version>
-        <nvx.core.minorversion>3.13</nvx.core.minorversion>
+        <nvx.talon.version>4.0.105</nvx.talon.version>
+        <nvx.talon.minorversion>4.0</nvx.talon.minorversion>
         <build.version.display>${project.version}</build.version.display>
     </properties>
 
@@ -84,11 +84,11 @@
                     <doctitle><![CDATA[<h1>Hornet ${project.version} API</h1>]]></doctitle>
                     <windowtitle><![CDATA[Hornet ${project.version} API]]></windowtitle>
                     <links>
-                        <link>http://build.neeveresearch.com/core/javadoc/${nvx.core.minorversion}/${nvx.core.version}/</link>
+                        <link>http://build.neeveresearch.com/talon/javadoc/${nvx.talon.minorversion}/${nvx.talon.version}/</link>
                     </links>
                     <groups>
                         <group>
-                            <title>Hornet Core (X Platform Topic Oriented Aplications)</title>
+                            <title>Hornet Core (X Platform Topic Oriented Applications)</title>
                             <packages>
                                 com.neeve.toa:com.neeve.toa.opt:com.neeve.managed:com.neeve.managed.*:com.neeve.toa.service:com.neeve.toa.spi
                             </packages>
@@ -184,7 +184,7 @@
                             </tag>
                         </tags>
                         <links>
-                            <link>http://build.neeveresearch.com/core/javadoc/${nvx.core.minorversion}/${nvx.core.version}/</link>
+                            <link>http://build.neeveresearch.com/talon/javadoc/${nvx.talon.minorversion}/${nvx.talon.version}/</link>
                         </links>
                     </configuration>
                 </plugin>
@@ -209,8 +209,8 @@
                         </includes>
                         <properties>
                             <property>
-                                <name>nvx.core.version</name>
-                                <version>[${nvx.core.version}]</version>
+                                <name>nvx.talon.version</name>
+                                <version>[${nvx.talon.version}]</version>
                             </property>
                         </properties>
                     </configuration>
@@ -218,8 +218,8 @@
 
                 <plugin>
                     <groupId>com.neeve</groupId>
-                    <artifactId>nvx-core-maven-plugin</artifactId>
-                    <version>${nvx.core.version}</version>
+                    <artifactId>nvx-adm-maven-plugin</artifactId>
+                    <version>${nvx.talon.version}</version>
                 </plugin>
 
                 <!-- Skip enforcer plugin (caused problems withe javadoc fork) -->

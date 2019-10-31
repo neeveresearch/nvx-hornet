@@ -32,7 +32,7 @@
     </scm>
 
     <properties>
-        <nvx.talon.version>4.0.105</nvx.talon.version>
+        <nvx.talon.version>4.0-SNAPSHOT</nvx.talon.version>
         <nvx.talon.minorversion>4.0</nvx.talon.minorversion>
         <build.version.display>${project.version}</build.version.display>
     </properties>
@@ -202,15 +202,18 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>versions-maven-plugin</artifactId>
-                    <version>2.1</version>
+                    <version>2.7</version>
                     <configuration>
-                        <includes>
-                          <include>com.neeve:*</include>
-                        </includes>
                         <properties>
                             <property>
                                 <name>nvx.talon.version</name>
-                                <version>[${nvx.talon.version}]</version>
+                                <version>[${nvx.talon.version.range}]</version>
+                                <dependencies>
+                                    <dependency>
+                                        <groupId>com.neeve</groupId>
+                                        <artifactId>nvx-talon</artifactId>
+                                    </dependency>
+                                </dependencies>
                             </property>
                         </properties>
                     </configuration>

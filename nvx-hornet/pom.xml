@@ -167,6 +167,7 @@
             <version>${nvx.talon.version}</version>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>

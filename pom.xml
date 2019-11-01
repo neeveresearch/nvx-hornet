@@ -32,7 +32,7 @@
     </scm>
 
     <properties>
-        <nvx.talon.version>4.0.128</nvx.talon.version>
+        <nvx.talon.version>4.0.129</nvx.talon.version>
         <nvx.talon.minorversion>4.0</nvx.talon.minorversion>
         <build.version.display>${project.version}</build.version.display>
     </properties>

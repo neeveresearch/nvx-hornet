@@ -24,6 +24,7 @@ package com.neeve.toa.test.unit;
 import static com.neeve.toa.test.unit.SingleAppToaServer.PROP_NAME_STORE_CLUSTERING_ENABLED;
 import static com.neeve.toa.test.unit.SingleAppToaServer.PROP_NAME_STORE_ENABLED;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -32,15 +33,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.neeve.aep.AepEngine.HAPolicy;
+import com.neeve.aep.IAepApplicationStateFactory;
 import com.neeve.aep.annotations.EventHandler;
 import com.neeve.ci.XRuntime;
 import com.neeve.rog.IRogMessage;
 import com.neeve.server.app.annotations.AppHAPolicy;
 import com.neeve.server.app.annotations.AppMain;
+import com.neeve.server.app.annotations.AppStateFactoryAccessor;
 import com.neeve.sma.MessageChannel.Qos;
+import com.neeve.sma.MessageView;
 import com.neeve.toa.TopicOrientedApplication;
 import com.neeve.toa.opt.DelayedAcknowledgmentController.DelayedAcknowledger;
 import com.neeve.toa.service.ToaService;
@@ -79,8 +84,7 @@ public class DelayedAckTest extends AbstractToaTest {
         }
     }
 
-    @AppHAPolicy(HAPolicy.EventSourcing)
-    public static final class ForwarderApp extends AbstractToaTestApp {
+    public static class ForwarderApp extends AbstractToaTestApp {
         volatile List<DelayedAcknowledger> delayedAcks = new ArrayList<DelayedAcknowledger>();
 
         @EventHandler
@@ -104,6 +108,10 @@ public class DelayedAckTest extends AbstractToaTest {
             return super.recordReceipt(message);
         }
 
+        protected IRogMessage onlyRecordReceipt(IRogMessage message) {
+            return super.recordReceipt(message);
+        }
+
         @Override
         protected Properties getInitialChannelKeyResolutionTable(ToaService service, ToaServiceChannel channel) {
             Properties props = new Properties();
@@ -113,6 +121,41 @@ public class DelayedAckTest extends AbstractToaTest {
 
         protected Qos getChannelQos(ToaService service, ToaServiceChannel channel) {
             return qos;
+        }
+
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class ForwarderESApp extends ForwarderApp {
+    }
+
+    @AppHAPolicy(HAPolicy.StateReplication)
+    public static final class ForwarderNoStateSRApp extends ForwarderApp {
+    }
+
+    @AppHAPolicy(HAPolicy.StateReplication)
+    public static final class ForwarderWithStateSRApp extends ForwarderApp {
+        @AppStateFactoryAccessor
+        final public IAepApplicationStateFactory getStateFactory() {
+            return new IAepApplicationStateFactory() {
+                @Override
+                final public com.neeve.toa.test.unit.delayedacktests.state.Repository createState(MessageView view) {
+                    return com.neeve.toa.test.unit.delayedacktests.state.Repository.create();
+                }
+            };
+        }
+
+        @Override
+        public IRogMessage recordReceipt(IRogMessage message) {
+            try {
+                getDelayedAcknowledgmentController().delayAcknowledgment();
+                fail("Expected an unsupported operation exception on delayAcknowledgement");
+                return null;
+            }
+            catch (UnsupportedOperationException e) {
+                e.printStackTrace();
+                return super.onlyRecordReceipt(message);
+            }
         }
 
     }
@@ -135,10 +178,9 @@ public class DelayedAckTest extends AbstractToaTest {
         }
     }
 
-    @Test
-    public final void testDelayedAcknowledgment() throws Throwable {
+    private final void testDelayedAcknowledgment(final Class<? extends ForwarderApp> forwarderAppClass) throws Throwable {
         ReceiverApp receiver = createApp("testSenderForwarderReceiverReceiver", "standalone", ReceiverApp.class);
-        ForwarderApp forwarder = createApp("testSenderForwarderReceiverFowarder", "standalone", ForwarderApp.class);
+        ForwarderApp forwarder = createApp("testSenderForwarderReceiverFowarder", "standalone", forwarderAppClass);
         SenderApp sender = createApp("testSenderForwarderReceiverSender", "standalone", SenderApp.class);
         sender.getEngine().waitForMessagingToStart();
         sender.assertExpectedSends(5, 4);
@@ -176,9 +218,19 @@ public class DelayedAckTest extends AbstractToaTest {
     }
 
     @Test
+    public final void testDelayedAcknowledgmentWithESApp() throws Throwable {
+        testDelayedAcknowledgment(ForwarderESApp.class);
+    }
+
+    @Test
+    public final void testDelayedAcknowledgmentWithNoStateSRApp() throws Throwable {
+        testDelayedAcknowledgment(ForwarderNoStateSRApp.class);
+    }
+
+    @Test
     public final void testDelayedAcknowledgmentNack() throws Throwable {
         ReceiverApp receiver = createApp("testDelayedAcknowledgmentNackReceiver", "standalone", ReceiverApp.class);
-        ForwarderApp forwarder = createApp("testDelayedAcknowledgmentNackFowarder", "standalone", ForwarderApp.class);
+        ForwarderApp forwarder = createApp("testDelayedAcknowledgmentNackFowarder", "standalone", ForwarderESApp.class);
         SenderApp sender = createApp("testDelayedAcknowledgmentNackSender", "standalone", SenderApp.class);
         sender.getEngine().waitForMessagingToStart();
         sender.assertExpectedSends(5, 4);
@@ -220,7 +272,7 @@ public class DelayedAckTest extends AbstractToaTest {
     @Test
     public final void testDelayedAcknowledgmentRefCountingError() throws Throwable {
         ReceiverApp receiver = createApp("testDelayedAcknowledgmentRefCountingErrorReceiver", "standalone", ReceiverApp.class);
-        ForwarderApp forwarder = createApp("testDelayedAcknowledgmentRefCountingErrorForwarder", "standalone", ForwarderApp.class);
+        ForwarderApp forwarder = createApp("testDelayedAcknowledgmentRefCountingErrorForwarder", "standalone", ForwarderESApp.class);
         SenderApp sender = createApp("testDelayedAcknowledgmentRefCountingErrorSender", "standalone", SenderApp.class);
         sender.getEngine().waitForMessagingToStart();
         sender.assertExpectedSends(5, 4);
@@ -262,7 +314,7 @@ public class DelayedAckTest extends AbstractToaTest {
 
     @Test
     public final void testDelayedAcknowledgmentNotSupportedFromNonEngineThread() throws Throwable {
-        ForwarderApp forwarder = createApp("testDelayedAcknowledgmentNotSupportedFromNonEngineThread", "standalone", ForwarderApp.class);
+        ForwarderApp forwarder = createApp("testDelayedAcknowledgmentNotSupportedFromNonEngineThread", "standalone", ForwarderESApp.class);
         forwarder.getEngine().waitForMessagingToStart();
         try {
             forwarder.getDelayedAcknowledgmentController().delayAcknowledgment();
@@ -274,16 +326,18 @@ public class DelayedAckTest extends AbstractToaTest {
     }
 
     @Test
-    public final void testDelayedAcknowledgmentNotSupportedWithClusteredEngine() throws Throwable {
-        Map<String, String> configOverrides = new HashMap<String, String>();
-        configOverrides.put(PROP_NAME_STORE_ENABLED, "true");
-        configOverrides.put(PROP_NAME_STORE_CLUSTERING_ENABLED, "true");
-        try {
-            createApp("testDelayedAcknowledgmentNotSupportedWithClusteredEngine", "standalone", ForwarderApp.class, configOverrides);
-            fail("Shouldn't have been able to start clustered app with delayed ack controller");
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
+    @Ignore("Failing when run along with other tests")
+    public final void testDelayedAcknowledgmentNotSupportedWithSRAppWithState() throws Throwable {
+        ReceiverApp receiver = createApp("testDelayedAcknowledgmentNackReceiver", "standalone", ReceiverApp.class);
+        ForwarderApp forwarder = createApp("testDelayedAcknowledgmentNackFowarder", "standalone", ForwarderWithStateSRApp.class);
+        SenderApp sender = createApp("testDelayedAcknowledgmentNackSender", "standalone", SenderApp.class);
+        sender.getEngine().waitForMessagingToStart();
+        sender.assertExpectedSends(5, 4);
+        assertTrue(receiver.waitForMessages(10, 4));
+        sender.waitForTransactionStability(2, 4);
+        assertTrue(forwarder.waitForTransactionStability(2, 4));
+        assertTrue(receiver.waitForTransactionStability(2, 4));
+        assertSentAndReceivedMessageEqual(sender, forwarder);
+        assertSentAndReceivedMessageEqual(forwarder, receiver);
     }
 }

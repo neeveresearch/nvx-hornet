@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.neeve</groupId>
         <artifactId>nvx-hornet-parent</artifactId>
-        <version>1.9.1</version>
+        <version>1.12.5</version>
     </parent>
 
     <licenses>
@@ -24,10 +24,6 @@
         <name>Neeve Research, LLC</name>
         <url>http://www.neeveresearch.com</url>
     </organization>
-
-    <properties>
-        <hk2.version>2.4.0-b16</hk2.version>
-    </properties>
 
     <build>
         <plugins>
@@ -58,7 +54,7 @@
         <dependency>
             <groupId>org.glassfish.hk2</groupId>
             <artifactId>hk2-locator</artifactId>
-            <version>${hk2.version}</version>
+            <version>2.4.0-b16</version>
         </dependency>
     </dependencies>
 

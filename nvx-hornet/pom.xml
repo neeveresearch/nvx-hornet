@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.neeve</groupId>
         <artifactId>nvx-hornet-parent</artifactId>
-        <version>1.9.1</version>
+        <version>1.12.5</version>
     </parent>
 
     <licenses>
@@ -64,6 +64,7 @@
             <plugin>
                 <groupId>com.neeve</groupId>
                 <artifactId>nvx-adm-maven-plugin</artifactId>
+                <version>${nvx.core.version}</version>
                 <executions>
                     <execution>
                         <id>generate-hornet-messages</id>
@@ -115,6 +116,16 @@
                         </goals>
                         <configuration>
                             <modelFile>${basedir}/src/test/models/com/neeve/toa/test/unit/injectionTestModel.xml</modelFile>
+                            <encodingType>Xbuf</encodingType>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-hornet-delayedack-test-model</id>
+                        <goals>
+                            <goal>adm-generateTest</goal>
+                        </goals>
+                        <configuration>
+                            <modelFile>${basedir}/src/test/models/com/neeve/toa/test/unit/delayedAckTestModel.xml</modelFile>
                             <encodingType>Xbuf</encodingType>
                         </configuration>
                     </execution>

@@ -32,8 +32,8 @@
     </scm>
 
     <properties>
-        <nvx.talon.version>4.0.156</nvx.talon.version>
-        <nvx.talon.minorversion>4.0</nvx.talon.minorversion>
+        <nvx.talon.version>3.14.5</nvx.talon.version>
+        <nvx.talon.minorversion>3.14</nvx.talon.minorversion>
         <build.version.display>${project.version}</build.version.display>
     </properties>
 
@@ -207,7 +207,7 @@
                         <properties>
                             <property>
                                 <name>nvx.talon.version</name>
-                                <version>[4.0.0,4.0.10000]</version>
+                                <version>[3.14.0,3.14.10000]</version>
                                 <dependencies>
                                     <dependency>
                                         <groupId>com.neeve</groupId>

@@ -175,7 +175,6 @@
                         <author>true</author>
                         <version>true</version>
                         <use>false</use>
-                        <stylesheetfile>stylesheet.css</stylesheetfile>
                         <tags>
                             <tag>
                                 <name>threading</name>

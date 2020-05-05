@@ -175,7 +175,6 @@
                         <author>true</author>
                         <version>true</version>
                         <use>false</use>
-                        <stylesheetfile>stylesheet.css</stylesheetfile>
                         <tags>
                             <tag>
                                 <name>threading</name>
@@ -207,7 +206,7 @@
                         <properties>
                             <property>
                                 <name>nvx.talon.version</name>
-                                <version>[4.0.0,4.0.10000]</version>
+                                <version>[3.14.0,3.14.10000]</version>
                                 <dependencies>
                                     <dependency>
                                         <groupId>com.neeve</groupId>

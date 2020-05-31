@@ -32,7 +32,7 @@ import org.glassfish.hk2.api.ServiceLocatorFactory.CreatePolicy;
 import org.glassfish.hk2.utilities.Binder;
 import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
 
-import com.neeve.ci.XRuntime;
+import com.neeve.config.Config;
 import com.neeve.managed.ManagedObjectLocator;
 import com.neeve.managed.annotations.Managed;
 import com.neeve.root.RootConfig;
@@ -113,7 +113,7 @@ public class HK2ManagedObjectLocator implements ManagedObjectLocator {
 
     private ServiceLocator initializeApplicationServiceLocator() {
         ServiceLocator serviceLocator = createServiceLocator(applicationName);
-        if (XRuntime.getValue(PROP_ENABLE_HK2_IMMEDIATE_SCOPE, PROP_ENABLE_HK2_IMMEDIATE_SCOPE_DEFAULT)) {
+        if (Config.getValue(PROP_ENABLE_HK2_IMMEDIATE_SCOPE, PROP_ENABLE_HK2_IMMEDIATE_SCOPE_DEFAULT)) {
             ServiceLocatorUtilities.enableImmediateScope(serviceLocator);
         }
         List<Binder> modules = new ArrayList<Binder>(createPlatformModules());

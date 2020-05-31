@@ -63,11 +63,7 @@ import com.neeve.toa.service.ToaService;
 import com.neeve.toa.service.ToaServiceChannel;
 import com.neeve.toa.test.unit.injectiontests.UnhandledInjectionMessage;
 
-/**
- * 
- */
 public class ToaMessagingTest extends AbstractToaTest {
-
     private static volatile Qos qos = Qos.BestEffort;
 
     @AppHAPolicy(HAPolicy.EventSourcing)

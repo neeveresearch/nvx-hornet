@@ -60,9 +60,9 @@ import com.neeve.aep.event.AepEngineStoppingEvent;
 import com.neeve.aep.event.AepMessagingPrestartEvent;
 import com.neeve.ci.ManifestProductInfo;
 import com.neeve.ci.ProductInfo;
-import com.neeve.ci.XRuntime;
 import com.neeve.cli.annotations.Command;
 import com.neeve.cli.annotations.Configured;
+import com.neeve.config.Config;
 import com.neeve.event.alert.IAlertEvent;
 import com.neeve.event.lifecycle.LifecycleEvent;
 import com.neeve.lang.XLongLinkedHashMap;
@@ -468,7 +468,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     public static final boolean PROP_DISABLE_COMPAT_CHECK_DEFAULT = false;
 
-    final private static String MINIMUM_TALON_VERSION = "3.11.61";
+    final private static String MINIMUM_TALON_VERSION = "4.0.0";
 
     /**
      * Property used to enabled the delayed ack controller functionality. 
@@ -871,7 +871,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     private final PredispatchMessageHandlerDispatcher predispatchMessageHandlerDispatcher = new PredispatchMessageHandlerDispatcher();
     private final PostdispatchMessageHandlerDispatcher postdispatchMessageHandlerDispatcher = new PostdispatchMessageHandlerDispatcher();
     private final DelayedAckControllerImpl _delayedAckController;
-    private final int defaultInjectionDelay = XRuntime.getValue(PROP_DEFAULT_INJECTION_DELAY, PROP_DEFAULT_INJECTION_DELAY_DEFAULT);
+    private final int defaultInjectionDelay = Config.getValue(PROP_DEFAULT_INJECTION_DELAY, PROP_DEFAULT_INJECTION_DELAY_DEFAULT);
     private final Tracer.Level alertTraceLevel;
 
     private AepEngine.HAPolicy _haPolicy;
@@ -894,7 +894,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         _factoryRegisteredTypesById = XLongLinkedHashMap.newInstance();
 
         // validate the alert trace level. A value of ALL is ignored.
-        Tracer.Level alertTraceLevel = Tracer.getLevel(XRuntime.getValue(PROP_ALERT_TRACE_LEVEL, PROP_ALERT_TRACE_LEVEL_DEFAULT));
+        Tracer.Level alertTraceLevel = Tracer.getLevel(Config.getValue(PROP_ALERT_TRACE_LEVEL, PROP_ALERT_TRACE_LEVEL_DEFAULT));
         if (alertTraceLevel == Level.ALL) {
             this.alertTraceLevel = Tracer.getLevel(PROP_ALERT_TRACE_LEVEL_DEFAULT);
         }
@@ -929,7 +929,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             }
         }
 
-        if (XRuntime.getValue(PROP_ENABLED_DELAYED_ACK_CONTROLLER, PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT)) {
+        if (Config.getValue(PROP_ENABLED_DELAYED_ACK_CONTROLLER, PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT)) {
             _delayedAckController = new DelayedAckControllerImpl();
         }
         else {
@@ -938,10 +938,10 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     }
 
     /**
-     * Checks compatibility with Core X
+     * Checks compatibility with Talon
      */
     private static void runtimeCompatibilityCheck() {
-        if (!XRuntime.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT)) {
+        if (!Config.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT)) {
             final com.neeve.nvx.talon.Version talonVersion = new com.neeve.nvx.talon.Version();
             final String[] requiredMinVersionComponents = MINIMUM_TALON_VERSION.split("\\.");
             final String[] componentVersions = talonVersion.getFullVersion().split("\\.");
@@ -1109,8 +1109,8 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
         // prepare map that contains the channels to join and the map containing the messages to send for each channel
         _tracer.log(tracePrefix() + "...preparing join channel list and message channel map...", Tracer.Level.CONFIG);
-        final boolean genericHandlerJoinsAll = XRuntime.getValue(PROP_GENERIC_HANDLER_JOINS_ALL, PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT);
-        final boolean ignoreUnmappedChannels = XRuntime.getValue(PROP_IGNORE_UNMAPPED_CHANNELS, PROP_IGNORE_UNMAPPED_CHANNELS_DEFAULT);
+        final boolean genericHandlerJoinsAll = Config.getValue(PROP_GENERIC_HANDLER_JOINS_ALL, PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT);
+        final boolean ignoreUnmappedChannels = Config.getValue(PROP_IGNORE_UNMAPPED_CHANNELS, PROP_IGNORE_UNMAPPED_CHANNELS_DEFAULT);
         final EventHandlerContext genericMessageViewHandler = eventHandlersByClass.get(MessageView.class.getName());
         final EventHandlerContext genericMessageEventHandler = eventHandlersByClass.get(MessageEvent.class.getName());
         final Map<ToaService, Set<ToaServiceChannel>> channelsWithHandlers = new HashMap<ToaService, Set<ToaServiceChannel>>();
@@ -1300,7 +1300,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         }
 
         // prepare the bus descriptor and, while doing so, add channels to the engine descriptor to register interest
-        final boolean failOnServiceChannelNameCollision = XRuntime.getValue(PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION, PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION_DEFAULT);
+        final boolean failOnServiceChannelNameCollision = Config.getValue(PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION, PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION_DEFAULT);
         final HashMap<String, ToaService> channelNameToServiceMap = new HashMap<String, ToaService>();
         try {
             for (String busName : _channelMessageMapByBus.keySet()) {
@@ -1400,8 +1400,8 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                         if (initialKRT != null && key != null) {
                             // Handle empty ("") key fields in initial KRT: 
                             Properties sanitizedKrt = initialKRT;
-                            final boolean treatEmptyKeyAsNull = XRuntime.getValue(MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL, MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL_DEFAULT);
-                            final boolean allowEmptyKey = XRuntime.getValue(MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD, MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD_DEFAULT);
+                            final boolean treatEmptyKeyAsNull = Config.getValue(MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL, MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL_DEFAULT);
+                            final boolean allowEmptyKey = Config.getValue(MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD, MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD_DEFAULT);
                             if (treatEmptyKeyAsNull || !allowEmptyKey) {
                                 for (Map.Entry<Object, Object> krtEntry : initialKRT.entrySet()) {
                                     // Note that the null check here isn't really necessary as 

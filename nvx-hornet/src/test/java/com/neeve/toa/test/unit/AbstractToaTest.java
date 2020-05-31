@@ -27,9 +27,12 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 
 import org.junit.After;
+import org.junit.Before;
 
+import com.neeve.config.Config;
 import com.neeve.rog.IRogMessage;
 import com.neeve.rog.log.RogLogUtil;
 import com.neeve.rog.log.RogLogUtil.JsonPrettyPrintStyle;
@@ -37,9 +40,6 @@ import com.neeve.server.embedded.EmbeddedXVM;
 import com.neeve.test.UnitTest;
 import com.neeve.toa.TopicOrientedApplication;
 
-/**
- * 
- */
 public abstract class AbstractToaTest extends UnitTest {
     private static final HashSet<String> DIVERGENT_PRIMARY_BACKUP_FIELD_EXCEPTIONS = new HashSet<String>();
     private static final HashSet<String> DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS = new HashSet<String>();
@@ -47,7 +47,6 @@ public abstract class AbstractToaTest extends UnitTest {
         //Ownership count can diverge between backup and primary because we lazily
         //recycle commit queue entries
         DIVERGENT_PRIMARY_BACKUP_FIELD_EXCEPTIONS.add("ownershipCount");
-
         DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS.add("messageBus");
         DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS.add("messageChannel");
         DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS.add("messageKey");
@@ -111,6 +110,12 @@ public abstract class AbstractToaTest extends UnitTest {
 
     protected final HashSet<EmbeddedXVM> servers = new HashSet<EmbeddedXVM>();
 
+    private Properties systemProperties;
+    @Before
+    public void saveSystemProperties() throws Exception {
+        systemProperties = (Properties)System.getProperties().clone();
+    }
+
     @After
     public void cleanup() throws Throwable {
         Throwable error = null;
@@ -133,6 +138,8 @@ public abstract class AbstractToaTest extends UnitTest {
                 thrown.printStackTrace();
             }
         }
+
+        Config.reset(systemProperties);
 
         if (error != null) {
             throw error;

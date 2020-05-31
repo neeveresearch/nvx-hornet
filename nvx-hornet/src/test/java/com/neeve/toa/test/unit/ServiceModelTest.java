@@ -32,7 +32,6 @@ import java.util.List;
 
 import org.junit.Test;
 
-import com.neeve.ci.XRuntime;
 import com.neeve.toa.DefaultServiceDefinitionLocator;
 import com.neeve.toa.service.ToaService;
 import com.neeve.toa.service.ToaServiceChannel;
@@ -41,11 +40,7 @@ import com.neeve.toa.test.unit.modelA.AmbiguouslyNamedMessage;
 import com.neeve.toa.test.unit.modelA.ModelAMessage1;
 import com.neeve.toa.test.unit.modelB.ModelBMessage1;
 
-/**
- * 
- */
-public class ServiceModelTest {
-
+public class ServiceModelTest extends AbstractToaTest {
     @Test
     public void testConflictingMessageIdFails() throws Exception {
         try {
@@ -126,18 +121,11 @@ public class ServiceModelTest {
 
     @Test
     public void testNoServicePrefixByProperty() throws Exception {
-        XRuntime.getProps().setProperty(ToaService.PROP_PREFIX_CHANNEL_NAMES, "false");
-        try {
-            ToaService service = ToaService.unmarshal(getClass().getResource("/defaultChannelTestService.xml"));
-
-            ToaServiceToRole role = service.getToRole("ServiceA");
-            assertNotNull("Expected to find 'ServiceA' role", role);
-            ToaServiceChannel channel = role.getChannel(ModelAMessage1.class.getName());
-            assertEquals("Channel Name and Simple Channel name should be identical", channel.getSimpleName(), channel.getName());
-        }
-        finally
-        {
-            XRuntime.getProps().remove(ToaService.PROP_PREFIX_CHANNEL_NAMES);
-        }
+        System.setProperty(ToaService.PROP_PREFIX_CHANNEL_NAMES, "false");
+        ToaService service = ToaService.unmarshal(getClass().getResource("/defaultChannelTestService.xml"));
+        ToaServiceToRole role = service.getToRole("ServiceA");
+        assertNotNull("Expected to find 'ServiceA' role", role);
+        ToaServiceChannel channel = role.getChannel(ModelAMessage1.class.getName());
+        assertEquals("Channel Name and Simple Channel name should be identical", channel.getSimpleName(), channel.getName());
     }
 }

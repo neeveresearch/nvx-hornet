@@ -39,7 +39,6 @@ import org.junit.Test;
 import com.neeve.aep.AepEngine.HAPolicy;
 import com.neeve.aep.IAepApplicationStateFactory;
 import com.neeve.aep.annotations.EventHandler;
-import com.neeve.ci.XRuntime;
 import com.neeve.rog.IRogMessage;
 import com.neeve.server.app.annotations.AppHAPolicy;
 import com.neeve.server.app.annotations.AppMain;
@@ -55,12 +54,6 @@ import com.neeve.toa.service.ToaServiceChannel;
  * Tests for delayed ack controller. 
  */
 public class DelayedAckTest extends AbstractToaTest {
-    private static volatile Qos qos = Qos.Guaranteed;
-
-    static {
-        XRuntime.getProps().setProperty(TopicOrientedApplication.PROP_ENABLED_DELAYED_ACK_CONTROLLER, "true");
-    }
-
     @AppHAPolicy(HAPolicy.EventSourcing)
     public static final class SenderApp extends AbstractToaTestApp {
         @AppMain
@@ -176,6 +169,12 @@ public class DelayedAckTest extends AbstractToaTest {
         protected Qos getChannelQos(ToaService service, ToaServiceChannel channel) {
             return qos;
         }
+    }
+
+    private static volatile Qos qos = Qos.Guaranteed;
+
+    static {
+        System.setProperty(TopicOrientedApplication.PROP_ENABLED_DELAYED_ACK_CONTROLLER, "true");
     }
 
     private final void testDelayedAcknowledgment(final Class<? extends ForwarderApp> forwarderAppClass) throws Throwable {

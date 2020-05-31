@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.neeve.aep.AepEngine;
-import com.neeve.ci.XRuntime;
 import com.neeve.config.VMConfigurer;
 import com.neeve.server.Configurer;
 import com.neeve.server.Main;
@@ -75,7 +74,7 @@ public class SingleAppToaServer<T extends TopicOrientedApplication> extends Embe
             this.serverName = appName + "-" + instanceId;
             this.applicationClass = applicationClass;
 
-            XRuntime.getProps().setProperty("nv.server.autostop.onlastappstop", "false");
+            System.setProperty("nv.server.autostop.onlastappstop", "false");
 
             overrides.put("application.name", appName);
             overrides.put("application.server.name", appName + "-" + instanceId);
@@ -85,7 +84,7 @@ public class SingleAppToaServer<T extends TopicOrientedApplication> extends Embe
             overrides.put("server.discoveryDescriptor", "local://serverdiscovery&initWaitTime=0");
             if (configOverrides != null) {
                 overrides.putAll(configOverrides);
-                XRuntime.getProps().putAll(overrides);
+                System.getProperties().putAll(overrides);
             }
         }
 

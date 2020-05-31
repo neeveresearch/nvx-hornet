@@ -36,7 +36,6 @@ import com.neeve.aep.AepMessageSender;
 import com.neeve.aep.AepEngine.HAPolicy;
 import com.neeve.aep.annotations.EventHandler;
 import com.neeve.aep.event.AepUnhandledMessageEvent;
-import com.neeve.ci.XRuntime;
 import com.neeve.lang.XString;
 import com.neeve.rog.IRogMessage;
 import com.neeve.server.app.annotations.AppHAPolicy;
@@ -62,13 +61,6 @@ import com.neeve.util.UtlTailoring;
  * Tests for channel send and join parsing
  */
 public class ChannelResolutionTest extends AbstractToaTest {
-    private static final Properties IKRT = new Properties();
-    static {
-        //Initialize clean key property (it is static):
-        XRuntime.getProps().setProperty(MessageChannel.PROP_CLEAN_MESSAGE_KEY, "true");
-        IKRT.put("IntField", "5");
-    }
-
     @AppHAPolicy(HAPolicy.EventSourcing)
     public static class SenderApp extends AbstractToaTestApp {
         volatile AepMessageSender aepMessageSender;
@@ -586,6 +578,12 @@ public class ChannelResolutionTest extends AbstractToaTest {
         }
     }
 
+    private static final Properties IKRT = new Properties();
+    static {
+        System.setProperty(MessageChannel.PROP_CLEAN_MESSAGE_KEY, "true");
+        IKRT.put("IntField", "5");
+    }
+
     /**
      * Tests that dynamic portion of a channel key are left untouched if they aren't
      * in the initial KRT and that no exception is thrown. 
@@ -766,7 +764,7 @@ public class ChannelResolutionTest extends AbstractToaTest {
 
     @Test
     public final void testInitialKRTDoesntSubstituteEmptyWithTreatEmptyAsNull() throws Throwable {
-        XRuntime.getProps().setProperty(MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL, "true");
+        System.setProperty(MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL, "true");
         IKRT.setProperty("LongField", "");
         try {
             FixedKRTReceiverAppWithDefaultInChannelKey receiver = createApp("receiver", "standalone", FixedKRTReceiverAppWithDefaultInChannelKey.class);
@@ -802,13 +800,12 @@ public class ChannelResolutionTest extends AbstractToaTest {
         }
         finally {
             IKRT.remove("LongField");
-            XRuntime.getProps().setProperty(MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL, "" + MessageChannel.PROP_TREAT_EMPTY_KEY_FIELD_AS_NULL_DEFAULT);
         }
     }
 
     @Test
     public final void testInitialKRTThrowsErrorOnEmptyWithAllowEmptyKeyFieldFalse() throws Throwable {
-        XRuntime.getProps().setProperty(MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD, "false");
+        System.setProperty(MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD, "false");
         IKRT.setProperty("LongField", "");
         try {
             createApp("receiver", "standalone", FixedKRTReceiverAppWithDefaultInChannelKey.class);
@@ -819,7 +816,6 @@ public class ChannelResolutionTest extends AbstractToaTest {
         }
         finally {
             IKRT.remove("LongField");
-            XRuntime.getProps().setProperty(MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD, "" + MessageChannel.PROP_ALLOW_EMPTY_KEY_FIELD_DEFAULT);
         }
     }
 
@@ -1077,39 +1073,34 @@ public class ChannelResolutionTest extends AbstractToaTest {
 
     @Test
     public void testUnMappedChannelJoinProviderDefault() throws Throwable {
-        XRuntime.getProps().setProperty(TopicOrientedApplication.PROP_IGNORE_UNMAPPED_CHANNELS, "false");
-        try {
-            UnmappedChannelJoinReceiverApp receiver = createApp("testUnMappedChannelJoinProviderJoin", "standalone", UnmappedChannelJoinReceiverApp.class);
-            receiver.holdMessages = true;
-            SenderApp sender = createApp("testChannelJoinProviderDefaultSender", "standalone", SenderApp.class);
+        System.setProperty(TopicOrientedApplication.PROP_IGNORE_UNMAPPED_CHANNELS, "false");
+        UnmappedChannelJoinReceiverApp receiver = createApp("testUnMappedChannelJoinProviderJoin", "standalone", UnmappedChannelJoinReceiverApp.class);
+        receiver.holdMessages = true;
+        SenderApp sender = createApp("testChannelJoinProviderDefaultSender", "standalone", SenderApp.class);
 
-            // send a message on UnmappedChannel which has no message mapped to it.
-            MessageChannel unmappedChannel = null;
-            for (AepBusManager busManager : sender.getAepEngine().getBusManagers()) {
-                if (!busManager.getBusBinding().getName().equals("testChannelJoinProviderDefaultSender")) {
-                    continue;
-                }
-                unmappedChannel = busManager.getChannel("receiverservice-UnmappedChannel");
-                break;
+        // send a message on UnmappedChannel which has no message mapped to it.
+        MessageChannel unmappedChannel = null;
+        for (AepBusManager busManager : sender.getAepEngine().getBusManagers()) {
+            if (!busManager.getBusBinding().getName().equals("testChannelJoinProviderDefaultSender")) {
+                continue;
             }
-            assertNotNull("receiverservice-UnmappedChannel not found in sender's bus", unmappedChannel);
-
-            ModelBMessage1 message = ModelBMessage1.create();
-            message.setMessageBusAsRaw(unmappedChannel.getMessageBusBinding().getNameAsRaw());
-            message.setMessageChannelAsRaw(unmappedChannel.getNameAsRaw());
-            sender.getAepEngine().sendMessage(unmappedChannel, message);
-
-            sender.waitForTransactionStability(1);
-            receiver.waitForTransactionStability(1);
-
-            // receiver should only get ReceiverMessage2 since ReceiverMessage1 channel 
-            // join was set to false
-            receiver.assertExpectedReceipt(5, 1);
-            assertEquals("Wrong type for received message", ModelBMessage1.class, receiver.received.get(0).getClass());
+            unmappedChannel = busManager.getChannel("receiverservice-UnmappedChannel");
+            break;
         }
-        finally {
-            XRuntime.getProps().remove(TopicOrientedApplication.PROP_IGNORE_UNMAPPED_CHANNELS);
-        }
+        assertNotNull("receiverservice-UnmappedChannel not found in sender's bus", unmappedChannel);
+
+        ModelBMessage1 message = ModelBMessage1.create();
+        message.setMessageBusAsRaw(unmappedChannel.getMessageBusBinding().getNameAsRaw());
+        message.setMessageChannelAsRaw(unmappedChannel.getNameAsRaw());
+        sender.getAepEngine().sendMessage(unmappedChannel, message);
+
+        sender.waitForTransactionStability(1);
+        receiver.waitForTransactionStability(1);
+
+        // receiver should only get ReceiverMessage2 since ReceiverMessage1 channel 
+        // join was set to false
+        receiver.assertExpectedReceipt(5, 1);
+        assertEquals("Wrong type for received message", ModelBMessage1.class, receiver.received.get(0).getClass());
     }
 
     private static final class ConflictServiceDefinitionLocator extends AbstractServiceDefinitionLocator {

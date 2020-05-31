@@ -27,7 +27,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Set;
 
-import com.neeve.ci.XRuntime;
+import com.neeve.config.Config;
 import com.neeve.toa.spi.AbstractServiceDefinitionLocator;
 import com.neeve.toa.spi.ServiceDefinitionLocator;
 import com.neeve.trace.Tracer;
@@ -96,8 +96,8 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
      */
     public static final boolean PROP_SCAN_FOR_CLASSPATH_SERVICES_DEFAULT = true;
 
-    private final boolean strictValidation = XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION, XRuntime.getValue(PROP_STRICT_SERVICE_VALIDATION_DEPRECATED, PROP_STRICT_SERVICE_VALIDATION_DEFAULT));
-    private final boolean scanForClassPathServices = XRuntime.getValue(PROP_SCAN_FOR_CLASSPATH_SERVICES, PROP_SCAN_FOR_CLASSPATH_SERVICES_DEFAULT);
+    private final boolean strictValidation = Config.getValue(PROP_STRICT_SERVICE_VALIDATION, Config.getValue(PROP_STRICT_SERVICE_VALIDATION_DEPRECATED, PROP_STRICT_SERVICE_VALIDATION_DEFAULT));
+    private final boolean scanForClassPathServices = Config.getValue(PROP_SCAN_FOR_CLASSPATH_SERVICES, PROP_SCAN_FOR_CLASSPATH_SERVICES_DEFAULT);
 
     private final URLFilter SERVICE_FILTER = new URLFilter() {
 
@@ -134,12 +134,12 @@ public final class DefaultServiceDefinitionLocator extends AbstractServiceDefini
      */
     @Override
     public final void locateServices(final Set<URL> urls) throws Exception {
-        findFileSystemServices(new File(XRuntime.getRootDirectory().toString() + File.separator + "conf" + File.separator + "services"), urls);
-        findFileSystemServices(new File(XRuntime.getRootDirectory().toString() + File.separator + "resources" + File.separator + "services"), urls);
-        String appName = XRuntime.getValue("application.name", null);
+        findFileSystemServices(new File(Config.getRootDirectory().toString() + File.separator + "conf" + File.separator + "services"), urls);
+        findFileSystemServices(new File(Config.getRootDirectory().toString() + File.separator + "resources" + File.separator + "services"), urls);
+        String appName = Config.getValue("application.name", null);
         if (appName != null) {
-            findFileSystemServices(new File(XRuntime.getRootDirectory().toString() + File.separator + "conf" + File.separator + appName + File.separator + "services"), urls);
-            findFileSystemServices(new File(XRuntime.getRootDirectory().toString() + File.separator + "resources" + File.separator + appName + File.separator + "services"), urls);
+            findFileSystemServices(new File(Config.getRootDirectory().toString() + File.separator + "conf" + File.separator + appName + File.separator + "services"), urls);
+            findFileSystemServices(new File(Config.getRootDirectory().toString() + File.separator + "resources" + File.separator + appName + File.separator + "services"), urls);
         }
 
         // search classpath?

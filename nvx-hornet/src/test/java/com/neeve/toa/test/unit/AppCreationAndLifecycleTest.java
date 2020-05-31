@@ -46,7 +46,6 @@ import com.neeve.aep.event.AepEngineCreatedEvent;
 import com.neeve.aep.event.AepEngineStartedEvent;
 import com.neeve.aep.event.AepMessagingPrestartEvent;
 import com.neeve.aep.event.AepMessagingStartedEvent;
-import com.neeve.ci.XRuntime;
 import com.neeve.server.app.SrvAppLoader;
 import com.neeve.server.app.annotations.AppHAPolicy;
 import com.neeve.server.app.annotations.AppInjectionPoint;
@@ -57,7 +56,6 @@ import com.neeve.toa.spi.ServiceDefinitionLocator;
  * Tests for MessageInjection via TOA
  */
 public class AppCreationAndLifecycleTest extends AbstractToaTest {
-
     @AppHAPolicy(HAPolicy.EventSourcing)
     private static class InaccessableClassApp extends AbstractToaTestApp {
         @AppInjectionPoint
@@ -317,7 +315,7 @@ public class AppCreationAndLifecycleTest extends AbstractToaTest {
 
     @Test
     public void testStringServiceDefinitionValidation() throws Throwable {
-        XRuntime.getProps().setProperty(DefaultServiceDefinitionLocator.PROP_STRICT_SERVICE_VALIDATION, "true");
+        System.setProperty(DefaultServiceDefinitionLocator.PROP_STRICT_SERVICE_VALIDATION, "true");
         try {
             createApp("testStringServiceDefinitionValidation", "standalone", StrictServiceValidationTestApp.class);
             fail("Shouldn't be able to start application with invalid service definition.");

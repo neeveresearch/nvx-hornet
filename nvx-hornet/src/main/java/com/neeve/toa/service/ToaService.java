@@ -40,7 +40,7 @@ import com.neeve.adm.AdmMessage;
 import com.neeve.adm.AdmModel;
 import com.neeve.adm.AdmType;
 import com.neeve.adm.AdmXMLParser;
-import com.neeve.ci.XRuntime;
+import com.neeve.config.Config;
 import com.neeve.root.RootConfig;
 import com.neeve.toa.ToaException;
 import com.neeve.toa.service.jaxb.Service;
@@ -304,7 +304,7 @@ public class ToaService {
             lastModified = new Date(lastModifiedTime);
         }
         Service service = (Service)JAXBContext.newInstance(Service.class).createUnmarshaller().unmarshal(new BufferedInputStream(urlConnection.getInputStream()));
-        ToaService rc = new ToaService(lastModified, service.getNamespace(), service.getName(), XRuntime.getValue(PROP_PREFIX_CHANNEL_NAMES, service.getChannels().isPrefixChannelNames()));
+        ToaService rc = new ToaService(lastModified, service.getNamespace(), service.getName(), Config.getValue(PROP_PREFIX_CHANNEL_NAMES, service.getChannels().isPrefixChannelNames()));
 
         // resolve message models 
         for (Service.Models.Model messageModel : service.getModels().getModel()) {

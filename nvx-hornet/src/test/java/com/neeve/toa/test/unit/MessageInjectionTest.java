@@ -62,10 +62,16 @@ public class MessageInjectionTest extends AbstractToaTest {
 
     @AppHAPolicy(HAPolicy.EventSourcing)
     public static class MessageInjectionTestApp extends AbstractToaTestApp {
+        boolean injectionChaining = false;
 
         @EventHandler
         public void onForwarderMessage1(ForwarderMessage1 message) {
             recordReceipt(message);
+            if (injectionChaining) {
+                ForwarderMessage2 m2 = ForwarderMessage2.create();
+                m2.setIntField(1);
+                getMessageInjector().injectMessage(m2);
+            }
         }
 
         @EventHandler
@@ -399,5 +405,21 @@ public class MessageInjectionTest extends AbstractToaTest {
         assertTrue("App didn't receive injected messages", app.waitForMessages(10, 2));
         assertEquals("Expected ForwarderMessage1 to be the first message", app.received.get(0).getClass(), ForwarderMessage1.class);
         assertEquals("Expected ForwarderMessage2 to be the second message", app.received.get(1).getClass(), ForwarderMessage2.class);
+    }
+
+    @Test
+    public void testInjectionFromEngineThread() throws Throwable {
+        SingleAppToaServer<MessageInjectionTestApp> server = createServer(testcaseName.getMethodName(), "standalone", MessageInjectionTestApp.class);
+        server.start();
+        MessageInjectionTestApp app = server.getApplication();
+        app.injectionChaining = true;
+        ArrayList<IRogMessage> toInject = new ArrayList<IRogMessage>();
+
+        ForwarderMessage1 m1 = ForwarderMessage1.create();
+        m1.setIntField(0);
+        app.getMessageInjector().injectMessage(m1);
+
+        app.waitForMessages(10, 2);
+        assertEquals("Didn't get expected number of injected messages", 2, app.received.size());
     }
 }

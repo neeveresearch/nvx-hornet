@@ -2165,23 +2165,16 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @Override
     final public void injectMessage(IRogMessage message, boolean nonBlocking, final int delay) {
-        if (_engine.getState() == State.Started && _engine.isPrimary()) {
-            if (!_engine.isDispatchThread()) {
-
-                if (!_factoryRegisteredTypesById.containsKey(uniqueMessageId(message.getVfid(), message.getType()))) {
-                    throw new ToaException("Can't inject '" + message.getClass().getName() + "' it was not registered with the application during initialization. This probably means that you don't have an @EventHandler for it in your application.");
-                }
-
-                try {
-                    _engine.injectMessage(message, nonBlocking, delay);
-                }
-                catch (IllegalStateException ise) {
-                    //engine may have been stopped during multiplex...
-                    _tracer.log("Injection of message canceled: " + ise.getMessage(), Tracer.Level.WARNING);
-                }
+        if (_engine.getState() == State.Started) {
+            if (!_factoryRegisteredTypesById.containsKey(uniqueMessageId(message.getVfid(), message.getType()))) {
+                throw new ToaException("Can't inject '" + message.getClass().getName() + "' it was not registered with the application during initialization. This probably means that you don't have an @EventHandler for it in your application.");
             }
-            else {
-                throw new UnsupportedOperationException("Injection of messages from an event handler thread is not currently supported.");
+            try {
+                _engine.injectMessage(message, nonBlocking, delay);
+            }
+            catch (IllegalStateException ise) {
+                //engine may have been stopped during multiplex...
+                _tracer.log("Injection of message canceled: " + ise.getMessage(), Tracer.Level.WARNING);
             }
         }
     }

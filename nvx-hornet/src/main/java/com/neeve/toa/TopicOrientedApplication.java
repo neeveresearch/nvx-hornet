@@ -468,7 +468,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     public static final boolean PROP_DISABLE_COMPAT_CHECK_DEFAULT = false;
 
-    final private static String MINIMUM_TALON_VERSION = "3.11.61";
+    final private static String MINIMUM_TALON_VERSION = "3.15.0";
 
     /**
      * Property used to enabled the delayed ack controller functionality. 
@@ -876,6 +876,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
     private AepEngine.HAPolicy _haPolicy;
     private IStoreBinding.Role _role;
+    private SrvAppLoader _appLoader;
     private AepEngineDescriptor _engineDescriptor;
     private AepEngine _engine;
     private AepMessageSender _aepMessageSender;
@@ -1057,7 +1058,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         }
     }
 
-    final private void configureMessaging(final Set<URL> serviceUrls, final Set<Object> handlerContainers) {
+    final private void configureMessaging(final Set<URL> serviceUrls, final Set<Object> handlerContainers) throws Exception {
         // trace
         _tracer.log(tracePrefix() + "Configuring messaging...", Tracer.Level.CONFIG);
 
@@ -1088,7 +1089,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
         // get the set of handled event classes
         _tracer.log(tracePrefix() + "...parsing handled messages and events...", Tracer.Level.CONFIG);
-        final AepEventDispatcher eventDispatcherPrototype = AepEventDispatcher.create(handlerContainers, null);
+        final AepEventDispatcher eventDispatcherPrototype = AepEventDispatcher.create(handlerContainers, null, _appLoader.getAppStateFactory());
         final HashMap<String, EventHandlerContext> eventHandlersByClass = new HashMap<String, EventHandlerContext>();
         for (Class<?> clazz : eventDispatcherPrototype.getHandledEventClasses()) {
             EventHandlerContext handlerContext = new EventHandlerContext(clazz, eventDispatcherPrototype);
@@ -1116,7 +1117,6 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         final Map<ToaService, Set<ToaServiceChannel>> channelsWithHandlers = new HashMap<ToaService, Set<ToaServiceChannel>>();
         final HashMap<String, ServiceMessageContext> serviceDeclaredMessages = new HashMap<String, ServiceMessageContext>();
         for (ToaService service : services) {
-
             // prepare the message channel map entry for the channel
             for (ToaServiceChannel toaChannel : service.getChannels()) {
                 // if the bus name isn't 
@@ -2460,8 +2460,8 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @AppInjectionPoint
     synchronized final private void setAppLoader(final SrvAppLoader loader) throws Exception {
-        this.configurer = (Configurer)SrvController.getInstance(loader.getServerDescriptor()).getBootstrapConfigurer();
-        onAppLoaderInjected(loader);
+        configurer = (Configurer)SrvController.getInstance(loader.getServerDescriptor()).getBootstrapConfigurer();
+        onAppLoaderInjected(_appLoader = loader);
     }
 
     /**

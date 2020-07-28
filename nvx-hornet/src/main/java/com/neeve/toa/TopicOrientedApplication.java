@@ -1100,11 +1100,23 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         // prepare default channel map
         _tracer.log(tracePrefix() + "...preparing default channel list...", Tracer.Level.CONFIG);
 
-        //Prepare the TopicResolverProviders set:
+        // prepare the TopicResolverProviders set
         final HashSet<TopicResolverProvider> topicResolverProviders = new HashSet<TopicResolverProvider>();
         for (Object o : managedObjects) {
             if (o instanceof TopicResolverProvider) {
                 topicResolverProviders.add((TopicResolverProvider)o);
+            }
+        }
+
+        // prepare the channel-bus map to resolve channel buses
+        final Map<String, List<MessageBusDescriptor>> channelBusMap = new HashMap<String, List<MessageBusDescriptor>>();
+        for (MessageBusDescriptor busDescriptor : MessageBusDescriptor.loadAll(null)) {
+            for (MessageChannelDescriptor channelDescriptor : busDescriptor.getChannels()) {
+                List<MessageBusDescriptor> channelBusDescriptors = channelBusMap.get(channelDescriptor.getName());
+                if (channelBusDescriptors == null) {
+                    channelBusMap.put(channelDescriptor.getName(), channelBusDescriptors = new ArrayList<MessageBusDescriptor>());
+                }
+                channelBusDescriptors.add(busDescriptor);
             }
         }
 
@@ -1119,9 +1131,26 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         for (ToaService service : services) {
             // prepare the message channel map entry for the channel
             for (ToaServiceChannel toaChannel : service.getChannels()) {
-                // if the bus name isn't 
+                // if the bus name isn't specified, then resolve from the bus-channel map.
+                _tracer.log(tracePrefix() + "......resolving bus for the '" + toaChannel.getName() + "' channel...", Tracer.Level.CONFIG);
                 if (toaChannel.getBusName() == null) {
-                    toaChannel.setBusName(_engineName);
+                    List<MessageBusDescriptor> channelBusDescriptors = channelBusMap.get(toaChannel.getName());
+                    if (channelBusDescriptors != null) {
+                        if (channelBusDescriptors.size() > 1) {
+                            throw new IllegalStateException("unable to resolve bus name for channel '" + toaChannel.getName() + "' [channel is not associated with a bus name and there are multiple buses configured with this channel name]");
+                        }
+                        toaChannel.setBusName(channelBusDescriptors.get(0).getName());
+                        _tracer.log(tracePrefix() + ".........resolved to the '" + toaChannel.getBusName() + "' bus [resolved from config]", Tracer.Level.CONFIG);
+                    }
+
+                    // default to engine name as the bus name if not resolved from the bus
+                    if (toaChannel.getBusName() == null) {
+                        toaChannel.setBusName(_engineName);
+                        _tracer.log(tracePrefix() + ".........resolved to the '" + toaChannel.getBusName() + "' bus [defaulted to engine name since not configured in service or config]", Tracer.Level.CONFIG);
+                    }
+                }
+                else {
+                    _tracer.log(tracePrefix() + ".........resolved to the '" + toaChannel.getBusName() + "' bus [bus name explicitly configured in channel in service definition]", Tracer.Level.CONFIG);
                 }
 
                 // add the message to the list of messages to be sent on the channel

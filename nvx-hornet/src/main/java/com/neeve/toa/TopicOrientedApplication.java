@@ -468,8 +468,6 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     public static final boolean PROP_DISABLE_COMPAT_CHECK_DEFAULT = false;
 
-    final private static String MINIMUM_TALON_VERSION = "4.0.0";
-
     /**
      * Property used to enabled the delayed ack controller functionality. 
      * <p>
@@ -481,7 +479,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * <br>
      * <b>Default value:</b> {@value #PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT}
      * <br>
-     * @see #PROP_DISABLE_COMPAT_CHECK_DEFAULT
+     * @see #PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT
      */
     public static final String PROP_ENABLED_DELAYED_ACK_CONTROLLER = "nv.toa.enabledelayedackcontroller";
 
@@ -489,6 +487,31 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * The default value for {@link #PROP_ENABLED_DELAYED_ACK_CONTROLLER} ({@value #PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT}).
      */
     public static final boolean PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT = false;
+
+    /**
+     * Property used to indicate that channel-bus relationships should not be used to resolve a channel's bus
+     * <p>
+     * When true the {@link TopicOrientedApplication} will use bus configuration to resolve a channel's bus 
+     * if a bus has not been explicitly configured for a channel in the service definition. If the channel's 
+     * bus cannot be resolved via the config, then the channel would be assigned a bus with the same name 
+     * as the application's engine. If false, then the bus configuration will <i>not</i> be used to resolve 
+     * a channel's bus i.e. if the bus is not configured explicitly in the service definition, then the channel 
+     * will be associated with a bus of the same name as the application's engine 
+     * <p>
+     * <b>Property name:</b> {@value #PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT}
+     * <br>
+     * @see #PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT
+     */
+    public static final String PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS = "nv.toa.usebusconfigtoresolvechannelbus";
+
+    /**
+     * The default value for {@link #PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS} ({@value #PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT}).
+     */
+    public static final boolean PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT = true;
+
+    final private static String MINIMUM_TALON_VERSION = "4.0.0";
 
     final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
     static {
@@ -871,11 +894,13 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     private final PredispatchMessageHandlerDispatcher predispatchMessageHandlerDispatcher = new PredispatchMessageHandlerDispatcher();
     private final PostdispatchMessageHandlerDispatcher postdispatchMessageHandlerDispatcher = new PostdispatchMessageHandlerDispatcher();
     private final DelayedAckControllerImpl _delayedAckController;
+    private final boolean _useBusConfigToResolveChannelBus = Config.getValue(PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS, PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT);
     private final int defaultInjectionDelay = Config.getValue(PROP_DEFAULT_INJECTION_DELAY, PROP_DEFAULT_INJECTION_DELAY_DEFAULT);
     private final Tracer.Level alertTraceLevel;
 
     private AepEngine.HAPolicy _haPolicy;
     private IStoreBinding.Role _role;
+    private SrvAppLoader _appLoader;
     private AepEngineDescriptor _engineDescriptor;
     private AepEngine _engine;
     private AepMessageSender _aepMessageSender;
@@ -929,6 +954,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             }
         }
 
+        // initialize delayed ack controller
         if (Config.getValue(PROP_ENABLED_DELAYED_ACK_CONTROLLER, PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT)) {
             _delayedAckController = new DelayedAckControllerImpl();
         }
@@ -1057,7 +1083,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         }
     }
 
-    final private void configureMessaging(final Set<URL> serviceUrls, final Set<Object> handlerContainers) {
+    final private void configureMessaging(final Set<URL> serviceUrls, final Set<Object> handlerContainers) throws Exception {
         // trace
         _tracer.log(tracePrefix() + "Configuring messaging...", Tracer.Level.CONFIG);
 
@@ -1088,7 +1114,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
         // get the set of handled event classes
         _tracer.log(tracePrefix() + "...parsing handled messages and events...", Tracer.Level.CONFIG);
-        final AepEventDispatcher eventDispatcherPrototype = AepEventDispatcher.create(handlerContainers, null);
+        final AepEventDispatcher eventDispatcherPrototype = AepEventDispatcher.create(handlerContainers, null, _appLoader.getAppStateFactory());
         final HashMap<String, EventHandlerContext> eventHandlersByClass = new HashMap<String, EventHandlerContext>();
         for (Class<?> clazz : eventDispatcherPrototype.getHandledEventClasses()) {
             EventHandlerContext handlerContext = new EventHandlerContext(clazz, eventDispatcherPrototype);
@@ -1099,11 +1125,23 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         // prepare default channel map
         _tracer.log(tracePrefix() + "...preparing default channel list...", Tracer.Level.CONFIG);
 
-        //Prepare the TopicResolverProviders set:
+        // prepare the TopicResolverProviders set
         final HashSet<TopicResolverProvider> topicResolverProviders = new HashSet<TopicResolverProvider>();
         for (Object o : managedObjects) {
             if (o instanceof TopicResolverProvider) {
                 topicResolverProviders.add((TopicResolverProvider)o);
+            }
+        }
+
+        // prepare the channel-bus map to resolve channel buses
+        final Map<String, List<MessageBusDescriptor>> channelBusMap = new HashMap<String, List<MessageBusDescriptor>>();
+        for (MessageBusDescriptor busDescriptor : MessageBusDescriptor.loadAll(null)) {
+            for (MessageChannelDescriptor channelDescriptor : busDescriptor.getChannels()) {
+                List<MessageBusDescriptor> channelBusDescriptors = channelBusMap.get(channelDescriptor.getName());
+                if (channelBusDescriptors == null) {
+                    channelBusMap.put(channelDescriptor.getName(), channelBusDescriptors = new ArrayList<MessageBusDescriptor>());
+                }
+                channelBusDescriptors.add(busDescriptor);
             }
         }
 
@@ -1116,12 +1154,30 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         final Map<ToaService, Set<ToaServiceChannel>> channelsWithHandlers = new HashMap<ToaService, Set<ToaServiceChannel>>();
         final HashMap<String, ServiceMessageContext> serviceDeclaredMessages = new HashMap<String, ServiceMessageContext>();
         for (ToaService service : services) {
-
             // prepare the message channel map entry for the channel
             for (ToaServiceChannel toaChannel : service.getChannels()) {
-                // if the bus name isn't 
+                // if the bus name isn't specified, then resolve from the bus-channel map.
+                _tracer.log(tracePrefix() + "......resolving bus for the '" + toaChannel.getName() + "' channel (useBusConfigToResolveChannelBus=" + _useBusConfigToResolveChannelBus + ")...", Tracer.Level.CONFIG);
                 if (toaChannel.getBusName() == null) {
-                    toaChannel.setBusName(_engineName);
+                    if (_useBusConfigToResolveChannelBus) {
+                        List<MessageBusDescriptor> channelBusDescriptors = channelBusMap.get(toaChannel.getName());
+                        if (channelBusDescriptors != null) {
+                            if (channelBusDescriptors.size() > 1) {
+                                throw new IllegalStateException("unable to resolve bus name for channel '" + toaChannel.getName() + "' [channel is not associated with a bus name and there are multiple buses configured with this channel name]");
+                            }
+                            toaChannel.setBusName(channelBusDescriptors.get(0).getName());
+                            _tracer.log(tracePrefix() + ".........resolved to the '" + toaChannel.getBusName() + "' bus [resolved from config]", Tracer.Level.CONFIG);
+                        }
+                    }
+
+                    // default to engine name as the bus name if not resolved from the bus
+                    if (toaChannel.getBusName() == null) {
+                        toaChannel.setBusName(_engineName);
+                        _tracer.log(tracePrefix() + ".........resolved to the '" + toaChannel.getBusName() + "' bus [defaulted to engine name since not configured in service or config]", Tracer.Level.CONFIG);
+                    }
+                }
+                else {
+                    _tracer.log(tracePrefix() + ".........resolved to the '" + toaChannel.getBusName() + "' bus [bus name explicitly configured in channel in service definition]", Tracer.Level.CONFIG);
                 }
 
                 // add the message to the list of messages to be sent on the channel
@@ -2460,8 +2516,8 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @AppInjectionPoint
     synchronized final private void setAppLoader(final SrvAppLoader loader) throws Exception {
-        this.configurer = (Configurer)SrvController.getInstance(loader.getServerDescriptor()).getBootstrapConfigurer();
-        onAppLoaderInjected(loader);
+        configurer = (Configurer)SrvController.getInstance(loader.getServerDescriptor()).getBootstrapConfigurer();
+        onAppLoaderInjected(_appLoader = loader);
     }
 
     /**

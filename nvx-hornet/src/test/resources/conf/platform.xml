@@ -29,7 +29,7 @@
           <enableimportcaching>true</enableimportcaching>
         </adm>
         <toa>
-          <trace>info</trace>
+          <trace>config</trace>
           <disablecompatcheck>true</disablecompatcheck>
         </toa>
         <event>

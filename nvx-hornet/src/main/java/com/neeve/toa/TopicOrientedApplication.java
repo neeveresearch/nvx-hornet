@@ -481,7 +481,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * <br>
      * <b>Default value:</b> {@value #PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT}
      * <br>
-     * @see #PROP_DISABLE_COMPAT_CHECK_DEFAULT
+     * @see #PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT
      */
     public static final String PROP_ENABLED_DELAYED_ACK_CONTROLLER = "nv.toa.enabledelayedackcontroller";
 
@@ -489,6 +489,29 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * The default value for {@link #PROP_ENABLED_DELAYED_ACK_CONTROLLER} ({@value #PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT}).
      */
     public static final boolean PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT = false;
+
+    /**
+     * Property used to indicate that channel-bus relationships should not be used to resolve a channel's bus
+     * <p>
+     * When true the {@link TopicOrientedApplication} will use bus configuration to resolve a channel's bus 
+     * if a bus has not been explicitly configured for a channel in the service definition. If the channel's 
+     * bus cannot be resolved via the config, then the channel would be assigned a bus with the same name 
+     * as the application's engine. If false, then the bus configuration will <i>not</i> be used to resolve 
+     * a channel's bus i.e. if the bus is not configured explicitly in the service definition, then the channel 
+     * will be associated with a bus of the same name as the application's engine 
+     * <p>
+     * <b>Property name:</b> {@value #PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS}
+     * <br>
+     * <b>Default value:</b> {@value #PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT}
+     * <br>
+     * @see #PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT
+     */
+    public static final String PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS = "nv.toa.usebusconfigtoresolvechannelbus";
+
+    /**
+     * The default value for {@link #PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS} ({@value #PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT}).
+     */
+    public static final boolean PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT = true;
 
     final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
     static {
@@ -871,6 +894,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     private final PredispatchMessageHandlerDispatcher predispatchMessageHandlerDispatcher = new PredispatchMessageHandlerDispatcher();
     private final PostdispatchMessageHandlerDispatcher postdispatchMessageHandlerDispatcher = new PostdispatchMessageHandlerDispatcher();
     private final DelayedAckControllerImpl _delayedAckController;
+    private final boolean _useBusConfigToResolveChannelBus;
     private final int defaultInjectionDelay = XRuntime.getValue(PROP_DEFAULT_INJECTION_DELAY, PROP_DEFAULT_INJECTION_DELAY_DEFAULT);
     private final Tracer.Level alertTraceLevel;
 
@@ -930,12 +954,16 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             }
         }
 
+        // initialize delayed ack controller
         if (XRuntime.getValue(PROP_ENABLED_DELAYED_ACK_CONTROLLER, PROP_ENABLED_DELAYED_ACK_CONTROLLER_DEFAULT)) {
             _delayedAckController = new DelayedAckControllerImpl();
         }
         else {
             _delayedAckController = null;
         }
+
+        // initialize other config
+        _useBusConfigToResolveChannelBus = XRuntime.getValue(PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS, PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT);
     }
 
     /**
@@ -1132,15 +1160,17 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             // prepare the message channel map entry for the channel
             for (ToaServiceChannel toaChannel : service.getChannels()) {
                 // if the bus name isn't specified, then resolve from the bus-channel map.
-                _tracer.log(tracePrefix() + "......resolving bus for the '" + toaChannel.getName() + "' channel...", Tracer.Level.CONFIG);
+                _tracer.log(tracePrefix() + "......resolving bus for the '" + toaChannel.getName() + "' channel (useBusConfigToResolveChannelBus=" + _useBusConfigToResolveChannelBus + ")...", Tracer.Level.CONFIG);
                 if (toaChannel.getBusName() == null) {
-                    List<MessageBusDescriptor> channelBusDescriptors = channelBusMap.get(toaChannel.getName());
-                    if (channelBusDescriptors != null) {
-                        if (channelBusDescriptors.size() > 1) {
-                            throw new IllegalStateException("unable to resolve bus name for channel '" + toaChannel.getName() + "' [channel is not associated with a bus name and there are multiple buses configured with this channel name]");
+                    if (_useBusConfigToResolveChannelBus) {
+                        List<MessageBusDescriptor> channelBusDescriptors = channelBusMap.get(toaChannel.getName());
+                        if (channelBusDescriptors != null) {
+                            if (channelBusDescriptors.size() > 1) {
+                                throw new IllegalStateException("unable to resolve bus name for channel '" + toaChannel.getName() + "' [channel is not associated with a bus name and there are multiple buses configured with this channel name]");
+                            }
+                            toaChannel.setBusName(channelBusDescriptors.get(0).getName());
+                            _tracer.log(tracePrefix() + ".........resolved to the '" + toaChannel.getBusName() + "' bus [resolved from config]", Tracer.Level.CONFIG);
                         }
-                        toaChannel.setBusName(channelBusDescriptors.get(0).getName());
-                        _tracer.log(tracePrefix() + ".........resolved to the '" + toaChannel.getBusName() + "' bus [resolved from config]", Tracer.Level.CONFIG);
                     }
 
                     // default to engine name as the bus name if not resolved from the bus

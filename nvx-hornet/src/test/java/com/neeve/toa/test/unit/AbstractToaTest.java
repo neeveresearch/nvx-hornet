@@ -27,13 +27,17 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
+import org.junit.BeforeClass;
 import org.junit.After;
 
+import com.neeve.ci.XRuntime;
 import com.neeve.rog.IRogMessage;
 import com.neeve.rog.log.RogLogUtil;
 import com.neeve.rog.log.RogLogUtil.JsonPrettyPrintStyle;
 import com.neeve.server.embedded.EmbeddedXVM;
+import com.neeve.sma.MessageBusDescriptor;
 import com.neeve.test.UnitTest;
 import com.neeve.toa.TopicOrientedApplication;
 
@@ -111,8 +115,14 @@ public abstract class AbstractToaTest extends UnitTest {
 
     protected final HashSet<EmbeddedXVM> servers = new HashSet<EmbeddedXVM>();
 
+    @BeforeClass
+    public static void setup() {
+        XRuntime.getProps().setProperty(TopicOrientedApplication.PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS, "false");
+    }
+
     @After
     public void cleanup() throws Throwable {
+        // shutdown servers
         Throwable error = null;
         for (EmbeddedXVM server : servers) {
             try {
@@ -136,6 +146,11 @@ public abstract class AbstractToaTest extends UnitTest {
 
         if (error != null) {
             throw error;
+        }
+
+        // delete all buses from repository
+        for (MessageBusDescriptor busDescriptor : MessageBusDescriptor.loadAll(null)) {
+            busDescriptor.delete();
         }
     }
 

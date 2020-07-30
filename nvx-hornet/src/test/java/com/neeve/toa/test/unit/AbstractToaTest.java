@@ -121,6 +121,7 @@ public abstract class AbstractToaTest extends UnitTest {
     @Before
     public void saveSystemProperties() throws Exception {
         systemProperties = (Properties)System.getProperties().clone();
+    }
 
     @After
     public void cleanup() throws Throwable {

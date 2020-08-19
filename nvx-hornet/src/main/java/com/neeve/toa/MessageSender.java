@@ -65,12 +65,11 @@ import com.neeve.sma.MessageChannel.RawKeyResolutionTable;
  * @see MessageChannel
  */
 public interface MessageSender {
-
     /**
      * Sends a message using the message's default channel. This method has the same semantics as {@link AepEngine#sendMessage(MessageChannel, IRogMessage)},
      * with the message channel resolved based on this application's service definition for the message type and the provided message.
      * 
-     * @threading This method is not safe for concurrent access by multiple threads with itself or any of the other engine / TOA methods.
+     * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends
      * 
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 
@@ -82,7 +81,7 @@ public interface MessageSender {
      * with the message channel resolved based on this application's service definition for the message type, the provided message, the provided 
      * topic as the channel key, and no key resolution table.
      * 
-     * @threading This method is not safe for concurrent access by multiple threads with itself or any of the other engine / TOA methods.
+     * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends
      * 
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 
@@ -94,7 +93,7 @@ public interface MessageSender {
      * with the message channel resolved based on this application's service definition for the message type, the provided message,
      * key, and the provided message key.
      * 
-     * @threading This method is not safe for concurrent access by multiple threads with itself or any of the other engine / TOA methods.
+     * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends
      * 
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 
@@ -106,7 +105,7 @@ public interface MessageSender {
      * with the message channel resolved based on this application's service definition for the message type, the provided message, the provided 
      * topic as the channel key, and no key resolution table.
      * 
-     * @threading This method is not safe for concurrent access by multiple threads with itself or any of the other engine / TOA methods.
+     * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends
      * 
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 
@@ -118,7 +117,8 @@ public interface MessageSender {
      * with the message channel resolved based on this application's service definition for the message type, the provided message, 
      * and no key resolution table.
      * 
-     * @threading This method is not safe for concurrent access by multiple threads with itself or any of the other engine / TOA methods.
+     * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends and the supplied key resolution table is not 
+     * concurrently modified during this method invocation. 
      * 
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 

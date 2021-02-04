@@ -103,8 +103,8 @@
         <field name="dateArrayField" type="Date[]" doc="Tests date array field" id="29" />
         <field name="charField" type="Char" doc="Tests a char field" id="30" />
         <field name="charArrayField" type="Char[]" doc="Tests a char arrays field" id="31" />
-        <field name="currencyField" type="Currency" doc="Tests a currency field" id="32" />
-        <field name="currencyArrayField" doc="Tests a currency array  field" type="Currency[]" id="33" />
+        <!-- field name="currencyField" type="Currency" doc="Tests a currency field" id="32" />
+        <field name="currencyArrayField" doc="Tests a currency array  field" type="Currency[]" id="33" / -->
         <field name="fixlenField" type="Integer" doc="Tests a fixlength (int) field" id="34" />
         <field name="varlenField" type="String" doc="Tests an variable length field (String) field" id="35" />
     </fields>
@@ -174,8 +174,8 @@
             <fieldRef ref="dateArrayField" />
             <fieldRef ref="charField" />
             <fieldRef ref="charArrayField" />
-            <fieldRef ref="currencyField" />
-            <fieldRef ref="currencyArrayField" />
+            <!-- fieldRef ref="currencyField" />
+            <fieldRef ref="currencyArrayField" / -->
         </entity>
     </entities>
 </model>

@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.neeve</groupId>
         <artifactId>nvx-hornet-parent</artifactId>
-        <version>1.15-SNAPSHOT</version>
+        <version>1.16-SNAPSHOT</version>
     </parent>
 
     <licenses>

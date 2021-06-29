@@ -32,8 +32,8 @@
     </scm>
 
     <properties>
-        <nvx.talon.version>4.0.193</nvx.talon.version>
-        <nvx.talon.minorversion>4.0</nvx.talon.minorversion>
+        <nvx.rumi.version>4.0.319</nvx.rumi.version>
+        <nvx.rumi.minorversion>4.0</nvx.rumi.minorversion>
         <build.version.display>${project.version}</build.version.display>
     </properties>
 
@@ -84,7 +84,7 @@
                     <doctitle><![CDATA[<h1>Hornet ${project.version} API</h1>]]></doctitle>
                     <windowtitle><![CDATA[Hornet ${project.version} API]]></windowtitle>
                     <links>
-                        <link>http://build.neeveresearch.com/talon/javadoc/${nvx.talon.minorversion}/${nvx.talon.version}/</link>
+                        <link>http://build.neeveresearch.com/rumi/javadoc/${nvx.rumi.minorversion}/${nvx.rumi.version}/</link>
                     </links>
                     <groups>
                         <group>
@@ -183,7 +183,7 @@
                             </tag>
                         </tags>
                         <links>
-                            <link>http://build.neeveresearch.com/talon/javadoc/${nvx.talon.minorversion}/${nvx.talon.version}/</link>
+                            <link>http://build.neeveresearch.com/rumi/javadoc/${nvx.rumi.minorversion}/${nvx.rumi.version}/</link>
                         </links>
                     </configuration>
                 </plugin>
@@ -205,12 +205,12 @@
                     <configuration>
                         <properties>
                             <property>
-                                <name>nvx.talon.version</name>
+                                <name>nvx.rumi.version</name>
                                 <version>[4.0.0,4.0.10000]</version>
                                 <dependencies>
                                     <dependency>
                                         <groupId>com.neeve</groupId>
-                                        <artifactId>nvx-talon</artifactId>
+                                        <artifactId>nvx-rumi</artifactId>
                                     </dependency>
                                 </dependencies>
                             </property>
@@ -220,8 +220,8 @@
 
                 <plugin>
                     <groupId>com.neeve</groupId>
-                    <artifactId>nvx-adm-maven-plugin</artifactId>
-                    <version>${nvx.talon.version}</version>
+                    <artifactId>nvx-rumi-adm-maven-plugin</artifactId>
+                    <version>${nvx.rumi.version}</version>
                 </plugin>
 
                 <!-- Skip enforcer plugin (caused problems withe javadoc fork) -->

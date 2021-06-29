@@ -222,7 +222,7 @@ import com.neeve.util.UtlTime;
  * those named in services.
  * <p>
  * <b>Message Factory Registration</b><br>
- * Talon requires that messages being received from a message bus or written to a transaction log have
+ * Rumi requires that messages being received from a message bus or written to a transaction log have
  * their corresponding factories registered with the runtime to allow the message to be deserialized. Hornet
  * will automatically register factories for ADM generated messages that are declared in a service or are
  * discovered in an application exposed message handler. 
@@ -234,12 +234,12 @@ import com.neeve.util.UtlTime;
  * 
  * <p>
  * <h2>Hornet Application Lifecycle</h2>
- * Apps loaded by a Talon server are initialized using annotations on the application's main class. Hornet applications hook into this 
- * lifecycle and handles several of the configuration and startup lifecycle operations that a standard Talon application would normally 
+ * Apps loaded by a Rumi server are initialized using annotations on the application's main class. Hornet applications hook into this 
+ * lifecycle and handles several of the configuration and startup lifecycle operations that a standard Rumi application would normally 
  * implement on its own. This section describes the lifecycle of a Hornet application.
  * <ol>
  * <li> Instantiate the main class which must have a public 0 argument constructor
- * <li> Inspect the main class for Talon app annotations.
+ * <li> Inspect the main class for Rumi app annotations.
  * <li> Inject {@link SrvAppLoader} into a {@link AppInjectionPoint} annotated method to let the application first see the server and its {@link SrvConfigAppDescriptor}.
  * The SrvAppLoader provides the application with the ability to inspect the identity of the server in which it is being launched.
  * <br><i>Note: because TopicOrientedApplication provides this injection point it is illegal for subclasses to implement an {@link AppInjectionPoint} for  {@link SrvAppLoader},
@@ -281,7 +281,7 @@ import com.neeve.util.UtlTime;
  * 
  * <h3>Restrictions on AEP Usage</h3>
  * The {@link TopicOrientedApplication} class reserves usage of several AepEngine features for its own use. For the most part this allows it to implement
- * the lifecycle describer above, and in some cases it allows functionality that extends that supported by Talon. 
+ * the lifecycle describer above, and in some cases it allows functionality that extends that supported by Rumi. 
  * <ol>
  * <li><b>Predispatch Message Handler:</b><br>
  * {@link TopicOrientedApplication} reserves the sole right to set {@link AepEngine#setPredispatchMessageHandler(IAepPredispatchMessageHandler)}.
@@ -305,7 +305,7 @@ import com.neeve.util.UtlTime;
  * <li>{@link AppInitializer}, use {@link #onAppFinalized()}
  * <li>{@link AppFinalizer}, use {@link #onAppFinalized()}
  * <li><b>@{@link AppEventHandlerContainersAccessor}, @{@link AppStatContainersAccessor}, {@link AppConfiguredAccessor} and @{@link AppCommandHandlerContainersAccessor}</b><br>
- * Talon Server applications return objects containing event handlers, stats containers, config injected objects, and command handlers via methods on the application class
+ * Rumi Server applications return objects containing event handlers, stats containers, config injected objects, and command handlers via methods on the application class
  * annotated with these annotations respectively. {@link TopicOrientedApplication} implements the accessors for application event 
  * and command handlers, and instead exposes a single collection point for all objects of interest to the server for introspection
  * via a {@link ManagedObjectLocator}. The default {@link ManagedObjectLocator} retrieves such objects via the methods:
@@ -449,11 +449,11 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     public static final boolean PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION_DEFAULT = true;
 
     /**
-     * Property used to disable the runtime check against compatibility with nvxtalon. 
+     * Property used to disable the runtime check against compatibility with rumi
      * <p>
      * When the Hornet runtime is loaded a compatibility check against 
-     * the version of nvx-talon found on the class path is performed to check for a version of 
-     * nvx-talon that is known to be incompatible with the current Hornet runtime.
+     * the version of nvx-rumi found on the class path is performed to check for a version of 
+     * nvx-rumi that is known to be incompatible with the current Hornet runtime.
      * <p>
      * <b>Property name:</b> {@value #PROP_DISABLE_COMPAT_CHECK}
      * <br>
@@ -511,7 +511,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     public static final boolean PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT = true;
 
-    final private static String MINIMUM_TALON_VERSION = "4.0.0";
+    final private static String MINIMUM_RUMI_VERSION = "4.0.0";
 
     final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
     static {
@@ -728,7 +728,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                 return _engine.getEngineTimeMicros();
             }
             else {
-                return UtlTime.nowSinceEpoch();
+                return UtlTime.now();
             }
         }
 
@@ -964,13 +964,13 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     }
 
     /**
-     * Checks compatibility with Talon
+     * Checks compatibility with Rumi
      */
     private static void runtimeCompatibilityCheck() {
         if (!Config.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT)) {
-            final com.neeve.nvx.talon.Version talonVersion = new com.neeve.nvx.talon.Version();
-            final String[] requiredMinVersionComponents = MINIMUM_TALON_VERSION.split("\\.");
-            final String[] componentVersions = talonVersion.getFullVersion().split("\\.");
+            final com.neeve.nvx.rumi.Version rumiVersion = new com.neeve.nvx.rumi.Version();
+            final String[] requiredMinVersionComponents = MINIMUM_RUMI_VERSION.split("\\.");
+            final String[] componentVersions = rumiVersion.getFullVersion().split("\\.");
             try {
                 for (int i = 0; i < requiredMinVersionComponents.length; i++) {
                     try {
@@ -982,7 +982,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                         }
                         //Fail on older
                         if (available < required) {
-                            throw new ToaException("This version of TopicOrientedApplication requires at least nvx-talon version '" + MINIMUM_TALON_VERSION + "', but '" + talonVersion.getFullVersion() + "' was found.");
+                            throw new ToaException("This version of TopicOrientedApplication requires at least nvx-rumi version '" + MINIMUM_RUMI_VERSION + "', but '" + rumiVersion.getFullVersion() + "' was found.");
                         }
                     }
                     catch (NumberFormatException nfe) {
@@ -990,7 +990,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                         String available = componentVersions.length > i ? componentVersions[i] : "0";
                         int comparison = available.compareTo(required);
                         if (comparison < 0) {
-                            throw new ToaException("This version of TopicOrientedApplication requires at least nvx-talon version '" + MINIMUM_TALON_VERSION + "', but '" + talonVersion.getFullVersion() + "' was found.");
+                            throw new ToaException("This version of TopicOrientedApplication requires at least nvx-rumi version '" + MINIMUM_RUMI_VERSION + "', but '" + rumiVersion.getFullVersion() + "' was found.");
                         }
                         if (comparison > 0) {
                             break;
@@ -1293,7 +1293,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                         }
                     }
 
-                    _messageChannelMap.put(uniqueMessageId, new MessageSendContext(XString.create(toaChannel.getBusName(), true, true), XString.create(toaChannel.getName(), true, true), admMessage.getFullName(), toaChannel, topicResolver));
+                    _messageChannelMap.put(uniqueMessageId, new MessageSendContext(XString.create(toaChannel.getBusName()), XString.create(toaChannel.getName()), admMessage.getFullName(), toaChannel, topicResolver));
                 }
             }
         }
@@ -2055,12 +2055,12 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     /**
      * Returns this application's bootstrap configurer. 
      * <p>
-     * For applications launched from the talon server {@link Main} class this will 
+     * For applications launched from the rumi server {@link Main} class this will 
      * return the external {@link Configurer} for the application. For an embedded
-     * Talon server constructed by user code this will return whatever object the application 
+     * Rumi server constructed by user code this will return whatever object the application 
      * passed to the {@link SrvController#setBootstrapConfigurer(Object)}. 
      * <p>
-     * The talon server injects the Configurer immediately after instantiating the 
+     * The rumi server injects the Configurer immediately after instantiating the 
      * TopicOrientedApplication. 
      * 
      * @return This application's bootstrap configurer. 
@@ -2236,7 +2236,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     }
 
     /**
-     * This method is called by a Talon server to inject the application's
+     * This method is called by a Rumi server to inject the application's
      * {@link AepEngineDescriptor}. 
      * <p>
      * <b>This method should not be called by subclasses or application code.</b>   
@@ -2299,7 +2299,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     protected void onEngineDescriptorInjected(final AepEngineDescriptor engineDescriptor) throws Exception {}
 
     /**
-     * This method is called by a Talon server during application initialization 
+     * This method is called by a Rumi server during application initialization 
      * to solicit the application's event handlers. 
      * <p>
      * <b>This method should not be called by subclasses or application code.</b>  
@@ -2351,7 +2351,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     }
 
     /**
-     * This method is called by a Talon server during application initialization 
+     * This method is called by a Rumi server during application initialization 
      * to solicit the application's command handlers. 
      * <p>
      * <b>This method should not be called by subclasses or application code.</b>  
@@ -2365,7 +2365,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     }
 
     /**
-     * This method is called by a Talon server during application initialization 
+     * This method is called by a Rumi server during application initialization 
      * to solicit the application's user defined stat providers
      * <p>
      * <b>This method should not be called by subclasses or application code.</b>  
@@ -2379,7 +2379,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     }
 
     /**
-     * This method is called by a Talon server during application initialization 
+     * This method is called by a Rumi server during application initialization 
      * to solicit the application's user defined beans that require Configuration.
      * <p>
      * <b>This method should not be called by subclasses or application code.</b>  
@@ -2405,7 +2405,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     protected void onConfigured() throws Exception {}
 
     /**
-     * This method is called by a Talon server during application initialization 
+     * This method is called by a Rumi server during application initialization 
      * to inject the application's {@link AepEngine}.
      * <p>
      * <b>This method should not be called by subclasses or application code.</b>  
@@ -2440,7 +2440,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     }
 
     /**
-     * This method is called by a Talon server during application initialization 
+     * This method is called by a Rumi server during application initialization 
      * to inject the application's {@link AepMessageSender}.
      * <p>
      * <b>This method should not be called by subclasses or application code.</b>  

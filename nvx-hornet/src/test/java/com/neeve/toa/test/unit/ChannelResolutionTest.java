@@ -31,7 +31,7 @@ import java.util.Set;
 
 import org.junit.Test;
 
-import com.neeve.aep.AepBusManager;
+import com.neeve.aep.AepBusConnection;
 import com.neeve.aep.AepMessageSender;
 import com.neeve.aep.AepEngine.HAPolicy;
 import com.neeve.aep.annotations.EventHandler;
@@ -85,7 +85,7 @@ public class ChannelResolutionTest extends AbstractToaTest {
         public TopicResolver<?> getTopicResolver(ToaService service, ToaServiceChannel channel, Class<?> messageClass) {
             if (messageClass == ReceiverMessage1.class) {
                 return new AbstractTopicResolver<ReceiverMessage1>() {
-                    final XString keyBuilder = XString.create(32, true, true);
+                    final XString keyBuilder = XString.create(32, true);
 
                     @Override
                     public XString resolveTopic(ReceiverMessage1 message, RawKeyResolutionTable krt) {
@@ -442,7 +442,7 @@ public class ChannelResolutionTest extends AbstractToaTest {
 
         public void validate() {
             boolean foundBusChannels = false;
-            for (AepBusManager manager : getEngine().getBusManagers()) {
+            for (AepBusConnection manager : getEngine().getBusConnections()) {
                 if (manager.getBusDescriptor().getName().equals(getAepEngine().getName())) {
                     for (MessageChannelDescriptor channel : manager.getBusDescriptor().getChannels()) {
                         if (channel.getChannelQos() != Qos.Guaranteed) {
@@ -477,7 +477,7 @@ public class ChannelResolutionTest extends AbstractToaTest {
 
         public void validate() {
             boolean foundBusChannels = false;
-            for (AepBusManager manager : getEngine().getBusManagers()) {
+            for (AepBusConnection manager : getEngine().getBusConnections()) {
                 if (manager.getBusDescriptor().getName().equals(getAepEngine().getName())) {
                     for (MessageChannelDescriptor channel : manager.getBusDescriptor().getChannels()) {
                         if (channel.getChannelQos() != Qos.BestEffort) {
@@ -850,7 +850,7 @@ public class ChannelResolutionTest extends AbstractToaTest {
         // receiver only receives on Receiver/2 and Receiver/4
         // if dynamic key resolution kicks in then we'll only get 
         // 2 messages.
-        XString staticTopic = XString.create("Receiver1/2", true, true);
+        XString staticTopic = XString.create("Receiver1/2");
         for (int i = 1; i <= 4; i++) {
             ReceiverMessage1 m = ReceiverMessage1.create();
             m.setIntField(i);
@@ -1080,7 +1080,7 @@ public class ChannelResolutionTest extends AbstractToaTest {
 
         // send a message on UnmappedChannel which has no message mapped to it.
         MessageChannel unmappedChannel = null;
-        for (AepBusManager busManager : sender.getAepEngine().getBusManagers()) {
+        for (AepBusConnection busManager : sender.getAepEngine().getBusConnections()) {
             if (!busManager.getBusBinding().getName().equals("testChannelJoinProviderDefaultSender")) {
                 continue;
             }

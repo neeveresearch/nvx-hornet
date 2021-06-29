@@ -41,7 +41,7 @@ import com.neeve.util.UtlStr;
 import com.neeve.util.UtlTailoring.PropertySource;
 
 /**
- * Wraps an embedded Talon server for a single {@link TopicOrientedApplication}. 
+ * Wraps an embedded Rumi server for a single {@link TopicOrientedApplication}. 
  * <p>
  * The server uses loopback for both discovery and messaging. The server is
  * not created until start is called which narrows the window for multiple

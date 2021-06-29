@@ -29,7 +29,7 @@ import com.neeve.server.app.annotations.AppCommandHandler;
 /**
  * Provider interface for locating a Topic Oriented Application's 'managed' objects. 
  * <p>
- * A 'managed' object is one that is of interest to the Talon server or TopicOrientedApplication
+ * A 'managed' object is one that is of interest to the Rumi server or TopicOrientedApplication
  * for introspection (e.g @{@link EventHandler} or @{@link AppCommandHandler} annotated
  * methods.)
  * <p>

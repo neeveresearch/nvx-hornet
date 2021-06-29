@@ -44,7 +44,7 @@ public abstract class AbstractTopicResolver<T extends MessageView> implements To
      */
     @Override
     public void initialize(final ToaServiceChannel serviceChannel) {
-        this.channelKey = XString.create(serviceChannel.getInitiallyResolvedKey(), true, true);
+        this.channelKey = XString.create(serviceChannel.getInitiallyResolvedKey());
     }
 
 }

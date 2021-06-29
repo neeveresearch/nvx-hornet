@@ -32,15 +32,15 @@ import com.neeve.aep.annotations.EventHandler;
 import com.neeve.server.app.annotations.AppCommandHandler;
 
 /**
- * The {@link Managed} qualifier indicates an object is of interest to the Talon Server runtime for fulfilling application functionality.  
+ * The {@link Managed} qualifier indicates an object is of interest to the Rumi Server runtime for fulfilling application functionality.  
  * 
  * <h2>Managed Objects</h2>
- * <p>A Talon Application provides certain objects such as Event Handler Containers to the Talon Server. These objects will then by 
- * used by the Talon Server; for example, Event Handler Containers will have their {@link EventHandler} methods invoked each time the 
- * Talon Server receives a message from a messaging bus. These objects that are made available to the Talon Server and will be primarily
- * invoked by the Talon Server are called <strong>Managed Objects</strong>.</p>
+ * <p>A Rumi Application provides certain objects such as Event Handler Containers to the Rumi Server. These objects will then by 
+ * used by the Rumi Server; for example, Event Handler Containers will have their {@link EventHandler} methods invoked each time the 
+ * Rumi Server receives a message from a messaging bus. These objects that are made available to the Rumi Server and will be primarily
+ * invoked by the Rumi Server are called <strong>Managed Objects</strong>.</p>
  * 
- * <p>There are a couple of different types of Managed Objects that may be made available to the Talon Server for introspect. They include:</p>
+ * <p>There are a couple of different types of Managed Objects that may be made available to the Rumi Server for introspect. They include:</p>
  * 
  * <ul>
  *   <li><p><strong>Event Handler Containers:</strong> Objects that have annotated {@link EventHandler} methods.</p></li>

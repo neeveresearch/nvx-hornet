@@ -267,8 +267,8 @@ public class ManagedObjectLocatorTest extends AbstractToaTest {
     @Test
     public final void testUserCounterStatInContainer() throws Throwable {
         Map<String, String> config = new HashMap<String, String>();
-        config.put("nv.server.stats.enable", "true");
-        config.put("nv.server.stats.interval", "1000");
+        config.put("x.xvms.testUserCounterStatInContainer-standalone.heartbeats.enabled", "true");
+        config.put("x.xvms.testUserCounterStatInContainer-standalone.heartbeats.interval", "1");
         TestUserStatContainerApp testApp = createApp("testUserCounterStatInContainer", "standalone", TestUserStatContainerApp.class, config);
 
         Thread.sleep(10000);

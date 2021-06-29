@@ -39,8 +39,8 @@ import com.neeve.toa.TopicOrientedApplication;
 /**
  * The {@link AbstractHK2TopicOrientedApplication} is the base class for TOA Applications that want to leverage the 
  * <a href="https://hk2.java.net/">HK2 Dependency Injection Framework</a>. HK2 provides a light-weight but powerful dependency injection
- * mechanism. The {@link AbstractHK2TopicOrientedApplication} integrates HK2 with Talon Application Server and the Hornet Application 
- * Framework so that HK2 can be used to discover {@link Managed Talon Managed Objects} and Hornet Applications gain access to a 
+ * mechanism. The {@link AbstractHK2TopicOrientedApplication} integrates HK2 with Rumi Application Server and the Hornet Application 
+ * Framework so that HK2 can be used to discover {@link Managed Rumi Managed Objects} and Hornet Applications gain access to a 
  * {@link #getApplicationServiceLocator() Application ServiceLocator}. Hornet Applications that want to leverage HK2 must extend this
  * class and not {@link TopicOrientedApplication}.
  * 
@@ -122,7 +122,7 @@ public abstract class AbstractHK2TopicOrientedApplication extends TopicOrientedA
 
     /**
      * Get the Application Name. The <strong>Application Name</strong> is a short, human-readable string that uniquely identifies an
-     * Application in the Talon Server. Note that the name must be unique; two Applications running in the same Talon Server must not
+     * Application in the Rumi Server. Note that the name must be unique; two Applications running in the same Rumi Server must not
      * have the same Application Name. The Application Name will be used to construct a unique {@link #getApplicationServiceLocator() ServiceLocator}
      * for the Application. The Application Name will be made available to components and services and can also be used to support qualified
      * injection. The Application Name must not be <code>null</code> and must not be an empty string or a string that contains only whitespace.

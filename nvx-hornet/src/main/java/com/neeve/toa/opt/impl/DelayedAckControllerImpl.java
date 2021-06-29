@@ -256,7 +256,7 @@ public class DelayedAckControllerImpl implements DelayedAcknowledgmentController
         delayedAckBusDescriptor.save();
 
         engineDescriptor.addBus(delayedAckExecutorBusName);
-        engineDescriptor.setBusManagerProperty(delayedAckExecutorBusName, "detachedCommit", "false");
+        engineDescriptor.setBusConnectionProperty(delayedAckExecutorBusName, "detachedCommit", "false");
         engineDescriptor.addChannel(delayedAckExecutorBusName, delayedAckExecutorChannelName, ChannelConfig.from("join=false"));
 
         // create the delayed acknowler pool

@@ -32,7 +32,7 @@
     </scm>
 
     <properties>
-        <nvx.rumi.version>4.0.319</nvx.rumi.version>
+        <nvx.rumi.version>4.0.320</nvx.rumi.version>
         <nvx.rumi.minorversion>4.0</nvx.rumi.minorversion>
         <build.version.display>${project.version}</build.version.display>
     </properties>

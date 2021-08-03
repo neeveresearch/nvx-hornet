@@ -513,7 +513,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
     final private static String MINIMUM_RUMI_VERSION = "4.0.0";
 
-    final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
+    final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.getObjectConfig("nv.toa"));
     static {
         ProductInfo productInfo = ManifestProductInfo.loadProductInfo("nvx-hornet");
         _tracer.log("Loaded X Topic Oriented Application Runtime (" + productInfo.getComponentVersionString() + ")", Tracer.Level.INFO);

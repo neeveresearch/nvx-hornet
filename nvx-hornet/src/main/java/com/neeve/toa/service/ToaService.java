@@ -113,7 +113,7 @@ public class ToaService {
      */
     public static final String PROP_PREFIX_CHANNEL_NAMES = "nv.toa.prefixchannelnames";
 
-    final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
+    final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.getObjectConfig("nv.toa"));
     private final String name;
     private final String namespace;
     private final Date lastModified;

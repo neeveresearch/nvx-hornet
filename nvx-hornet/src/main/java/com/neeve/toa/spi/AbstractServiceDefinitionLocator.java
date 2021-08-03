@@ -41,7 +41,7 @@ import com.neeve.trace.Tracer;
  * A base class for {@link ServiceDefinitionLocator}s. 
  */
 public abstract class AbstractServiceDefinitionLocator implements ServiceDefinitionLocator {
-    final protected static Tracer tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
+    final protected static Tracer tracer = RootConfig.ObjectConfig.createTracer(RootConfig.getObjectConfig("nv.toa"));
     final private static Schema SERVICE_SCHEMA;
 
     static {

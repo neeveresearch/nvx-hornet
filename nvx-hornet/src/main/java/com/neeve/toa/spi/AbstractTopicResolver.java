@@ -35,7 +35,7 @@ import com.neeve.trace.Tracer;
  * <i><b>Note</b>Topic Resolvers are currently an experimental feature</i>
  */
 public abstract class AbstractTopicResolver<T extends MessageView> implements TopicResolver<T> {
-    final protected static Tracer tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
+    final protected static Tracer tracer = RootConfig.ObjectConfig.createTracer(RootConfig.getObjectConfig("nv.toa"));
     protected ToaServiceChannel channel;
     protected XString channelKey;
 

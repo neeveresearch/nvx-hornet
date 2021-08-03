@@ -31,5 +31,5 @@ import com.neeve.trace.Tracer;
  * api future proofing. 
  */
 public abstract class AbstractManagedObjectLocator implements ManagedObjectLocator {
-    final protected static Tracer tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
+    final protected static Tracer tracer = RootConfig.ObjectConfig.createTracer(RootConfig.getObjectConfig("nv.toa"));
 }

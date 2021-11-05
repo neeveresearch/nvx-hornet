@@ -657,7 +657,7 @@ public class ToaMessagingTest extends AbstractToaTest {
         assertEquals("Unexpected triggeringMessageMessageFlowId", 0, backingMessage.getTriggeringMessageMessageFlowId());
         assertEquals("Unexpected triggeringMessageMessageSenderId", message.getMetadata().getMessageSender(), backingMessage.getTriggeringMessageMessageSenderId());
         assertEquals("Unexpected triggeringMessageMessageSno", 0, backingMessage.getTriggeringMessageMessageSno());
-        assertEquals("Unexpected triggeringMessageMessageViewId", message.getType(), backingMessage.getTriggeringMessageMessageViewId());
+        assertEquals("Unexpected triggeringMessageMessageViewId", message.getMessageType(), backingMessage.getTriggeringMessageMessageViewId());
     }
 
     /**

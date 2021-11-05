@@ -836,7 +836,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         public void onMessagingPrestart(AepMessagingPrestartEvent event) {
 
             final MessageView firstMessage = event.getFirstMessage();
-            if (firstMessage != null && !_factoryRegisteredTypesById.containsKey(uniqueMessageId(firstMessage.getVfid(), firstMessage.getType()))) {
+            if (firstMessage != null && !_factoryRegisteredTypesById.containsKey(uniqueMessageId(firstMessage.getVfid(), firstMessage.getMessageType()))) {
                 //Schedule engine stop before the first message can be processed.
                 _engine.stop(new ToaException("Can't use '" + firstMessage.getClass().getName() + "' as a first message it was not registered with the application during initialization. This probably means that you don't have an @EventHandler for it in your application."));
                 return;
@@ -846,7 +846,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
             for (int i = 0; i < initialMessages.size(); i++) {
                 MessageView initialMessage = initialMessages.get(i);
-                if (!_factoryRegisteredTypesById.containsKey(uniqueMessageId(initialMessage.getVfid(), initialMessage.getType()))) {
+                if (!_factoryRegisteredTypesById.containsKey(uniqueMessageId(initialMessage.getVfid(), initialMessage.getMessageType()))) {
                     //Schedule engine stop before the initial message can be processed.
                     _engine.stop(new ToaException("Can't use '" + initialMessage.getClass().getName() + "' as an initial message it was not registered with the application during initialization. This probably means that you don't have an @EventHandler for it in your application."));
                     return;
@@ -1014,8 +1014,8 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                                    final Properties keyResolutionTable,
                                    final XString rawTopic,
                                    final RawKeyResolutionTable rawKeyResolutionTable) {
-        final long uniqueMessageId = uniqueMessageId(message.getVfid(), message.getType());
-        if (_tracer.debug) _tracer.log(tracePrefix() + "Sending message '" + message.getClass().getSimpleName() + "' <id=" + uniqueMessageId + "'(vfid=" + message.getVfid() + ", id=" + message.getType() + ")>...", Tracer.Level.DEBUG);
+        final long uniqueMessageId = uniqueMessageId(message.getVfid(), message.getMessageType());
+        if (_tracer.debug) _tracer.log(tracePrefix() + "Sending message '" + message.getClass().getSimpleName() + "' <id=" + uniqueMessageId + "'(vfid=" + message.getVfid() + ", id=" + message.getMessageType() + ")>...", Tracer.Level.DEBUG);
         final MessageSendContext sendContext = _messageChannelMap.get(uniqueMessageId);
         if (sendContext != null) {
             if (sendContext.channel != null || (_haPolicy == AepEngine.HAPolicy.EventSourcing && _role != IStoreBinding.Role.Primary)) { // role == null i.e. initializing is also covered by role != Primary
@@ -2222,7 +2222,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     @Override
     final public void injectMessage(IRogMessage message, boolean nonBlocking, final int delay) {
         if (_engine.getState() == State.Started) {
-            if (!_factoryRegisteredTypesById.containsKey(uniqueMessageId(message.getVfid(), message.getType()))) {
+            if (!_factoryRegisteredTypesById.containsKey(uniqueMessageId(message.getVfid(), message.getMessageType()))) {
                 throw new ToaException("Can't inject '" + message.getClass().getName() + "' it was not registered with the application during initialization. This probably means that you don't have an @EventHandler for it in your application.");
             }
             try {

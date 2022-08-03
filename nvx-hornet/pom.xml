@@ -65,6 +65,13 @@
                 <groupId>com.neeve</groupId>
                 <artifactId>nvx-rumi-adm-maven-plugin</artifactId>
                 <version>${nvx.rumi.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.neeve</groupId>
+                        <artifactId>nvx-rumi</artifactId>
+                        <version>${nvx.rumi.version}</version>
+                    </dependency>
+                </dependencies>
                 <executions>
                     <execution>
                         <id>generate-hornet-messages</id>

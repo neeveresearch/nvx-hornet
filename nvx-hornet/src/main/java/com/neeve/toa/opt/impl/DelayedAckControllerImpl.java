@@ -54,7 +54,7 @@ import com.neeve.util.UtlReferenceTracker;
  * Delayed AcknowledgmentController implementation.
  */
 public class DelayedAckControllerImpl implements DelayedAcknowledgmentController {
-    private static final Tracer tracer = Tracer.create("nv.toa.delayedack", Level.INFO);
+    private static final Tracer tracer = Tracer.get("nv.toa.delayedack");
 
     private static enum State {
         /**

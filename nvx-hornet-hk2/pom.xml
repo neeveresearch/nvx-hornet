@@ -54,7 +54,7 @@
         <dependency>
             <groupId>org.glassfish.hk2</groupId>
             <artifactId>hk2-locator</artifactId>
-            <version>2.4.0-b16</version>
+            <version>2.4.0</version>
         </dependency>
     </dependencies>
 

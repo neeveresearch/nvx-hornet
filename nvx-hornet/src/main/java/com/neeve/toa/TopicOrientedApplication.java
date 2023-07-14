@@ -2253,6 +2253,9 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             throw new IllegalStateException("Subclass changed engine name from '" + _engineName + "' to '" + engineDescriptor.getName() + "'!");
         }
 
+        // disable type based routing
+        _engineDescriptor.setEnableTypeBasedRouting(false);
+
         // check that AppHAPolicy annotation is present if configured for clustering.
         if (_engineDescriptor.getStore() != null) {
             if (getClass().getAnnotation(AppHAPolicy.class) == null) {

@@ -114,6 +114,7 @@ import com.neeve.toa.spi.ServiceDefinitionLocator;
 import com.neeve.toa.spi.TopicResolver;
 import com.neeve.toa.spi.TopicResolverProvider;
 import com.neeve.trace.Tracer;
+import com.neeve.trace.TracerRegistry;
 import com.neeve.trace.Tracer.Level;
 import com.neeve.util.UtlTailoring;
 import com.neeve.util.UtlThrowable;
@@ -518,6 +519,16 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         ProductInfo productInfo = ManifestProductInfo.loadProductInfo("nvx-hornet");
         _tracer.log("Loaded X Topic Oriented Application Runtime (" + productInfo.getComponentVersionString() + ")", Tracer.Level.INFO);
         runtimeCompatibilityCheck();
+
+        /*
+         * Flush cached information in root config (checked, etc) and tracer 
+         * registry. After the flush, the updated value of checked will take 
+         * effect, tracers created prior to this point are not searchable 
+         * and so new tracers will be created with updated settings such as 
+         * whether to use SLF4J and default trace level. 
+         */
+        RootConfig.flushConfig();
+        TracerRegistry.getInstance().clear();
     }
 
     final private class MessageSendContext {

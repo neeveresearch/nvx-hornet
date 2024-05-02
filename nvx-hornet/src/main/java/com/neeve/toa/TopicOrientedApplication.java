@@ -982,8 +982,9 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     private static void runtimeCompatibilityCheck() {
         final com.neeve.nvx.talon.Version talonVersion = new com.neeve.nvx.talon.Version();
-        _tracer.log("Talon version is " + talonVersion.getFullVersion(), Tracer.Level.INFO);
-        if (!XRuntime.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT)) {
+        final boolean disableCompabilityCheck = XRuntime.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT);
+        _tracer.log("Talon version is " + talonVersion.getFullVersion() + " (compatibility check is " + (disableCompabilityCheck ? "off" : "on") + ")", Tracer.Level.INFO);
+        if (!disableCompabilityCheck) {
             final String[] requiredMinVersionComponents = MINIMUM_TALON_VERSION.split("\\.");
             final String[] componentVersions = talonVersion.getFullVersion().split("\\.");
             try {
@@ -1016,9 +1017,6 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             catch (Throwable thrown) {
                 throw new ToaException("Core X runtime compatibility check failed.", thrown);
             }
-        }
-        else {
-            _tracer.log("Talon compatibility check is off", Tracer.Level.INFO);
         }
     }
 

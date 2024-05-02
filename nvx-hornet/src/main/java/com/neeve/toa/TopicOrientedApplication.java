@@ -967,8 +967,10 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * Checks compatibility with Rumi
      */
     private static void runtimeCompatibilityCheck() {
-        if (!Config.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT)) {
-            final com.neeve.nvx.rumi.Version rumiVersion = new com.neeve.nvx.rumi.Version();
+        final com.neeve.nvx.rumi.Version rumiVersion = new com.neeve.nvx.rumi.Version();
+        final boolean disableCompatilbilityCheck = Config.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT);
+        _tracer.log("Rumi version is " + rumiVersion.getFullVersion() + " (compability check is " + (disableCompatilbilityCheck ? "off" : "on") + ")", Tracer.Level.INFO);
+        if (!disableCompatilbilityCheck) {
             final String[] requiredMinVersionComponents = MINIMUM_RUMI_VERSION.split("\\.");
             final String[] componentVersions = rumiVersion.getFullVersion().split("\\.");
             try {

@@ -52,6 +52,7 @@
         <enablecpuaffinitymasks>false</enablecpuaffinitymasks>
         <defaultcpuaffinitymask>0</defaultcpuaffinitymask>
         <reftracking.types></reftracking.types>
+        <trace.useslf4j>true</trace.useslf4j>
       </nv>
     </env>
      

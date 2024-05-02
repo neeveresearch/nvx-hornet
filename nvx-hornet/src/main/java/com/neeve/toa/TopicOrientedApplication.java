@@ -1098,10 +1098,10 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
     final private void configureMessaging(final Set<URL> serviceUrls, final Set<Object> handlerContainers) throws Exception {
         // trace
-        _tracer.log(tracePrefix() + "Configuring messaging...", Tracer.Level.CONFIG);
+        _tracer.log(tracePrefix() + "Configuring messaging...", Tracer.Level.VERBOSE);
 
         // get services
-        _tracer.log(tracePrefix() + "...parsing services (count=" + serviceUrls.size() + ").", Tracer.Level.CONFIG);
+        _tracer.log(tracePrefix() + "...parsing services (count=" + serviceUrls.size() + ").", Tracer.Level.VERBOSE);
         final Map<ToaService, ToaServiceChannel> defaultChannels = new HashMap<ToaService, ToaServiceChannel>();
         for (URL url : serviceUrls) {
             if (url == null) {
@@ -1109,13 +1109,13 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             }
 
             try {
-                _tracer.log(tracePrefix() + "......loading '" + url + "'.", Tracer.Level.CONFIG);
+                _tracer.log(tracePrefix() + "......loading '" + url + "'.", Tracer.Level.VERBOSE);
                 final ToaService service = ToaService.unmarshal(url);
                 if (!services.add(service)) {
-                    _tracer.log(tracePrefix() + ".........ignore duplicate service '" + service.getName() + "' from " + url, Tracer.Level.CONFIG);
+                    _tracer.log(tracePrefix() + ".........ignore duplicate service '" + service.getName() + "' from " + url, Tracer.Level.VERBOSE);
                 }
                 else {
-                    _tracer.log(tracePrefix() + ".........loaded service '" + service.getName() + "'.", Tracer.Level.CONFIG);
+                    _tracer.log(tracePrefix() + ".........loaded service '" + service.getName() + "'.", Tracer.Level.VERBOSE);
                 }
 
                 defaultChannels.put(service, service.getDefaultChannel());
@@ -1126,17 +1126,17 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         }
 
         // get the set of handled event classes
-        _tracer.log(tracePrefix() + "...parsing handled messages and events...", Tracer.Level.CONFIG);
+        _tracer.log(tracePrefix() + "...parsing handled messages and events...", Tracer.Level.VERBOSE);
         final AepEventDispatcher eventDispatcherPrototype = AepEventDispatcher.create(handlerContainers, null, _appLoader.getAppStateFactory());
         final HashMap<String, EventHandlerContext> eventHandlersByClass = new HashMap<String, EventHandlerContext>();
         for (Class<?> clazz : eventDispatcherPrototype.getHandledEventClasses()) {
             EventHandlerContext handlerContext = new EventHandlerContext(clazz, eventDispatcherPrototype);
             eventHandlersByClass.put(clazz.getName(), handlerContext);
-            _tracer.log(tracePrefix() + "......'" + clazz.getName() + "'.", Tracer.Level.CONFIG);
+            _tracer.log(tracePrefix() + "......'" + clazz.getName() + "'.", Tracer.Level.VERBOSE);
         }
 
         // prepare default channel map
-        _tracer.log(tracePrefix() + "...preparing default channel list...", Tracer.Level.CONFIG);
+        _tracer.log(tracePrefix() + "...preparing default channel list...", Tracer.Level.VERBOSE);
 
         // prepare the TopicResolverProviders set
         final HashSet<TopicResolverProvider> topicResolverProviders = new HashSet<TopicResolverProvider>();
@@ -1159,7 +1159,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         }
 
         // prepare map that contains the channels to join and the map containing the messages to send for each channel
-        _tracer.log(tracePrefix() + "...preparing join channel list and message channel map...", Tracer.Level.CONFIG);
+        _tracer.log(tracePrefix() + "...preparing join channel list and message channel map...", Tracer.Level.VERBOSE);
         final boolean genericHandlerJoinsAll = Config.getValue(PROP_GENERIC_HANDLER_JOINS_ALL, PROP_GENERIC_HANDLER_JOINS_ALL_DEFAULT);
         final boolean ignoreUnmappedChannels = Config.getValue(PROP_IGNORE_UNMAPPED_CHANNELS, PROP_IGNORE_UNMAPPED_CHANNELS_DEFAULT);
         final EventHandlerContext genericMessageViewHandler = eventHandlersByClass.get(MessageView.class.getName());
@@ -1170,7 +1170,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             // prepare the message channel map entry for the channel
             for (ToaServiceChannel toaChannel : service.getChannels()) {
                 // if the bus name isn't specified, then resolve from the bus-channel map.
-                _tracer.log(tracePrefix() + "......resolving bus for the '" + toaChannel.getName() + "' channel (useBusConfigToResolveChannelBus=" + _useBusConfigToResolveChannelBus + ")...", Tracer.Level.CONFIG);
+                _tracer.log(tracePrefix() + "......resolving bus for the '" + toaChannel.getName() + "' channel (useBusConfigToResolveChannelBus=" + _useBusConfigToResolveChannelBus + ")...", Tracer.Level.VERBOSE);
                 if (toaChannel.getBusName() == null) {
                     if (_useBusConfigToResolveChannelBus) {
                         List<MessageBusDescriptor> channelBusDescriptors = channelBusMap.get(toaChannel.getName());
@@ -1179,18 +1179,18 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                                 throw new IllegalStateException("unable to resolve bus name for channel '" + toaChannel.getName() + "' [channel is not associated with a bus name and there are multiple buses configured with this channel name]");
                             }
                             toaChannel.setBusName(channelBusDescriptors.get(0).getName());
-                            _tracer.log(tracePrefix() + ".........resolved to the '" + toaChannel.getBusName() + "' bus [resolved from config]", Tracer.Level.CONFIG);
+                            _tracer.log(tracePrefix() + ".........resolved to the '" + toaChannel.getBusName() + "' bus [resolved from config]", Tracer.Level.VERBOSE);
                         }
                     }
 
                     // default to engine name as the bus name if not resolved from the bus
                     if (toaChannel.getBusName() == null) {
                         toaChannel.setBusName(_engineName);
-                        _tracer.log(tracePrefix() + ".........resolved to the '" + toaChannel.getBusName() + "' bus [defaulted to engine name since not configured in service or config]", Tracer.Level.CONFIG);
+                        _tracer.log(tracePrefix() + ".........resolved to the '" + toaChannel.getBusName() + "' bus [defaulted to engine name since not configured in service or config]", Tracer.Level.VERBOSE);
                     }
                 }
                 else {
-                    _tracer.log(tracePrefix() + ".........resolved to the '" + toaChannel.getBusName() + "' bus [bus name explicitly configured in channel in service definition]", Tracer.Level.CONFIG);
+                    _tracer.log(tracePrefix() + ".........resolved to the '" + toaChannel.getBusName() + "' bus [bus name explicitly configured in channel in service definition]", Tracer.Level.VERBOSE);
                 }
 
                 // add the message to the list of messages to be sent on the channel
@@ -1204,7 +1204,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             for (ToaServiceToRole to : service.getToRoles()) {
                 for (AdmMessage admMessage : to.getMessages()) {
                     // trace
-                    _tracer.log(tracePrefix() + "......message '" + admMessage.getName() + "'...", Tracer.Level.CONFIG);
+                    _tracer.log(tracePrefix() + "......message '" + admMessage.getName() + "'...", Tracer.Level.VERBOSE);
                     ServiceMessageContext messageContext = serviceDeclaredMessages.get(admMessage.getFullName());
                     if (messageContext == null) {
                         messageContext = new ServiceMessageContext(admMessage);
@@ -1215,7 +1215,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
                     // find message's channel
                     final ToaServiceChannel toaChannel = to.getChannel(admMessage.getFullName());
-                    _tracer.log(tracePrefix() + ".........<channel='" + toaChannel.getName() + "', id=" + uniqueMessageId + "(vfid=" + admMessage.getFactory().calcFactoryId() + ", id=" + admMessage.getId() + ")>.", Tracer.Level.CONFIG);
+                    _tracer.log(tracePrefix() + ".........<channel='" + toaChannel.getName() + "', id=" + uniqueMessageId + "(vfid=" + admMessage.getFactory().calcFactoryId() + ", id=" + admMessage.getId() + ")>.", Tracer.Level.VERBOSE);
 
                     // fail if interface based handlers are detected:
                     String interfaceName = admMessage.getNamespace() + ".I" + admMessage.getJavaTypeName();
@@ -1312,26 +1312,26 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         }
 
         // trace channel mappings established...
-        if (_tracer.getLevel().val <= Tracer.Level.CONFIG.val) {
-            _tracer.log(tracePrefix() + "......messages channel mappings...", Tracer.Level.CONFIG);
+        if (_tracer.getLevel().val <= Tracer.Level.VERBOSE.val) {
+            _tracer.log(tracePrefix() + "......messages channel mappings...", Tracer.Level.VERBOSE);
             for (MessageSendContext sendContext : _messageChannelMap.values()) {
-                _tracer.log(tracePrefix() + ".........message '" + sendContext.messageType + "' -> " + sendContext.channelName + "@" + sendContext.busName + "(from service '" + sendContext.serviceChannel.getService().getName() + "')", Tracer.Level.CONFIG);
+                _tracer.log(tracePrefix() + ".........message '" + sendContext.messageType + "' -> " + sendContext.channelName + "@" + sendContext.busName + "(from service '" + sendContext.serviceChannel.getService().getName() + "')", Tracer.Level.VERBOSE);
             }
         }
 
         // trace handlers found...
-        if (_tracer.getLevel().val <= Tracer.Level.CONFIG.val) {
-            _tracer.log(tracePrefix() + "......channels with handlers...", Tracer.Level.CONFIG);
+        if (_tracer.getLevel().val <= Tracer.Level.VERBOSE.val) {
+            _tracer.log(tracePrefix() + "......channels with handlers...", Tracer.Level.VERBOSE);
             for (ToaService service : channelsWithHandlers.keySet()) {
-                _tracer.log(tracePrefix() + ".........service '" + service.getName() + "'...", Tracer.Level.CONFIG);
+                _tracer.log(tracePrefix() + ".........service '" + service.getName() + "'...", Tracer.Level.VERBOSE);
                 Set<ToaServiceChannel> serviceChannelsWithHandlers = channelsWithHandlers.get(service);
                 if (serviceChannelsWithHandlers.size() > 0) {
                     for (ToaServiceChannel channel : serviceChannelsWithHandlers) {
-                        _tracer.log(tracePrefix() + "............'" + channel.getName() + "'.", Tracer.Level.CONFIG);
+                        _tracer.log(tracePrefix() + "............'" + channel.getName() + "'.", Tracer.Level.VERBOSE);
                     }
                 }
                 else {
-                    _tracer.log(tracePrefix() + "............<no channels with handlers>.", Tracer.Level.CONFIG);
+                    _tracer.log(tracePrefix() + "............<no channels with handlers>.", Tracer.Level.VERBOSE);
                 }
             }
         }
@@ -1373,22 +1373,22 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         final HashMap<String, ToaService> channelNameToServiceMap = new HashMap<String, ToaService>();
         try {
             for (String busName : _channelMessageMapByBus.keySet()) {
-                _tracer.log(tracePrefix() + "...adding channels to bus descriptor '" + busName + "'...", Tracer.Level.CONFIG);
+                _tracer.log(tracePrefix() + "...adding channels to bus descriptor '" + busName + "'...", Tracer.Level.VERBOSE);
                 final MessageBusDescriptor busDescriptor = MessageBusDescriptor.load(busName);
                 Map<String, List<Long>> channelMessageMap = _channelMessageMapByBus.get(busName);
                 for (ToaService service : services) {
                     for (ToaServiceChannel channel : service.getChannels()) {
-                        _tracer.log(tracePrefix() + "......processing channel '" + channel.getName() + "'...", Tracer.Level.CONFIG);
+                        _tracer.log(tracePrefix() + "......processing channel '" + channel.getName() + "'...", Tracer.Level.VERBOSE);
 
                         // ignore unmapped channels? 
                         if (ignoreUnmappedChannels && !channelMessageMap.containsKey(channel.getName())) {
-                            _tracer.log(tracePrefix() + "......channel not mapped by a message, ignoring.", Tracer.Level.CONFIG);
+                            _tracer.log(tracePrefix() + "......channel not mapped by a message, ignoring.", Tracer.Level.VERBOSE);
                             continue;
                         }
 
                         // channel using a different bus
                         if (!busName.equals(channel.getBusName())) {
-                            _tracer.log(tracePrefix() + "......channel not on bus, ignoring.", Tracer.Level.CONFIG);
+                            _tracer.log(tracePrefix() + "......channel not on bus, ignoring.", Tracer.Level.VERBOSE);
                             continue;
                         }
 
@@ -1423,7 +1423,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                         for (ChannelQosProvider provider : channelQosProviders) {
                             Qos qos = provider.getChannelQos(service, channel);
                             if (qos != null) {
-                                _tracer.log(tracePrefix() + "......channel Qos for '" + channelDescriptor.getName() + "' '" + qos + "' (provided by: '" + provider.getClass().getName() + "').", Tracer.Level.CONFIG);
+                                _tracer.log(tracePrefix() + "......channel Qos for '" + channelDescriptor.getName() + "' '" + qos + "' (provided by: '" + provider.getClass().getName() + "').", Tracer.Level.VERBOSE);
 
                                 if (qosProvider == null) {
                                     channelQos = qos;
@@ -1443,7 +1443,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                             key = channel.getKey();
                             if (channelDescriptor.getChannelKey() != null && key == null) {
                                 key = channelDescriptor.getChannelKey();
-                                _tracer.log(tracePrefix() + "......Using pre defined channel key '" + channel.getName() + "', key=" + key, Tracer.Level.CONFIG);
+                                _tracer.log(tracePrefix() + "......Using pre defined channel key '" + channel.getName() + "', key=" + key, Tracer.Level.VERBOSE);
                             }
                         }
 
@@ -1460,7 +1460,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                                 }
                                 krtProvider = provider;
                                 initialKRT = krt;
-                                _tracer.log(tracePrefix() + "......channel initial KRT for '" + channelDescriptor.getName() + "' is '" + krt + "' (provided by: '" + krtProvider.getClass().getName() + "').", Tracer.Level.CONFIG);
+                                _tracer.log(tracePrefix() + "......channel initial KRT for '" + channelDescriptor.getName() + "' is '" + krt + "' (provided by: '" + krtProvider.getClass().getName() + "').", Tracer.Level.VERBOSE);
                             }
                         }
 
@@ -1506,7 +1506,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                             }
 
                             channel.setInitialKRT(sanitizedKrt);
-                            _tracer.log(tracePrefix() + "......performing initial channel key resolution for channel '" + channel.getName() + "', key=" + key, Tracer.Level.CONFIG);
+                            _tracer.log(tracePrefix() + "......performing initial channel key resolution for channel '" + channel.getName() + "', key=" + key, Tracer.Level.VERBOSE);
                             key = UtlTailoring.springScanAndReplace(key, sanitizedKrt, true);
                         }
                         //Update the model with the overridden key:
@@ -1526,7 +1526,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                                 }
                                 filterProvider = provider;
                                 channelFilter = filter;
-                                _tracer.log(tracePrefix() + "......channel filter for '" + channelDescriptor.getName() + "' '" + channelFilter + "' (provided by: '" + filterProvider.getClass().getName() + "').", Tracer.Level.CONFIG);
+                                _tracer.log(tracePrefix() + "......channel filter for '" + channelDescriptor.getName() + "' '" + channelFilter + "' (provided by: '" + filterProvider.getClass().getName() + "').", Tracer.Level.VERBOSE);
                             }
                         }
 
@@ -1540,16 +1540,16 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
                         if (channelFilter != null) {
                             if (engineChannelConfig.getFilter() != null) {
-                                _tracer.log(tracePrefix() + ".........overrides preconfigured filter '" + engineChannelConfig.getFilter() + ".", Tracer.Level.CONFIG);
+                                _tracer.log(tracePrefix() + ".........overrides preconfigured filter '" + engineChannelConfig.getFilter() + ".", Tracer.Level.VERBOSE);
                             }
                             engineChannelConfig.setFilter(channelFilter);
                         }
                         else {
                             if (engineChannelConfig.getFilter() != null) {
-                                _tracer.log(tracePrefix() + "......channel filter for '" + channelDescriptor.getName() + "' '" + engineChannelConfig.getFilter() + "' already defined in app's bus channel descriptor.", Tracer.Level.CONFIG);
+                                _tracer.log(tracePrefix() + "......channel filter for '" + channelDescriptor.getName() + "' '" + engineChannelConfig.getFilter() + "' already defined in app's bus channel descriptor.", Tracer.Level.VERBOSE);
                             }
                             else if (channelDescriptor.getChannelFilter() != null) {
-                                _tracer.log(tracePrefix() + "......channel filter for '" + channelDescriptor.getName() + "' '" + channelDescriptor.getChannelFilter() + "' already defined in bus channel descriptor.", Tracer.Level.CONFIG);
+                                _tracer.log(tracePrefix() + "......channel filter for '" + channelDescriptor.getName() + "' '" + channelDescriptor.getChannelFilter() + "' already defined in bus channel descriptor.", Tracer.Level.VERBOSE);
                             }
                         }
 
@@ -1566,7 +1566,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                                 }
                                 joinProvider = provider;
                                 channelJoin = join;
-                                _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' '" + channelJoin + "' (provided by: '" + joinProvider.getClass().getName() + "').", Tracer.Level.CONFIG);
+                                _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' '" + channelJoin + "' (provided by: '" + joinProvider.getClass().getName() + "').", Tracer.Level.VERBOSE);
                             }
                         }
 
@@ -1583,15 +1583,15 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                             case Default:
                                 if (hasHandler) {
                                     join = true;
-                                    _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' to '" + ChannelJoin.Join + "' implicitly joined by presense of message handler.", Tracer.Level.CONFIG);
+                                    _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' to '" + ChannelJoin.Join + "' implicitly joined by presense of message handler.", Tracer.Level.VERBOSE);
                                 }
                                 else if (preConfiguredChannel) {
                                     join = engineChannelConfig.getJoin();
                                     channelJoin = join ? ChannelJoin.Join : ChannelJoin.NoJoin;
-                                    _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' to '" + channelJoin + "' as preconfigured for application.", Tracer.Level.CONFIG);
+                                    _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' to '" + channelJoin + "' as preconfigured for application.", Tracer.Level.VERBOSE);
                                 }
                                 else {
-                                    _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' to '" + ChannelJoin.NoJoin + "' (no join provider, message handler, or preconfiguration).", Tracer.Level.CONFIG);
+                                    _tracer.log(tracePrefix() + "......channel join for '" + channelDescriptor.getName() + "' to '" + ChannelJoin.NoJoin + "' (no join provider, message handler, or preconfiguration).", Tracer.Level.VERBOSE);
                                     join = false;
                                 }
                                 break;
@@ -1604,7 +1604,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                                                      channel.getName(),
                                                      engineChannelConfig);
                         // trace
-                        _tracer.log(tracePrefix() + "......channel '" + channelDescriptor.getName() + "' configured (qos=" + channelDescriptor.getChannelQos() + ", key=" + channelDescriptor.getChannelKey() + ", filter=" + channelFilter + ", join=" + join + ")...", Tracer.Level.CONFIG);
+                        _tracer.log(tracePrefix() + "......channel '" + channelDescriptor.getName() + "' configured (qos=" + channelDescriptor.getChannelQos() + ", key=" + channelDescriptor.getChannelKey() + ", filter=" + channelFilter + ", join=" + join + ")...", Tracer.Level.VERBOSE);
                     }
                 }
                 busDescriptor.save(busName);
@@ -1645,7 +1645,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
 
         StringBuilder factoryDump = new StringBuilder();
         MessageViewFactoryRegistry.getInstance().dumpFactoryVersionInfo(factoryDump);
-        _tracer.log(tracePrefix() + "...registered message view factories:\n" + factoryDump, Tracer.Level.CONFIG);
+        _tracer.log(tracePrefix() + "...registered message view factories:\n" + factoryDump, Tracer.Level.VERBOSE);
         messagingConfigured = true;
     }
 

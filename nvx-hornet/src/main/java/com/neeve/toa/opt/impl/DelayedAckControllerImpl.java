@@ -239,7 +239,7 @@ public class DelayedAckControllerImpl implements DelayedAcknowledgmentController
     private AtomicLong delayedAcksPendingCount = new AtomicLong(0);
 
     public void initEngineDescriptor(AepEngineDescriptor engineDescriptor) throws SmaException {
-        if (tracer.isEnabled(Level.CONFIG)) tracer.log("Initializing delayed acknowledgment controller for " + engineDescriptor.getName(), Tracer.Level.CONFIG);
+        tracer.log("Initializing delayed acknowledgment controller for " + engineDescriptor.getName(), Tracer.Level.INFO);
 
         this.engineDescriptor = engineDescriptor;
 
@@ -287,7 +287,7 @@ public class DelayedAckControllerImpl implements DelayedAcknowledgmentController
 
     public void close() {
         if (engineDescriptor != null) {
-            if (tracer.isEnabled(Level.CONFIG)) tracer.log("Closing delayed acknowledgment controller for " + engineDescriptor.getName(), Tracer.Level.INFO);
+            tracer.log("Closing delayed acknowledgment controller for " + engineDescriptor.getName(), Tracer.Level.INFO);
             this.engine = null;
             this.engineDescriptor = null;
             this.delayedAcknowledgePool.close();

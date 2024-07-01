@@ -514,12 +514,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     public static final boolean PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT = true;
 
-    final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.ObjectConfig.get("nv.toa"));
     static {
-        ProductInfo productInfo = ManifestProductInfo.loadProductInfo("nvx-hornet");
-        _tracer.log("Loaded X Topic Oriented Application Runtime (" + productInfo.getComponentVersionString() + ")", Tracer.Level.INFO);
-        runtimeCompatibilityCheck();
-
         /*
          * Flush cached information in root config (checked, etc) and tracer 
          * registry. After the flush, the updated value of checked will take 
@@ -921,6 +916,14 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     private LinkedHashSet<Object> managedObjects = new LinkedHashSet<Object>(); //The managed objects (important to maintain addition order)
     private ManagedObjectLocator managedObjectLocator;
 
+    final protected Tracer _tracer = Tracer.get("nv.toa");
+
+    {
+        ProductInfo productInfo = ManifestProductInfo.loadProductInfo("nvx-hornet");
+        _tracer.log("Loaded X Topic Oriented Application Runtime (" + productInfo.getComponentVersionString() + ")", Tracer.Level.INFO);
+        runtimeCompatibilityCheck();
+    }
+
     /**
      * Default constructor.
      */
@@ -980,7 +983,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     /**
      * Checks compatibility with Core X
      */
-    private static void runtimeCompatibilityCheck() {
+    private void runtimeCompatibilityCheck() {
         final com.neeve.nvx.talon.Version talonVersion = new com.neeve.nvx.talon.Version();
         final boolean disableCompabilityCheck = XRuntime.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT);
         _tracer.log("Talon version is " + talonVersion.getFullVersion() + " (compatibility check is " + (disableCompabilityCheck ? "off" : "on") + ")", Tracer.Level.INFO);
@@ -2334,7 +2337,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
             containers.add(_delayedAckController);
         }
         containers.add(new FirstMessageValidator());
-        traceConfig(Tracer.Level.CONFIG);
+        traceConfig(Tracer.Level.VERBOSE);
     }
 
     /**

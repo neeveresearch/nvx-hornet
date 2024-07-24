@@ -113,7 +113,7 @@ public class ToaService {
      */
     public static final String PROP_PREFIX_CHANNEL_NAMES = "nv.toa.prefixchannelnames";
 
-    final protected static Tracer _tracer = RootConfig.ObjectConfig.createTracer(RootConfig.getObjectConfig("nv.toa"));
+    final protected static Tracer _tracer = Tracer.get("nv.toa");
     private final String name;
     private final String namespace;
     private final Date lastModified;
@@ -121,7 +121,6 @@ public class ToaService {
     private final Map<String, AdmModel> messageModels = new HashMap<String, AdmModel>();
     private final Map<String, ToaServiceChannel> channelsBySimpleName = new HashMap<String, ToaServiceChannel>();
     private final Map<String, ToaServiceToRole> roles = new HashMap<String, ToaServiceToRole>();
-
     private final HashMap<Short, AdmFactory> factoriesById = new HashMap<Short, AdmFactory>();
     private ToaServiceChannel defaultChannel;
 

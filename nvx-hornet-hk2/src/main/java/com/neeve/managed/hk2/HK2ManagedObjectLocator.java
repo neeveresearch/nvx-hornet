@@ -60,11 +60,10 @@ public class HK2ManagedObjectLocator implements ManagedObjectLocator {
      */
     public static final boolean PROP_ENABLE_HK2_IMMEDIATE_SCOPE_DEFAULT = false;
 
-    final protected static Tracer tracer = RootConfig.ObjectConfig.createTracer(RootConfig.getObjectConfig("nv.toa"));
+    final protected Tracer tracer = Tracer.get("nv.toa");
     final private TopicOrientedApplication application;
     final private List<Binder> applicationModules;
     final private String applicationName;
-
     private ServiceLocator applicationServiceLocator;
 
     /**

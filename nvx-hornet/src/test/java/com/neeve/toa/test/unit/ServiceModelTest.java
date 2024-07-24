@@ -41,11 +41,7 @@ import com.neeve.toa.test.unit.modelA.AmbiguouslyNamedMessage;
 import com.neeve.toa.test.unit.modelA.ModelAMessage1;
 import com.neeve.toa.test.unit.modelB.ModelBMessage1;
 
-/**
- * 
- */
 public class ServiceModelTest {
-
     @Test
     public void testConflictingMessageIdFails() throws Exception {
         try {

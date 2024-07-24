@@ -57,7 +57,6 @@ import com.neeve.toa.spi.ServiceDefinitionLocator;
  * Tests for MessageInjection via TOA
  */
 public class AppCreationAndLifecycleTest extends AbstractToaTest {
-
     @AppHAPolicy(HAPolicy.EventSourcing)
     private static class InaccessableClassApp extends AbstractToaTestApp {
         @AppInjectionPoint

@@ -41,9 +41,6 @@ import com.neeve.sma.MessageBusDescriptor;
 import com.neeve.test.UnitTest;
 import com.neeve.toa.TopicOrientedApplication;
 
-/**
- * 
- */
 public abstract class AbstractToaTest extends UnitTest {
     private static final HashSet<String> DIVERGENT_PRIMARY_BACKUP_FIELD_EXCEPTIONS = new HashSet<String>();
     private static final HashSet<String> DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS = new HashSet<String>();
@@ -51,7 +48,6 @@ public abstract class AbstractToaTest extends UnitTest {
         //Ownership count can diverge between backup and primary because we lazily
         //recycle commit queue entries
         DIVERGENT_PRIMARY_BACKUP_FIELD_EXCEPTIONS.add("ownershipCount");
-
         DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS.add("messageBus");
         DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS.add("messageChannel");
         DIVERGENT_SENDER_RECEIVER_FIELD_EXCEPTIONS.add("messageKey");

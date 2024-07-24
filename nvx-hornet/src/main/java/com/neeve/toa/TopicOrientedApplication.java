@@ -900,7 +900,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     private final PredispatchMessageHandlerDispatcher predispatchMessageHandlerDispatcher = new PredispatchMessageHandlerDispatcher();
     private final PostdispatchMessageHandlerDispatcher postdispatchMessageHandlerDispatcher = new PostdispatchMessageHandlerDispatcher();
     private final DelayedAckControllerImpl _delayedAckController;
-    private final boolean _useBusConfigToResolveChannelBus;
+    private final boolean _useBusConfigToResolveChannelBus = XRuntime.getValue(PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS, PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT);
     private final int defaultInjectionDelay = XRuntime.getValue(PROP_DEFAULT_INJECTION_DELAY, PROP_DEFAULT_INJECTION_DELAY_DEFAULT);
     private final Tracer.Level alertTraceLevel;
 
@@ -975,9 +975,6 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         else {
             _delayedAckController = null;
         }
-
-        // initialize other config
-        _useBusConfigToResolveChannelBus = XRuntime.getValue(PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS, PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT);
     }
 
     /**
@@ -985,9 +982,9 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     private void runtimeCompatibilityCheck() {
         final com.neeve.nvx.talon.Version talonVersion = new com.neeve.nvx.talon.Version();
-        final boolean disableCompabilityCheck = XRuntime.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT);
-        _tracer.log("Talon version is " + talonVersion.getFullVersion() + " (compatibility check is " + (disableCompabilityCheck ? "off" : "on") + ")", Tracer.Level.INFO);
-        if (!disableCompabilityCheck) {
+        final boolean disableCompatibilityCheck = XRuntime.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT);
+        _tracer.log("Talon version is " + talonVersion.getFullVersion() + " (compatibility check is " + (disableCompatibilityCheck ? "off" : "on") + ")", Tracer.Level.INFO);
+        if (!disableCompatibilityCheck) {
             final String[] requiredMinVersionComponents = MINIMUM_TALON_VERSION.split("\\.");
             final String[] componentVersions = talonVersion.getFullVersion().split("\\.");
             try {

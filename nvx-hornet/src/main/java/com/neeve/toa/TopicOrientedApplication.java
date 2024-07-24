@@ -450,7 +450,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     public static final boolean PROP_FAIL_ON_SERVICE_CHANNEL_NAME_COLLISION_DEFAULT = true;
 
     /**
-     * Property used to disable the runtime check against compatibility with rumi
+     * Property used to disable the runtime check against compatibility with Rumi
      * <p>
      * When the Hornet runtime is loaded a compatibility check against 
      * the version of nvx-rumi found on the class path is performed to check for a version of 
@@ -468,6 +468,8 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * The default value for {@link #PROP_DISABLE_COMPAT_CHECK} ({@value #PROP_DISABLE_COMPAT_CHECK_DEFAULT}).
      */
     public static final boolean PROP_DISABLE_COMPAT_CHECK_DEFAULT = false;
+
+    final private static String MINIMUM_RUMI_VERSION = "4.0.0";
 
     /**
      * Property used to enabled the delayed ack controller functionality. 
@@ -511,8 +513,6 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * The default value for {@link #PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS} ({@value #PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT}).
      */
     public static final boolean PROP_USE_BUS_CONFIGURATION_TO_RESOLVE_CHANNEL_BUS_DEFAULT = true;
-
-    final private static String MINIMUM_RUMI_VERSION = "4.0.0";
 
     static {
         /*
@@ -982,9 +982,9 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     private void runtimeCompatibilityCheck() {
         final com.neeve.nvx.rumi.Version rumiVersion = new com.neeve.nvx.rumi.Version();
-        final boolean disableCompatilbilityCheck = Config.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT);
-        _tracer.log("Rumi version is " + rumiVersion.getFullVersion() + " (compability check is " + (disableCompatilbilityCheck ? "off" : "on") + ")", Tracer.Level.INFO);
-        if (!disableCompatilbilityCheck) {
+        final boolean disableCompatibilityCheck = Config.getValue(PROP_DISABLE_COMPAT_CHECK, PROP_DISABLE_COMPAT_CHECK_DEFAULT);
+        _tracer.log("Rumi version is " + rumiVersion.getFullVersion() + " (compatibility check is " + (disableCompatibilityCheck ? "off" : "on") + ")", Tracer.Level.INFO);
+        if (!disableCompatibilityCheck) {
             final String[] requiredMinVersionComponents = MINIMUM_RUMI_VERSION.split("\\.");
             final String[] componentVersions = rumiVersion.getFullVersion().split("\\.");
             try {
@@ -2071,12 +2071,12 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     /**
      * Returns this application's bootstrap configurer. 
      * <p>
-     * For applications launched from the rumi server {@link Main} class this will 
+     * For applications launched from the Rumi server {@link Main} class this will 
      * return the external {@link Configurer} for the application. For an embedded
      * Rumi server constructed by user code this will return whatever object the application 
      * passed to the {@link SrvController#setBootstrapConfigurer(Object)}. 
      * <p>
-     * The rumi server injects the Configurer immediately after instantiating the 
+     * The Rumi server injects the Configurer immediately after instantiating the 
      * TopicOrientedApplication. 
      * 
      * @return This application's bootstrap configurer. 

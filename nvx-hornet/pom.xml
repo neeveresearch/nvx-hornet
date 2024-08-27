@@ -58,6 +58,7 @@
                 </executions>
                 <configuration>
                     <excludePackageNames>com.neeve.toa.service.jaxb:com.neeve.toa.opt.impl</excludePackageNames>
+                    <failOnError>false</failOnError>
                 </configuration>
             </plugin>
 

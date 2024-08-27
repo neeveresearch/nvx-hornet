@@ -116,6 +116,7 @@
                         com.neeve.toa.tools
                         com.neeve.toa.opt.impl
                     </excludePackageNames>
+                    <failOnError>false</failOnError>
                 </configuration>
             </plugin>
 

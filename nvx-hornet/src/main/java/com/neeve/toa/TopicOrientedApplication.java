@@ -1,17 +1,17 @@
 /**
- * Copyright 2016 Neeve Research, LLC
+ * Copyright 2022 N5 Technologies, Inc
  *
- * This product includes software developed at Neeve Research, LLC
- * (http://www.neeveresearch.com/) as well as software licenced to
- * Neeve Research, LLC under one or more contributor license agreements.
- * See the NOTICE file distributed with this work for additional information
- * regarding copyright ownership.
+ * This product includes software developed at N5 Technologies, Inc
+ * (http://www.n5corp.com/) as well as software licenced to N5 Technologies,
+ * Inc under one or more contributor license agreements. See the NOTICE
+ * file distributed with this work for additional information regarding
+ * copyright ownership.
  *
- * Neeve Research licenses this file to you under the Apache License,
+ * N5 Technologies licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
+ * with the License.  You may obtain a copy of the License at:
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,

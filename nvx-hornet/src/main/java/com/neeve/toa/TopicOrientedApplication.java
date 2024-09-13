@@ -734,7 +734,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
                 return _engine.getEngineTimeMicros();
             }
             else {
-                return UtlTime.now();
+                return UtlTime.nowInMicros();
             }
         }
 

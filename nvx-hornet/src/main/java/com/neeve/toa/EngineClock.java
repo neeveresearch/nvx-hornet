@@ -60,11 +60,11 @@ public interface EngineClock {
      * the message is also replicated for parallel processing on the backup, the backup will receive the same 
      * time when invoking this method thus ensuring identical processing. If this method is called on an engine 
      * operating in state replication mode or called from outside a message processor, then this method will 
-     * return the value returned by {@link UtlTime#nowSinceEpoch()}.
+     * return the value returned by {@link UtlTime#now()}.
      * 
      * @return The current time in milliseconds. 
      * @see AepEngine#getEngineTime()
-     * @see UtlTime#nowSinceEpoch()
+     * @see UtlTime#nowInMicros()
      */
     public long getTimeMicros();
 }

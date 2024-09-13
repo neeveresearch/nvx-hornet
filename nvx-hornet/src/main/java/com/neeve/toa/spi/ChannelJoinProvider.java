@@ -44,7 +44,8 @@ public interface ChannelJoinProvider {
      * <h2>Return Values</h2>
      * A {@link ChannelJoinProvider} may return a {@link ChannelJoin} value
      * to indicate whether or not a channel should be joined:
-     * <ul> A value of {@link ChannelJoin#Default Default} or <code>null</code> indicates
+     * <ul> 
+     * <li> A value of {@link ChannelJoin#Default Default} or <code>null</code> indicates
      * that the provider has no opinion and will defer to the default behavior of Hornet
      * or other {@link ChannelJoinProvider}s
      * <li> A value of {@link ChannelJoin#Join Join} indicates that the the channel should

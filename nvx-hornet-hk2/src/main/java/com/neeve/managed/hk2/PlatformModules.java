@@ -46,7 +46,7 @@ import com.neeve.toa.opt.DelayedAcknowledgmentController;
  * <li> {@link DelayedAcknowledgmentController} Provides access to the applications underlying {@link DelayedAcknowledgmentController}. 
  * Most applications will not need access to {@link DelayedAcknowledgmentController} and it will be only be created when 
  * {@link TopicOrientedApplication#PROP_ENABLED_DELAYED_ACK_CONTROLLER} is set to true. 
- * </u>
+ * </ul>
  */
 public final class PlatformModules extends AbstractBinder {
 

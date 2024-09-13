@@ -63,7 +63,7 @@ public interface ChannelQosProvider {
      * @param service The service that defined the channel.
      * @param channel The channel. 
      * 
-     * @return The channel {@link Qos} or <code>null</null> if the provider either doesn't provide
+     * @return The channel {@link Qos} or <code>null</code> if the provider either doesn't provide
      * {@link Qos} for this channel or if the channel should not be filtered. 
      * 
      * @see TopicOrientedApplication TopicOrientedApplication messaging configuration

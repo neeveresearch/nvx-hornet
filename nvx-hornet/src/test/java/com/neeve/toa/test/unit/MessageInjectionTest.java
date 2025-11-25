@@ -41,6 +41,7 @@ import com.neeve.aep.AepEngine.HAPolicy;
 import com.neeve.aep.annotations.EventHandler;
 import com.neeve.aep.event.AepEngineStoppedEvent;
 import com.neeve.aep.event.AepMessagingPrestartEvent;
+import com.neeve.event.IEventAcknowledger;
 import com.neeve.rog.IRogMessage;
 import com.neeve.server.app.annotations.AppHAPolicy;
 import com.neeve.sma.MessageViewFactoryRegistry;
@@ -194,6 +195,24 @@ public class MessageInjectionTest extends AbstractToaTest {
         @EventHandler
         public final void onConflictingFactoryMessage(ConflictingFactoryMessages1 message) {
             recordReceipt(message);
+        }
+    }
+
+    public static class Acknowledger implements IEventAcknowledger {
+        private boolean acked;
+
+        boolean waitForAck(int seconds) throws InterruptedException {
+            boolean waiting = true;
+            long timeout = System.currentTimeMillis() + seconds * 1000;
+            while (!acked && System.currentTimeMillis() < timeout) {
+                Thread.sleep(100);
+            }
+            return acked;
+        }
+
+        @Override
+        public void ack() {
+            acked = true;
         }
     }
 
@@ -421,5 +440,17 @@ public class MessageInjectionTest extends AbstractToaTest {
 
         app.waitForMessages(10, 2);
         assertEquals("Didn't get expected number of injected messages", 2, app.received.size());
+    }
+
+    @Test
+    public void testInjectionWithAcknowledgement() throws Throwable {
+        SingleAppToaServer<MessageInjectionTestApp> server = createServer(testcaseName.getMethodName(), "standalone", MessageInjectionTestApp.class);
+        server.start();
+        MessageInjectionTestApp app = server.getApplication();
+        IRogMessage message = ForwarderMessage1.create();
+        Acknowledger acknowledger =new Acknowledger();
+        app.getMessageInjector().injectMessage(message, acknowledger);
+        assertTrue(app.waitForMessages(5, 1));
+        assertTrue(acknowledger.waitForAck(5));
     }
 }

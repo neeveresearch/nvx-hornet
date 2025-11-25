@@ -22,6 +22,7 @@
 package com.neeve.toa;
 
 import com.neeve.aep.AepEngine;
+import com.neeve.event.IEventAcknowledger;
 import com.neeve.rog.IRogMessage;
 
 /**
@@ -45,19 +46,35 @@ public interface MessageInjector {
     /**
      * Enqueue a message into an application's {@link AepEngine}'s event multiplexer. 
      * <p>
-     * This method is the same as {@link #injectMessage(IRogMessage, boolean, int) injectMessage(message, false, defaultInjectionDelay)}.
+     * This method is the same as {@link #injectMessage(IRogMessage, boolean, int, IEventAcknowledger) injectMessage(message, false, defaultInjectionDelay, null)}.
      * (where default injection delay is set by {@link TopicOrientedApplication#PROP_DEFAULT_INJECTION_DELAY}).
      *  
      * @param message The message to enqueue. 
      * 
-     * @see AepEngine#injectMessage(IRogMessage, boolean)
+     * @see AepEngine#injectMessage(IRogMessage)
      */
     public void injectMessage(IRogMessage message);
 
     /**
      * Enqueue a message into an application's {@link AepEngine}'s event multiplexer. 
      * <p>
-     * This method is the same as {@link #injectMessage(IRogMessage, boolean, int) injectMessage(message, nonBlocking, defaultInjectionDelay)} 
+     * This method is the same as {@link #injectMessage(IRogMessage, boolean, int, IEventAcknowledger) injectMessage(message, false, defaultInjectionDelay, acknowledger)}.
+     * (where default injection delay is set by {@link TopicOrientedApplication#PROP_DEFAULT_INJECTION_DELAY}).
+     *  
+     * @param message The message to enqueue. 
+     *  
+     * @param acknowledger The acknowledger that will be invoked when the processing of the transaction 
+     * containing the injected message is complete. Note that such notifications will only occur on 
+     * engines operating in the Primary role. This parameter can be null. 
+     *  
+     * @see AepEngine#injectMessage(IRogMessage, IEventAcknowledger)
+     */
+    public void injectMessage(IRogMessage message, IEventAcknowledger acknowledger);
+
+    /**
+     * Enqueue a message into an application's {@link AepEngine}'s event multiplexer. 
+     * <p>
+     * This method is the same as {@link #injectMessage(IRogMessage, boolean, int, IEventAcknowledger) injectMessage(message, nonBlocking, defaultInjectionDelay, null)} 
      * (where default injection delay is set by {@link TopicOrientedApplication#PROP_DEFAULT_INJECTION_DELAY}).
      * 
      * @param message The message to enqueue. 
@@ -76,8 +93,32 @@ public interface MessageInjector {
 
     /**
      * Enqueue a message into an application's {@link AepEngine}'s event multiplexer. 
+     * <p>
+     * This method is the same as {@link #injectMessage(IRogMessage, boolean, int, IEventAcknowledger) injectMessage(message, nonBlocking, defaultInjectionDelay, acknowledger)} 
+     * (where default injection delay is set by {@link TopicOrientedApplication#PROP_DEFAULT_INJECTION_DELAY}).
+     * 
+     * @param message The message to enqueue. 
+     * 
+     * @param nonBlocking Indicates whether the multiplexing should be a 
+     * non-blocking action or not. If blocking, then the calling thread 
+     * will block if the engine's input multiplexer queue is full and wait until 
+     * space is available. If non-blocking, then the method will not
+     * wait but rather enque the message in a feeder queue fronting the engine's
+     * input multiplexer queue. 
+     *  
+     * @param acknowledger The acknowledger that will be invoked when the processing of the transaction 
+     * containing the injected message is complete. Note that such notifications will only occur on 
+     * engines operating in the Primary role. This parameter can be null. 
+     *  
+     * @see AepEngine#injectMessage(IRogMessage, boolean)
+     * @see TopicOrientedApplication#PROP_DEFAULT_INJECTION_DELAY
+     */
+    public void injectMessage(IRogMessage message, boolean nonBlocking, IEventAcknowledger acknowledger);
+
+    /**
+     * Enqueue a message into an application's {@link AepEngine}'s event multiplexer. 
      * <p> 
-     * This method is the same as the corresponding {@link AepEngine#injectMessage(IRogMessage, boolean, int)}
+     * This method is the same as the corresponding {@link AepEngine#injectMessage(IRogMessage, boolean, int, IEventAcknowledger)}
      * method <b>except</b> that this method disallows injection of message from the {@link AepEngine}'s 
      * dispatch thread (i.e. from a message handler). 
      * 
@@ -98,5 +139,34 @@ public interface MessageInjector {
      * @throws UnsupportedOperationException if this is called from the {@link AepEngine}'s dispatch therad (i.e. a message/event handler). 
      */
     void injectMessage(IRogMessage message, boolean nonBlocking, int delay);
+
+    /**
+     * Enqueue a message into an application's {@link AepEngine}'s event multiplexer. 
+     * <p> 
+     * This method is the same as the corresponding {@link AepEngine#injectMessage(IRogMessage, boolean, int, IEventAcknowledger)}
+     * method <b>except</b> that this method disallows injection of message from the {@link AepEngine}'s 
+     * dispatch thread (i.e. from a message handler). 
+     * 
+     * @param message The IRogMessage to enqueue. 
+     *  
+     * @param nonBlocking Indicates whether the multiplexing should be a 
+     * non-blocking action or not. If blocking, then the calling thread 
+     * will block if the engine's input multiplexer queue is full and wait until 
+     * space is available. If non-blocking, then the method will not
+     * wait but rather enque the message in a feeder queue fronting the engine's
+     * input multiplexer queue. 
+     * 
+     * @param delay The delay in milliseconds at which the message should be injected.
+     *  
+     * @param acknowledger The acknowledger that will be invoked when the processing of the transaction 
+     * containing the injected message is complete. Note that such notifications will only occur on 
+     * engines operating in the Primary role. This parameter can be null. 
+     *  
+     * @threading This method is safe for concurrent access by multiple threads. 
+     * 
+     * @throws IllegalStateException If the underlying AepEngine has not been started. 
+     * @throws UnsupportedOperationException if this is called from the {@link AepEngine}'s dispatch therad (i.e. a message/event handler). 
+     */
+    void injectMessage(IRogMessage message, boolean nonBlocking, int delay, IEventAcknowledger acknowledger);
 
 }

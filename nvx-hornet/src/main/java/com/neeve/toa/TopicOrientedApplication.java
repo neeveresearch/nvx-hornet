@@ -2221,7 +2221,15 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @Override
     final public void injectMessage(final IRogMessage message) {
-        injectMessage(message, false, defaultInjectionDelay);
+        injectMessage(message, false, defaultInjectionDelay, null);
+    }
+
+    /* (non-Javadoc)
+     * @see com.neeve.toa.MessageInjector#injectMessage(com.neeve.rog.IRogMessage, com.neeve.event.IEventAcknowledger)
+     */
+    @Override
+    final public void injectMessage(final IRogMessage message, final IEventAcknowledger acknowledger) {
+        injectMessage(message, false, defaultInjectionDelay, acknowledger);
     }
 
     /* (non-Javadoc)
@@ -2229,20 +2237,36 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @Override
     final public void injectMessage(final IRogMessage message, boolean nonBlocking) {
-        injectMessage(message, nonBlocking, defaultInjectionDelay);
+        injectMessage(message, nonBlocking, defaultInjectionDelay, null);
     }
 
     /* (non-Javadoc)
-     * @see com.neeve.toa.MessageInjector#injectMessage(com.neeve.rog.IRogMessage, boolean)
+     * @see com.neeve.toa.MessageInjector#injectMessage(com.neeve.rog.IRogMessage, boolean, com.neeve.event.IEventAcknowledger)
+     */
+    @Override
+    final public void injectMessage(final IRogMessage message, boolean nonBlocking, final IEventAcknowledger acknowledger) {
+        injectMessage(message, nonBlocking, defaultInjectionDelay, acknowledger);
+    }
+
+    /* (non-Javadoc)
+     * @see com.neeve.toa.MessageInjector#injectMessage(com.neeve.rog.IRogMessage, boolean, int)
      */
     @Override
     final public void injectMessage(IRogMessage message, boolean nonBlocking, final int delay) {
+        injectMessage(message, nonBlocking, delay, null);
+    }
+
+    /* (non-Javadoc)
+     * @see com.neeve.toa.MessageInjector#injectMessage(com.neeve.rog.IRogMessage, boolean, int, com.neeve.event.IEventAcknowledger)
+     */
+    @Override
+    final public void injectMessage(IRogMessage message, boolean nonBlocking, final int delay, final IEventAcknowledger acknowledger) {
         if (_engine.getState() == State.Started) {
             if (!_factoryRegisteredTypesById.containsKey(uniqueMessageId(message.getVfid(), message.getMessageType()))) {
                 throw new ToaException("Can't inject '" + message.getClass().getName() + "' it was not registered with the application during initialization. This probably means that you don't have an @EventHandler for it in your application.");
             }
             try {
-                _engine.injectMessage(message, nonBlocking, delay);
+                _engine.injectMessage(message, nonBlocking, delay, acknowledger);
             }
             catch (IllegalStateException ise) {
                 //engine may have been stopped during multiplex...

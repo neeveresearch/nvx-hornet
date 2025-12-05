@@ -63,6 +63,7 @@ import com.neeve.ci.ProductInfo;
 import com.neeve.cli.annotations.Command;
 import com.neeve.cli.annotations.Configured;
 import com.neeve.config.Config;
+import com.neeve.event.IEventAcknowledger;
 import com.neeve.event.alert.IAlertEvent;
 import com.neeve.event.lifecycle.LifecycleEvent;
 import com.neeve.lang.XLongLinkedHashMap;

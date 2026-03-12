@@ -99,6 +99,16 @@
                                             </xs:documentation>
                                         </xs:annotation>
                                     </xs:attribute>
+                                    <xs:attribute name="receiveOnly" type="xs:boolean" use="optional" default="false">
+                                        <xs:annotation>
+                                            <xs:documentation>
+                                                When set to true, this channel can only be used for receiving messages.
+                                                Messages cannot be sent on a receive-only channel. Any attempt to map
+                                                a message for sending on a receive-only channel will result in a
+                                                configuration error.
+                                            </xs:documentation>
+                                        </xs:annotation>
+                                    </xs:attribute>
                                 </xs:complexType>
                             </xs:element>
                         </xs:sequence>

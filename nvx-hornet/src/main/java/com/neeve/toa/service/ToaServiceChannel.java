@@ -31,15 +31,30 @@ public class ToaServiceChannel {
     private String busName;
     private final String name;
     private String key;
+    private final boolean receiveOnly;
     private Properties initialKRT;
     private String resolvedKey;
 
     /**
      * Create a new {@link ToaServiceChannel}
-     * @param name The channel name. 
-     * @param key The channel key. 
+     * @param service The owning service.
+     * @param busName The bus name.
+     * @param name The channel name.
+     * @param key The channel key.
      */
     public ToaServiceChannel(final ToaService service, final String busName, final String name, final String key) {
+        this(service, busName, name, key, false);
+    }
+
+    /**
+     * Create a new {@link ToaServiceChannel}
+     * @param service The owning service.
+     * @param busName The bus name.
+     * @param name The channel name.
+     * @param key The channel key.
+     * @param receiveOnly Whether this channel is receive-only.
+     */
+    public ToaServiceChannel(final ToaService service, final String busName, final String name, final String key, final boolean receiveOnly) {
         if (service == null) {
             throw new IllegalArgumentException("ToaService cannot be null");
         }
@@ -47,6 +62,7 @@ public class ToaServiceChannel {
         this.busName = busName;
         this.name = name;
         this.key = key;
+        this.receiveOnly = receiveOnly;
     }
 
     /**
@@ -102,8 +118,19 @@ public class ToaServiceChannel {
     }
 
     /**
-     * Gets the channel key. After a 
-     * 
+     * Returns whether this channel is receive-only.
+     * <p>
+     * A receive-only channel cannot be used for sending messages.
+     *
+     * @return {@code true} if this channel is receive-only.
+     */
+    public final boolean isReceiveOnly() {
+        return receiveOnly;
+    }
+
+    /**
+     * Gets the channel key. After a
+     *
      * @return The channel key.
      */
     public final String getKey() {
@@ -182,6 +209,6 @@ public class ToaServiceChannel {
      * @see java.lang.Object#toString()
      */
     public String toString() {
-        return "ToaServiceChannel [name=" + getName() + ", bus=" + getBusName() + ", key=" + getKey() + ", service=" + (service != null ? service : "null") + "]";
+        return "ToaServiceChannel [name=" + getName() + ", bus=" + getBusName() + ", key=" + getKey() + ", receiveOnly=" + receiveOnly + ", service=" + (service != null ? service : "null") + "]";
     }
 }

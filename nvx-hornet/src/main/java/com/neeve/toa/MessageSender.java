@@ -24,6 +24,7 @@ package com.neeve.toa;
 import java.util.Properties;
 
 import com.neeve.aep.AepEngine;
+import com.neeve.aep.AepMessageSender;
 import com.neeve.aep.annotations.EventHandler;
 import com.neeve.lang.XString;
 import com.neeve.rog.IRogMessage;
@@ -124,4 +125,64 @@ public interface MessageSender {
      * @param message The message to send. 
      */
     public void sendMessage(final IRogMessage message, final RawKeyResolutionTable rawKeyResolutionTable);
+
+    /**
+     * Sends a message on the specified channel, bypassing channel resolution by message type.
+     * This method has the same semantics as {@link AepMessageSender#sendMessage(String, IRogMessage)}.
+     *
+     * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends
+     *
+     * @param channelName The name of the channel on which to send the message.
+     * @param message The message to send.
+     */
+    public void sendMessage(final String channelName, final IRogMessage message);
+
+    /**
+     * Sends a message on the specified channel using the given topic as the channel key, bypassing channel resolution by message type.
+     * This method has the same semantics as {@link AepMessageSender#sendMessage(String, IRogMessage, String)}.
+     *
+     * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends
+     *
+     * @param channelName The name of the channel on which to send the message.
+     * @param message The message to send.
+     * @param topic The topic to use as the channel key.
+     */
+    public void sendMessage(final String channelName, final IRogMessage message, final String topic);
+
+    /**
+     * Sends a message on the specified channel using the given topic as the channel key (zero garbage variant), bypassing channel resolution by message type.
+     * This method has the same semantics as {@link AepMessageSender#sendMessage(String, IRogMessage, XString)}.
+     *
+     * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends
+     *
+     * @param channelName The name of the channel on which to send the message.
+     * @param message The message to send.
+     * @param topic The topic to use as the channel key.
+     */
+    public void sendMessage(final String channelName, final IRogMessage message, final XString topic);
+
+    /**
+     * Sends a message on the specified channel using the provided key resolution table, bypassing channel resolution by message type.
+     * This method has the same semantics as {@link AepMessageSender#sendMessage(String, IRogMessage, Properties)}.
+     *
+     * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends
+     *
+     * @param channelName The name of the channel on which to send the message.
+     * @param message The message to send.
+     * @param keyResolutionTable The key resolution table to use for resolving dynamic portions of the channel key.
+     */
+    public void sendMessage(final String channelName, final IRogMessage message, final Properties keyResolutionTable);
+
+    /**
+     * Sends a message on the specified channel using the provided zero garbage key resolution table, bypassing channel resolution by message type.
+     * This method has the same semantics as {@link AepMessageSender#sendMessage(String, IRogMessage, MessageChannel.RawKeyResolutionTable)}.
+     *
+     * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends
+     * and the supplied key resolution table is not concurrently modified during this method invocation.
+     *
+     * @param channelName The name of the channel on which to send the message.
+     * @param message The message to send.
+     * @param rawKeyResolutionTable The raw key resolution table to use for resolving dynamic portions of the channel key.
+     */
+    public void sendMessage(final String channelName, final IRogMessage message, final RawKeyResolutionTable rawKeyResolutionTable);
 }

@@ -910,7 +910,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     private SrvAppLoader _appLoader;
     private AepEngineDescriptor _engineDescriptor;
     private AepEngine _engine;
-    private AepMessageSender _aepMessageSender;
+    private AepMessageSender _messageSender;
     private String _engineName;
     private Configurer configurer;
     private volatile boolean messagingConfigured = false;
@@ -2157,7 +2157,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      * @return The {@link AepMessageSender} for this application. 
      */
     final public AepMessageSender getAepMessageSender() {
-        return _aepMessageSender;
+        return _messageSender;
     }
 
     /* (non-Javadoc)
@@ -2198,6 +2198,46 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     @Override
     final public void sendMessage(final IRogMessage message, final RawKeyResolutionTable rawKeyResolutionTable) {
         sendMessage(message, null, null, null, rawKeyResolutionTable);
+    }
+
+    /* (non-Javadoc)
+     * @see com.neeve.toa.MessageSender#sendMessage(java.lang.String, com.neeve.rog.IRogMessage)
+     */
+    @Override
+    final public void sendMessage(final String channelName, final IRogMessage message) {
+        _messageSender.sendMessage(channelName, message);
+    }
+
+    /* (non-Javadoc)
+     * @see com.neeve.toa.MessageSender#sendMessage(java.lang.String, com.neeve.rog.IRogMessage, java.lang.String)
+     */
+    @Override
+    final public void sendMessage(final String channelName, final IRogMessage message, final String topic) {
+        _messageSender.sendMessage(channelName, message, topic);
+    }
+
+    /* (non-Javadoc)
+     * @see com.neeve.toa.MessageSender#sendMessage(java.lang.String, com.neeve.rog.IRogMessage, com.neeve.lang.XString)
+     */
+    @Override
+    final public void sendMessage(final String channelName, final IRogMessage message, final XString topic) {
+        _messageSender.sendMessage(channelName, message, topic);
+    }
+
+    /* (non-Javadoc)
+     * @see com.neeve.toa.MessageSender#sendMessage(java.lang.String, com.neeve.rog.IRogMessage, java.util.Properties)
+     */
+    @Override
+    final public void sendMessage(final String channelName, final IRogMessage message, final Properties keyResolutionTable) {
+        _messageSender.sendMessage(channelName, message, keyResolutionTable);
+    }
+
+    /* (non-Javadoc)
+     * @see com.neeve.toa.MessageSender#sendMessage(java.lang.String, com.neeve.rog.IRogMessage, com.neeve.sma.MessageChannel.RawKeyResolutionTable)
+     */
+    @Override
+    final public void sendMessage(final String channelName, final IRogMessage message, final RawKeyResolutionTable rawKeyResolutionTable) {
+        _messageSender.sendMessage(channelName, message, rawKeyResolutionTable);
     }
 
     /**
@@ -2490,7 +2530,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @AppInjectionPoint
     synchronized final private void setAepMessageSender(final AepMessageSender aepMessageSender) {
-        _aepMessageSender = aepMessageSender;
+        _messageSender = aepMessageSender;
     }
 
     /**

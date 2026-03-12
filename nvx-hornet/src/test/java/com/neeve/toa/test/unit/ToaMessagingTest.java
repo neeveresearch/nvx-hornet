@@ -412,6 +412,22 @@ public class ToaMessagingTest extends AbstractToaTest {
 
     }
 
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class ChannelNameSenderApp extends AbstractToaTestApp {
+
+        @Override
+        protected Properties getInitialChannelKeyResolutionTable(ToaService service, ToaServiceChannel channel) {
+            Properties props = new Properties();
+            props.setProperty("IntField", "0");
+            return props;
+        }
+
+        @Override
+        protected Qos getChannelQos(ToaService service, ToaServiceChannel channel) {
+            return qos;
+        }
+    }
+
     private final void testSenderForwarderReceiver(Qos qos) throws Throwable {
         ToaMessagingTest.qos = qos;
         ReceiverApp receiver = createApp("testSenderForwarderReceiverReceiver" + qos, "standalone", ReceiverApp.class);
@@ -733,5 +749,27 @@ public class ToaMessagingTest extends AbstractToaTest {
         assertTrue("Receiver didn't receive message in allotted time", receiver.waitForMessages(10, 1));
 
         assertSentAndReceivedMessageEqual(forwarder, receiver);
+    }
+
+    /**
+     * Tests that sendMessage with a channel name bypasses message type resolution
+     * and delivers the message on the specified channel.
+     */
+    @Test
+    public final void testSendMessageByChannelName() throws Throwable {
+        ChannelNameSenderApp sender = createApp("testSendMessageByChannelNameSender", "standalone", ChannelNameSenderApp.class);
+        ReceiverApp receiver = createApp("testSendMessageByChannelNameReceiver", "standalone", ReceiverApp.class);
+        sender.getEngine().waitForMessagingToStart();
+
+        // Send a ReceiverMessage1 by explicit channel name instead of letting Hornet resolve it by message type
+        ReceiverMessage1 message = ReceiverMessage1.create();
+        message.setIntField(42);
+        sender.sendMessage("receiverservice-ReceiverChannel1", message);
+
+        sender.waitForTransactionStability(2);
+        receiver.waitForTransactionStability(2);
+
+        receiver.assertExpectedReceipt(5, 1);
+        assertEquals("Received message should have expected IntField", 42, ((ReceiverMessage1)receiver.received.get(0)).getIntField());
     }
 }

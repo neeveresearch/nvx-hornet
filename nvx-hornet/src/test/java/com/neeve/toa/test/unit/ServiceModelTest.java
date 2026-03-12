@@ -22,6 +22,7 @@
 package com.neeve.toa.test.unit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -118,6 +119,52 @@ public class ServiceModelTest {
             assertTrue("Excepted error about NCName but was '" + e.getMessage() + "'", e.getMessage().indexOf("NCName") >= 0);
         }
 
+    }
+
+    @Test
+    public void testReceiveOnlyChannelRejectsSendMapping() throws Exception {
+        try {
+            ToaService.unmarshal(getClass().getResource("/receiveOnlySendTestService.xml"));
+            fail("Should have failed because message is mapped to receiveOnly channel");
+        }
+        catch (Exception e) {
+            if (e.getMessage().indexOf("receive-only channel") == -1) {
+                e.printStackTrace();
+                fail("Expected to find 'receive-only channel' in exception text, but got: " + e.getMessage());
+            }
+        }
+    }
+
+    @Test
+    public void testReceiveOnlyDefaultChannelFails() throws Exception {
+        try {
+            ToaService.unmarshal(getClass().getResource("/receiveOnlyDefaultChannelTestService.xml"));
+            fail("Should have failed because channel is both receiveOnly and default");
+        }
+        catch (Exception e) {
+            if (e.getMessage().indexOf("receiveOnly and the default channel") == -1) {
+                e.printStackTrace();
+                fail("Expected to find 'receiveOnly and the default channel' in exception text, but got: " + e.getMessage());
+            }
+        }
+    }
+
+    @Test
+    public void testReceiveOnlyChannelValidConfig() throws Exception {
+        ToaService service = ToaService.unmarshal(getClass().getResource("/receiveOnlyValidTestService.xml"));
+
+        // Verify the receive-only channel exists and is marked correctly
+        boolean foundReceiveOnly = false;
+        for (ToaServiceChannel channel : service.getChannels()) {
+            if ("InboundChannel".equals(channel.getSimpleName())) {
+                assertTrue("InboundChannel should be receiveOnly", channel.isReceiveOnly());
+                foundReceiveOnly = true;
+            }
+            if ("OutboundChannel".equals(channel.getSimpleName())) {
+                assertFalse("OutboundChannel should not be receiveOnly", channel.isReceiveOnly());
+            }
+        }
+        assertTrue("Expected to find InboundChannel", foundReceiveOnly);
     }
 
     @Test

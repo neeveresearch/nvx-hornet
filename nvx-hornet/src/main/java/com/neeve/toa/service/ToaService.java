@@ -319,9 +319,13 @@ public class ToaService {
 
         // parse channels:
         for (Service.Channels.Channel channel : service.getChannels().getChannel()) {
-            ToaServiceChannel toaChannel = new ToaServiceChannel(rc, channel.getBus(), channel.getName(), channel.getKey());
+            boolean receiveOnly = channel.isReceiveOnly();
+            ToaServiceChannel toaChannel = new ToaServiceChannel(rc, channel.getBus(), channel.getName(), channel.getKey(), receiveOnly);
 
             if (channel.isDefault() != null && channel.isDefault()) {
+                if (receiveOnly) {
+                    throw new ToaException("channel '" + toaChannel.getName() + "' in service '" + service.getName() + "' cannot be both receiveOnly and the default channel");
+                }
                 if (_tracer.debug) _tracer.log("<nv.toa> [" + rc.getName() + "] ......'" + toaChannel.getName() + "'.", Tracer.Level.DEBUG);
                 if (rc.defaultChannel != null) {
                     throw new ToaException("channel '" + rc.defaultChannel.getName() + "' and '" + toaChannel.getName() + "' are both configured as default channels in the '" + service.getName() + "' service");
@@ -534,6 +538,9 @@ public class ToaService {
                     throw new ToaServiceModelException("Could not resolve the channel for message '" + message.getName() + "' in service '" + getName() + "'. No channel specified for the message, no default channel for the service, and no channel matching the message name.");
                 }
             }
+        }
+        if (messageChannel.isReceiveOnly()) {
+            throw new ToaServiceModelException("Cannot map message '" + message.getFullName() + "' for sending on receive-only channel '" + messageChannel.getName() + "' in service '" + getName() + "'");
         }
         return messageChannel;
     }

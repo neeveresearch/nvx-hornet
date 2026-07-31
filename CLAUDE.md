@@ -18,6 +18,21 @@ mvn -Pneeve -Dnv.test.groups=all test -pl nvx-hornet -Dtest=ServiceModelTest  # 
 
 Java 8 target. The `-Pneeve` profile activates custom Neeve Maven repositories for nvx-rumi dependencies.
 
+## CI (TeamCity)
+
+- **bt1076** — 2.0-SNAPSHOT
+- **bt1077** — 2.0-RELEASE
+
+**Both builds are pinned to the Default Agent** via the agent requirement `equals system.agent.name = Default Agent`. Do not remove this pin.
+
+Reason: both builds previously had zero requirements. During the 4.0.637 milestone, bt1076 ran unpinned, landed on **Lab Agent2 (Perf1)**, and failed resolving `nvx-rumi-adm-maven-plugin`:
+
+```
+PKIX path validation failed ... NotAfter: Thu Jun 11 19:59:59 EDT 2026
+```
+
+Lab Agent2's Maven settings configure a `rumi-public` mirror at `nexus.rumidata.io:8081`. The `*.rumidata.io` wildcard certificate expired 2026-06-11 and is still expired. That mirror is **not** referenced anywhere in Hornet's pom — it is agent-local configuration. The same build had passed days earlier on the Default Agent.
+
 ## Module Structure
 
 - **nvx-hornet/** — Core framework. Service definitions (x-tsml XML), message routing, topic resolution, delayed acknowledgment, and the `TopicOrientedApplication` lifecycle.
@@ -57,5 +72,7 @@ Tests fork with working directory `target/testbed`. Service definitions for test
 
 ## Branch Notes
 
-- **develop** (2.0-SNAPSHOT): Uses nvx-rumi. Tests require `-Dnv.test.groups=all`. Copyright headers use N5 Technologies.
-- **1.16** (1.16-SNAPSHOT): Uses nvx-talon. Tests run by default without the groups flag. Copyright headers use Neeve Research.
+- **develop** (2.0-SNAPSHOT): Uses nvx-rumi, tracked via `nvx.rumi.version` (currently 4.0.637; released as Hornet 2.0.27). Tests require `-Dnv.test.groups=all`. Copyright headers use N5 Technologies.
+- **1.16** (1.16-SNAPSHOT): Uses nvx-talon, tracked via `nvx.talon.version`. Tests run by default without the groups flag. Copyright headers use Neeve Research.
+
+These are **separate product lines** — `develop` follows Rumi, `1.16` follows X Platform/Talon — and are not meant to converge. Do not port version bumps between them.

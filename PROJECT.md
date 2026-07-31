@@ -97,7 +97,7 @@ Two code generators run during the Maven build:
 
 | Technology | Why |
 |---|---|
-| **nvx-rumi (AEP Engine)** | The Rumi platform's core — provides the actual messaging, clustering, and event sourcing infrastructure (successor to nvx-talon used in 1.x) |
+| **nvx-rumi (AEP Engine)** | The Rumi platform's core — provides the actual messaging, clustering, and event sourcing infrastructure. Tracked on `develop` via `nvx.rumi.version`. The `1.16` branch instead tracks X Platform/Talon via `nvx.talon.version`; these are separate product lines and are not meant to converge |
 | **JAXB** | XML schema → Java. Gives compile-time type safety for service definitions |
 | **javax.inject (JSR-330)** | Standard DI annotations, no framework lock-in |
 | **HK2** | Oracle's lightweight DI container — used in the optional module for teams wanting richer DI than classpath scanning |
@@ -129,6 +129,30 @@ The test infrastructure (`SingleAppToaServer`, `AbstractToaTest`) embeds a full 
 ### 6. The HK2 Module Is Optional by Design
 
 If you're building a simple TOA app, the default `ManagedObjectLocator` (classpath scanning) is fine. HK2 adds value when you have complex dependency graphs, need scoping (request scope, singleton, etc.), or want to use Binders for modular configuration. Don't reach for it unless you need it.
+
+### 7. The Build That Failed Because of a Machine, Not a Commit
+
+This one is worth the retelling, because the debugging instinct it teaches applies far beyond this repo.
+
+Hornet 2.0.27 was being cut against Rumi 4.0.637. The snapshot build (TeamCity `bt1076`) went red with this:
+
+```
+PKIX path validation failed ... NotAfter: Thu Jun 11 19:59:59 EDT 2026
+```
+
+It couldn't resolve `nvx-rumi-adm-maven-plugin` — the ADM code generator, without which nothing in this project compiles. An expired TLS certificate, from a host called `nexus.rumidata.io:8081`, reached via a repository mirror named `rumi-public`.
+
+The natural first move is to go looking in the pom. That move finds nothing, because **`nexus.rumidata.io` is not referenced anywhere in Hornet's build.** No repository declaration, no mirror, no profile. The build is asking for an artifact from a server the project has never heard of.
+
+The tell was in the build log header, not the stack trace: the job had run on an agent called **Lab Agent2 (Perf1)**. Every previous green build had run on the **Default Agent**. Neither `bt1076` nor its release sibling `bt1077` had any agent requirements at all, so TeamCity was free to schedule them wherever a slot opened up. For months that had happened to mean the Default Agent. This time it didn't.
+
+Lab Agent2 has a `rumi-public` mirror pointed at `nexus.rumidata.io` baked into its local Maven `settings.xml`. A Maven mirror silently intercepts requests for repositories the pom *does* declare and redirects them elsewhere — which is precisely why grepping the pom for the failing hostname turns up nothing. The `*.rumidata.io` wildcard certificate expired on 2026-06-11 and remains expired, so every artifact resolution through that agent dies at the TLS handshake.
+
+The fix was to stop leaving agent selection to chance: both `bt1076` (2.0-SNAPSHOT) and `bt1077` (2.0-RELEASE) now carry the requirement `equals system.agent.name = Default Agent`.
+
+**The general lesson: when a build fails on a commit that could not possibly have caused it, stop diffing the source and start diffing the environment.** The evidence was screaming it — the failure was in dependency *resolution*, before a single line of Hornet code was compiled, and the identical source had built cleanly days earlier. Ask what else changed. In CI, "what else" is almost always the machine: which agent picked up the job, what's in its local Maven settings, which JDK is on its PATH, what's cached in its `~/.m2`. A build agent is a hidden input to your build, and unpinned agents make that input nondeterministic.
+
+The corollary is a piece of CI hygiene worth adopting everywhere: a build configuration with **zero agent requirements is not "flexible," it's unpinned.** It works right up until your agent pool grows heterogeneous, and then it fails intermittently in ways that look like flaky code. Pin builds that depend on their environment — and every Maven build depends on its environment more than the pom admits.
 
 ## How Good Engineers Think About This Codebase
 

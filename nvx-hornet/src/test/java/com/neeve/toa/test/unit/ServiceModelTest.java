@@ -27,9 +27,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -174,5 +177,43 @@ public class ServiceModelTest extends AbstractToaTest {
         assertNotNull("Expected to find 'ServiceA' role", role);
         ToaServiceChannel channel = role.getChannel(ModelAMessage1.class.getName());
         assertEquals("Channel Name and Simple Channel name should be identical", channel.getSimpleName(), channel.getName());
+    }
+
+    /**
+     * Model XMLs are copied out of the classpath to a temp file so the ADM parser can read them
+     * by path. Those copies used to be cleaned up only by {@link File#deleteOnExit}, which never
+     * runs for a container killed with SIGKILL, so they accumulated in the temp directory across
+     * restarts (TOA-134). Unmarshalling must leave none behind.
+     */
+    @Test
+    public void testModelTempFilesAreDeletedAfterUnmarshal() throws Exception {
+        final Set<String> before = listModelTempFiles();
+
+        // this service declares two models, so it exercises the loop more than once
+        ToaService service = ToaService.unmarshal(getClass().getResource("/unambiguousMessageNameTestService.xml"));
+
+        // the models must still have parsed correctly -- the copy is only needed during the parse
+        assertEquals("Expected both declared models to have been parsed", 2, service.getMessageModels().size());
+
+        final Set<String> leaked = listModelTempFiles();
+        leaked.removeAll(before);
+        assertTrue("Unmarshal leaked model temp files in " + System.getProperty("java.io.tmpdir") + ": " + leaked, leaked.isEmpty());
+    }
+
+    /**
+     * Names of the model temp files ({@code xmd<random>xml}, from {@code UtlFile.copyToTempFile})
+     * currently present in the JVM's temp directory.
+     */
+    private static Set<String> listModelTempFiles() {
+        final Set<String> names = new HashSet<String>();
+        final File[] files = new File(System.getProperty("java.io.tmpdir")).listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.getName().startsWith("xmd") && file.getName().endsWith("xml")) {
+                    names.add(file.getName());
+                }
+            }
+        }
+        return names;
     }
 }

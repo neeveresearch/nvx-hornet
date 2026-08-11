@@ -896,6 +896,12 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
     private final XLongLinkedHashMap<MessageSendContext> _messageChannelMap;
     private final XLongLinkedHashMap<Class<?>> _factoryRegisteredTypesById;
 
+    /**
+     * Names of the channels declared receiveOnly by a service, used to reject sends addressed to
+     * them by name. Populated during configuration; read-only thereafter.
+     */
+    private final Set<String> _receiveOnlyChannelNames = new HashSet<String>();
+
     private final Set<ToaService> services = new HashSet<ToaService>();
     private final EngineTimeImpl _engineClock = new EngineTimeImpl();
     private final PredispatchMessageHandlerDispatcher predispatchMessageHandlerDispatcher = new PredispatchMessageHandlerDispatcher();
@@ -1173,6 +1179,12 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
         for (ToaService service : services) {
             // prepare the message channel map entry for the channel
             for (ToaServiceChannel toaChannel : service.getChannels()) {
+                // remember receive-only channels so that sends addressed to them by name can be
+                // rejected at runtime (the engine itself has no notion of receiveOnly)
+                if (toaChannel.isReceiveOnly()) {
+                    _receiveOnlyChannelNames.add(toaChannel.getName());
+                }
+
                 // if the bus name isn't specified, then resolve from the bus-channel map.
                 _tracer.log(tracePrefix() + "......resolving bus for the '" + toaChannel.getName() + "' channel (useBusConfigToResolveChannelBus=" + _useBusConfigToResolveChannelBus + ")...", Tracer.Level.VERBOSE);
                 if (toaChannel.getBusName() == null) {
@@ -2205,6 +2217,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @Override
     final public void sendMessage(final String channelName, final IRogMessage message) {
+        checkNotReceiveOnly(channelName);
         _messageSender.sendMessage(channelName, message);
     }
 
@@ -2213,6 +2226,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @Override
     final public void sendMessage(final String channelName, final IRogMessage message, final String topic) {
+        checkNotReceiveOnly(channelName);
         _messageSender.sendMessage(channelName, message, topic);
     }
 
@@ -2221,6 +2235,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @Override
     final public void sendMessage(final String channelName, final IRogMessage message, final XString topic) {
+        checkNotReceiveOnly(channelName);
         _messageSender.sendMessage(channelName, message, topic);
     }
 
@@ -2229,6 +2244,7 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @Override
     final public void sendMessage(final String channelName, final IRogMessage message, final Properties keyResolutionTable) {
+        checkNotReceiveOnly(channelName);
         _messageSender.sendMessage(channelName, message, keyResolutionTable);
     }
 
@@ -2237,7 +2253,25 @@ abstract public class TopicOrientedApplication implements MessageSender, Message
      */
     @Override
     final public void sendMessage(final String channelName, final IRogMessage message, final RawKeyResolutionTable rawKeyResolutionTable) {
+        checkNotReceiveOnly(channelName);
         _messageSender.sendMessage(channelName, message, rawKeyResolutionTable);
+    }
+
+    /**
+     * Rejects a send addressed by name to a channel that its service declares receiveOnly.
+     * <p>
+     * The service model already rejects mapping a message type onto a receive-only channel, which
+     * covers the type-resolved {@link #sendMessage(IRogMessage)} overloads. The channel-name
+     * overloads bypass that resolution and hand the send straight to the AEP engine, which has no
+     * notion of receiveOnly, so the constraint has to be enforced here.
+     *
+     * @param channelName The channel name the caller is sending on.
+     * @throws ToaException If the named channel is declared receiveOnly.
+     */
+    private void checkNotReceiveOnly(final String channelName) {
+        if (_receiveOnlyChannelNames.contains(channelName)) {
+            throw new ToaException("cannot send on channel '" + channelName + "': the channel is declared receiveOnly by its service");
+        }
     }
 
     /**

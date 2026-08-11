@@ -134,6 +134,7 @@ public interface MessageSender {
      *
      * @param channelName The name of the channel on which to send the message.
      * @param message The message to send.
+     * @throws ToaException If the named channel is declared receiveOnly by its service.
      */
     public void sendMessage(final String channelName, final IRogMessage message);
 
@@ -146,6 +147,7 @@ public interface MessageSender {
      * @param channelName The name of the channel on which to send the message.
      * @param message The message to send.
      * @param topic The topic to use as the channel key.
+     * @throws ToaException If the named channel is declared receiveOnly by its service.
      */
     public void sendMessage(final String channelName, final IRogMessage message, final String topic);
 
@@ -158,6 +160,7 @@ public interface MessageSender {
      * @param channelName The name of the channel on which to send the message.
      * @param message The message to send.
      * @param topic The topic to use as the channel key.
+     * @throws ToaException If the named channel is declared receiveOnly by its service.
      */
     public void sendMessage(final String channelName, final IRogMessage message, final XString topic);
 
@@ -170,6 +173,7 @@ public interface MessageSender {
      * @param channelName The name of the channel on which to send the message.
      * @param message The message to send.
      * @param keyResolutionTable The key resolution table to use for resolving dynamic portions of the channel key.
+     * @throws ToaException If the named channel is declared receiveOnly by its service.
      */
     public void sendMessage(final String channelName, final IRogMessage message, final Properties keyResolutionTable);
 
@@ -183,6 +187,7 @@ public interface MessageSender {
      * @param channelName The name of the channel on which to send the message.
      * @param message The message to send.
      * @param rawKeyResolutionTable The raw key resolution table to use for resolving dynamic portions of the channel key.
+     * @throws ToaException If the named channel is declared receiveOnly by its service.
      */
     public void sendMessage(final String channelName, final IRogMessage message, final RawKeyResolutionTable rawKeyResolutionTable);
 }

@@ -29,10 +29,12 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.PrintWriter;
+import java.net.URL;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -50,6 +52,7 @@ import com.neeve.aep.event.AepApplicationExceptionEvent;
 import com.neeve.aep.event.AepChannelUpEvent;
 import com.neeve.aep.event.AepUnhandledMessageEvent;
 import com.neeve.event.alert.AlertEvent;
+import com.neeve.lang.XString;
 import com.neeve.rog.IRogMessage;
 import com.neeve.rog.log.RogLogUtil;
 import com.neeve.rog.log.RogLogUtil.JsonPrettyPrintStyle;
@@ -57,10 +60,14 @@ import com.neeve.server.app.annotations.AppHAPolicy;
 import com.neeve.server.app.annotations.AppMain;
 import com.neeve.server.mon.alert.SrvMonUnhandledMessageMessage;
 import com.neeve.sma.MessageChannel;
+import com.neeve.sma.MessageChannel.RawKeyResolutionTable;
 import com.neeve.sma.MessageChannel.Qos;
 import com.neeve.sma.event.UnhandledMessageEvent;
+import com.neeve.toa.ToaException;
 import com.neeve.toa.service.ToaService;
 import com.neeve.toa.service.ToaServiceChannel;
+import com.neeve.toa.spi.AbstractServiceDefinitionLocator;
+import com.neeve.toa.spi.ServiceDefinitionLocator;
 import com.neeve.toa.test.unit.injectiontests.UnhandledInjectionMessage;
 
 public class ToaMessagingTest extends AbstractToaTest {
@@ -428,6 +435,32 @@ public class ToaMessagingTest extends AbstractToaTest {
         }
     }
 
+    /**
+     * Locates a service that declares a receiveOnly channel. Kept separate from the standard test
+     * services so that the receive-only channel does not affect the other messaging tests.
+     */
+    private static class ReceiveOnlyChannelServiceLocator extends AbstractServiceDefinitionLocator {
+        @Override
+        public void locateServices(Set<URL> urls) throws Exception {
+            urls.add(getClass().getResource("/services/receiveOnlyChannelService.xml"));
+        }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class ReceiveOnlyChannelSenderApp extends AbstractToaTestApp {
+        @Override
+        public ServiceDefinitionLocator getServiceDefinitionLocator() {
+            return new ReceiveOnlyChannelServiceLocator();
+        }
+
+        @Override
+        protected Properties getInitialChannelKeyResolutionTable(ToaService service, ToaServiceChannel channel) {
+            Properties props = new Properties();
+            props.setProperty("IntField", "0");
+            return props;
+        }
+    }
+
     private final void testSenderForwarderReceiver(Qos qos) throws Throwable {
         ToaMessagingTest.qos = qos;
         ReceiverApp receiver = createApp("testSenderForwarderReceiverReceiver" + qos, "standalone", ReceiverApp.class);
@@ -771,5 +804,66 @@ public class ToaMessagingTest extends AbstractToaTest {
 
         receiver.assertExpectedReceipt(5, 1);
         assertEquals("Received message should have expected IntField", 42, ((ReceiverMessage1)receiver.received.get(0)).getIntField());
+    }
+
+    /**
+     * The service model rejects mapping a message type onto a receiveOnly channel, which covers the
+     * type-resolved sends. The channel-name overloads bypass that resolution and hand the send
+     * straight to the AEP engine, which has no notion of receiveOnly, so until TOA-132 a send
+     * addressed by name to a receive-only channel was accepted. All five overloads must reject it.
+     */
+    @Test
+    public final void testSendMessageByChannelNameRejectsReceiveOnlyChannel() throws Throwable {
+        ReceiveOnlyChannelSenderApp sender = createApp("testSendToReceiveOnlyChannel", "standalone", ReceiveOnlyChannelSenderApp.class);
+        sender.getEngine().waitForMessagingToStart();
+
+        final String receiveOnly = "receiveonlychannelservice-InboundOnlyChannel";
+        final String sendable = "receiveonlychannelservice-SendableChannel";
+
+        assertSendRejected(sender, receiveOnly, 1);
+        assertSendRejected(sender, receiveOnly, 2);
+        assertSendRejected(sender, receiveOnly, 3);
+        assertSendRejected(sender, receiveOnly, 4);
+        assertSendRejected(sender, receiveOnly, 5);
+
+        // a channel that is not receiveOnly must still be sendable by name
+        ReceiverMessage1 message = ReceiverMessage1.create();
+        message.setIntField(7);
+        sender.sendMessage(sendable, message);
+    }
+
+    /**
+     * Invokes one of the five {@code sendMessage(String channelName, ...)} overloads (selected by
+     * {@code overload}, 1-5) against the named channel and asserts that it is rejected.
+     */
+    private static void assertSendRejected(final ReceiveOnlyChannelSenderApp sender, final String channelName, final int overload) {
+        final ReceiverMessage1 message = ReceiverMessage1.create();
+        message.setIntField(overload);
+        try {
+            switch (overload) {
+                case 1:
+                    sender.sendMessage(channelName, message);
+                    break;
+                case 2:
+                    sender.sendMessage(channelName, message, "InboundOnly/1");
+                    break;
+                case 3:
+                    sender.sendMessage(channelName, message, XString.create("InboundOnly/1"));
+                    break;
+                case 4:
+                    sender.sendMessage(channelName, message, new Properties());
+                    break;
+                case 5:
+                    sender.sendMessage(channelName, message, (RawKeyResolutionTable)null);
+                    break;
+                default:
+                    fail("unknown overload " + overload);
+            }
+            fail("overload " + overload + " should have rejected a send on receive-only channel '" + channelName + "'");
+        }
+        catch (ToaException e) {
+            assertTrue("overload " + overload + ": expected the error to name the channel and the reason, but got: " + e.getMessage(),
+                       e.getMessage().contains(channelName) && e.getMessage().contains("receiveOnly"));
+        }
     }
 }

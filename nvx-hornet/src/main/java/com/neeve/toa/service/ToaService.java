@@ -308,7 +308,19 @@ public class ToaService {
         // resolve message models 
         for (Service.Models.Model messageModel : service.getModels().getModel()) {
             try {
-                final AdmModel admModel = AdmXMLParser.parse(resolveMessageModelFile(messageModel.getFile()));
+                // resolveMessageModelFile copies the model resource to a temp file because the parser
+                // takes a path. The copy is only needed for the duration of the parse (imports are
+                // resolved from the classpath, not from the temp file's directory), so delete it as
+                // soon as parse returns rather than leaving it to deleteOnExit -- a container killed
+                // with SIGKILL never runs the shutdown hook and the copies accumulate in /tmp.
+                final File messageModelFile = resolveMessageModelFile(messageModel.getFile());
+                final AdmModel admModel;
+                try {
+                    admModel = AdmXMLParser.parse(messageModelFile);
+                }
+                finally {
+                    messageModelFile.delete();
+                }
                 if (_tracer.debug) _tracer.log("<nv.toa> [" + rc.getName() + "] ......'" + messageModel.getFile() + "' (" + admModel.getName() + ").", Tracer.Level.DEBUG);
                 rc.messageModels.put(admModel.getFullName(), admModel);
             }

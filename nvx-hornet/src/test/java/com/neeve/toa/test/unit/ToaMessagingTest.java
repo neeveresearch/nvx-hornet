@@ -461,6 +461,32 @@ public class ToaMessagingTest extends AbstractToaTest {
         }
     }
 
+    /**
+     * Locates a service that declares a default channel and only one of the test model's message
+     * types, so that the other types are undeclared to the application.
+     */
+    private static class UndeclaredMessageServiceLocator extends AbstractServiceDefinitionLocator {
+        @Override
+        public void locateServices(Set<URL> urls) throws Exception {
+            urls.add(getClass().getResource("/services/undeclaredMessageService.xml"));
+        }
+    }
+
+    @AppHAPolicy(HAPolicy.EventSourcing)
+    public static final class UndeclaredMessageSenderApp extends AbstractToaTestApp {
+        @Override
+        public ServiceDefinitionLocator getServiceDefinitionLocator() {
+            return new UndeclaredMessageServiceLocator();
+        }
+
+        @Override
+        protected Properties getInitialChannelKeyResolutionTable(ToaService service, ToaServiceChannel channel) {
+            Properties props = new Properties();
+            props.setProperty("IntField", "0");
+            return props;
+        }
+    }
+
     private final void testSenderForwarderReceiver(Qos qos) throws Throwable {
         ToaMessagingTest.qos = qos;
         ReceiverApp receiver = createApp("testSenderForwarderReceiverReceiver" + qos, "standalone", ReceiverApp.class);
@@ -864,6 +890,71 @@ public class ToaMessagingTest extends AbstractToaTest {
         catch (ToaException e) {
             assertTrue("overload " + overload + ": expected the error to name the channel and the reason, but got: " + e.getMessage(),
                        e.getMessage().contains(channelName) && e.getMessage().contains("receiveOnly"));
+        }
+    }
+
+    /**
+     * The type-resolved sendMessage overloads resolve a channel only for message types declared in
+     * a loaded service's {@code <Roles><To>}. The service default channel is applied while that
+     * declaration is parsed, so it does not cover a type that no service declares: all five
+     * overloads must throw. The channel-name overloads resolve against the engine's channels and
+     * must still send the undeclared type. This is the behaviour MessageSender documents (TOA-136).
+     */
+    @Test
+    public final void testSendMessageOfUndeclaredTypeRequiresChannelName() throws Throwable {
+        UndeclaredMessageSenderApp sender = createApp("testSendUndeclaredMessageType", "standalone", UndeclaredMessageSenderApp.class);
+        sender.getEngine().waitForMessagingToStart();
+
+        // a declared type resolves the default channel
+        ReceiverMessage1 declared = ReceiverMessage1.create();
+        declared.setIntField(1);
+        sender.sendMessage(declared);
+
+        assertUndeclaredSendRejected(sender, 1);
+        assertUndeclaredSendRejected(sender, 2);
+        assertUndeclaredSendRejected(sender, 3);
+        assertUndeclaredSendRejected(sender, 4);
+        assertUndeclaredSendRejected(sender, 5);
+
+        // the same undeclared type sends when addressed by channel name
+        ReceiverMessage2 undeclared = ReceiverMessage2.create();
+        undeclared.setIntField(2);
+        sender.sendMessage("undeclaredmessageservice-DefaultChannel", undeclared);
+    }
+
+    /**
+     * Invokes one of the five type-resolved {@code sendMessage} overloads (selected by
+     * {@code overload}, 1-5) with a message type the sender's service does not declare, and asserts
+     * that it is rejected.
+     */
+    private static void assertUndeclaredSendRejected(final UndeclaredMessageSenderApp sender, final int overload) {
+        final ReceiverMessage2 message = ReceiverMessage2.create();
+        message.setIntField(overload);
+        try {
+            switch (overload) {
+                case 1:
+                    sender.sendMessage(message);
+                    break;
+                case 2:
+                    sender.sendMessage(message, "Default/1");
+                    break;
+                case 3:
+                    sender.sendMessage(message, new Properties());
+                    break;
+                case 4:
+                    sender.sendMessage(message, XString.create("Default/1"));
+                    break;
+                case 5:
+                    sender.sendMessage(message, (RawKeyResolutionTable)null);
+                    break;
+                default:
+                    fail("unknown overload " + overload);
+            }
+            fail("overload " + overload + " should have rejected a send of undeclared message type '" + message.getClass().getName() + "'");
+        }
+        catch (ToaException e) {
+            assertTrue("overload " + overload + ": expected the error to name the message type, but got: " + e.getMessage(),
+                       e.getMessage().contains("no channel associated") && e.getMessage().contains(message.getClass().getName()));
         }
     }
 }

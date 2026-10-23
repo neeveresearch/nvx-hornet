@@ -85,6 +85,13 @@
                                                 Whether or not this is the default channel for this
                                                 service. Only one channel may be declared as the default channel for
                                                 a service.
+
+                                                The default channel applies only to the messages declared in this
+                                                service's Roles/To element that do not specify a channel and have no
+                                                channel matching their name. It does not apply to message types that
+                                                no loaded service declares: sending one of those by message type
+                                                throws a ToaException. Send it with a MessageSender.sendMessage
+                                                variant that takes a channel name instead.
                                             </xs:documentation>
                                         </xs:annotation>
                                     </xs:attribute>

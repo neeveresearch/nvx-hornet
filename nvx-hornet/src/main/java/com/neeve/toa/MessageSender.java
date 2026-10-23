@@ -45,6 +45,26 @@ import com.neeve.sma.MessageChannel.RawKeyResolutionTable;
  * and provide a customized key resolution table for resolving dynamic portions
  * of the channel key.
  * <p>
+ * <b>Channel resolution</b>
+ * The sendMessage variants that take only a message, and optionally a topic or key
+ * resolution table, resolve the channel from the service model. The channel for each
+ * message type is resolved when the application's service definitions are loaded, and
+ * only for the message types declared in a service's {@code <Roles><To>} element.
+ * A declared message type is sent on:
+ * <ul>
+ * <li>the channel named by the message's {@code channel} attribute, if one is set;
+ * <li>otherwise, the service channel whose name matches the message's simple name;
+ * <li>otherwise, the service's default channel.
+ * </ul>
+ * If none of these applies, the service definition fails to load. A message type that
+ * no loaded service declares has no channel, and sending it through these variants
+ * throws {@link ToaException}. A service's default channel does not change this,
+ * because it applies only to the message types that service declares.
+ * <p>
+ * To send a message type that no loaded service declares, use one of the
+ * {@code sendMessage(String channelName, ...)} variants. They address the channel by
+ * name instead of resolving it from the message type.
+ * <p>
  * <b>NOTE:</b>
  * A {@link MessageSender} may be backed by one and only one {@link TopicOrientedApplication}
  * and is tied to that application's lifecycle and transaction context. Applications
@@ -69,11 +89,16 @@ public interface MessageSender {
     /**
      * Sends a message using the message's default channel. This method has the same semantics as {@link AepEngine#sendMessage(MessageChannel, IRogMessage)},
      * with the message channel resolved based on this application's service definition for the message type and the provided message.
+     * <p>
+     * Only message types declared in a loaded service's {@code <Roles><To>} can be sent this way.
+     * See <b>Channel resolution</b> in the {@link MessageSender} description.
      * 
      * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends
      * 
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 
+     * @throws ToaException If no loaded service declares the message type (use {@link #sendMessage(String, IRogMessage)}
+     * instead), or if the message's channel is not ready for messaging.
      */
     public void sendMessage(final IRogMessage message);
 
@@ -81,11 +106,16 @@ public interface MessageSender {
      * Sends a message using the given topic as the channel key. This method has the same semantics as {@link AepEngine#sendMessage(MessageChannel, IRogMessage, String, Properties)},
      * with the message channel resolved based on this application's service definition for the message type, the provided message, the provided 
      * topic as the channel key, and no key resolution table.
+     * <p>
+     * Only message types declared in a loaded service's {@code <Roles><To>} can be sent this way.
+     * See <b>Channel resolution</b> in the {@link MessageSender} description.
      * 
      * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends
      * 
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 
+     * @throws ToaException If no loaded service declares the message type (use {@link #sendMessage(String, IRogMessage, String)}
+     * instead), or if the message's channel is not ready for messaging.
      */
     public void sendMessage(final IRogMessage message, final String topic);
 
@@ -93,11 +123,16 @@ public interface MessageSender {
      * Sends a message using the provided key resolution table. This method has the same semantics as {@link AepEngine#sendMessage(MessageChannel, IRogMessage, Properties)},
      * with the message channel resolved based on this application's service definition for the message type, the provided message,
      * key, and the provided message key.
+     * <p>
+     * Only message types declared in a loaded service's {@code <Roles><To>} can be sent this way.
+     * See <b>Channel resolution</b> in the {@link MessageSender} description.
      * 
      * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends
      * 
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 
+     * @throws ToaException If no loaded service declares the message type (use {@link #sendMessage(String, IRogMessage, Properties)}
+     * instead), or if the message's channel is not ready for messaging.
      */
     public void sendMessage(final IRogMessage message, final Properties keyResolutionTable);
 
@@ -105,11 +140,16 @@ public interface MessageSender {
      * Sends a message using the given topic as the channel key (zero garbage variant). This method has the same semantics as {@link AepEngine#sendMessage(MessageChannel, IRogMessage, XString, MessageChannel.RawKeyResolutionTable)},
      * with the message channel resolved based on this application's service definition for the message type, the provided message, the provided 
      * topic as the channel key, and no key resolution table.
+     * <p>
+     * Only message types declared in a loaded service's {@code <Roles><To>} can be sent this way.
+     * See <b>Channel resolution</b> in the {@link MessageSender} description.
      * 
      * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends
      * 
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 
+     * @throws ToaException If no loaded service declares the message type (use {@link #sendMessage(String, IRogMessage, XString)}
+     * instead), or if the message's channel is not ready for messaging.
      */
     public void sendMessage(final IRogMessage message, final XString topic);
 
@@ -117,12 +157,17 @@ public interface MessageSender {
      * Sends a message using the provide zero garbage key resolution table. This method has the same semantics as {@link AepEngine#sendMessage(MessageChannel, IRogMessage, MessageChannel.RawKeyResolutionTable)},
      * with the message channel resolved based on this application's service definition for the message type, the provided message, 
      * and no key resolution table.
+     * <p>
+     * Only message types declared in a loaded service's {@code <Roles><To>} can be sent this way.
+     * See <b>Channel resolution</b> in the {@link MessageSender} description.
      * 
      * @threading This method is safe for concurrent access by multiple threads provided the underlying AEP engine and bus binding is configured for concurrent sends and the supplied key resolution table is not 
      * concurrently modified during this method invocation. 
      * 
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 
+     * @throws ToaException If no loaded service declares the message type (use {@link #sendMessage(String, IRogMessage, MessageChannel.RawKeyResolutionTable)}
+     * instead), or if the message's channel is not ready for messaging.
      */
     public void sendMessage(final IRogMessage message, final RawKeyResolutionTable rawKeyResolutionTable);
 

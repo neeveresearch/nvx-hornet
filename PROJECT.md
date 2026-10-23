@@ -130,6 +130,22 @@ The test infrastructure (`SingleAppToaServer`, `AbstractToaTest`) embeds a full 
 
 If you're building a simple TOA app, the default `ManagedObjectLocator` (classpath scanning) is fine. HK2 adds value when you have complex dependency graphs, need scoping (request scope, singleton, etc.), or want to use Binders for modular configuration. Don't reach for it unless you need it.
 
+### 7. Bind a Temp File's Lifetime to the Operation, Not to JVM Exit
+
+To parse a message model, `ToaService.unmarshal` has to copy it out of the classpath onto disk, because `AdmXMLParser` reads by path. The original code created that temp copy and registered `File.deleteOnExit()`, a perfectly reasonable-looking cleanup that quietly does nothing when the JVM is killed rather than shut down. In a container, that's the normal way to die: SIGKILL, OOM kill, crash. Every restart left another `xmd*` file in `java.io.tmpdir`, and a long-lived app that restarts often eventually filled the filesystem (Zendesk #3326, seen in the field on 3.16.38).
+
+The fix (TOA-134) was three lines: keep the `File` handle and `delete()` it in a `finally` right after `parse()` returns. The lesson is the general one: a resource that is only needed *for the duration of one call* should be released *at the end of that call*. `deleteOnExit()` is a backstop, never a strategy; it is a promise conditional on a graceful shutdown you do not control. The same reasoning applies to shutdown hooks, finalizers, and "we'll clean it up on the next run" caches.
+
+The part that took the real thinking wasn't the delete, it was proving it was safe: could the parser come back later and want that file, e.g. to resolve an `import`? Reading `AdmXMLParser.parse(File)` showed it passes a null `modelsDir`, which means `resolveImportModel` never reaches its filesystem-relative branch and always resolves through the classloader. Only after establishing that was deleting eagerly a correctness-preserving change rather than a hopeful one.
+
+### 8. A Constraint Enforced at Parse Time Isn't Enforced on Paths That Skip the Parse
+
+The `receiveOnly` flag on a channel is declared in the service model, and the code that resolves a channel from a message type honors it. So `receiveOnly` was "enforced", right up until you used one of the five `sendMessage(String channelName, ...)` overloads, which skip channel resolution entirely and hand the send to `AepMessageSender`. The AEP engine knows about buses and channels; it has no concept of `receiveOnly`, which is a TOA-level idea. Sends to a receive-only channel were therefore silently accepted, directly contradicting the guarantee TOA-131 had just added (Zendesk #3292).
+
+This is the classic shape of a leaky invariant: the rule lives in one layer, but there's a door into the layer below that doesn't pass through it. Whenever you add a constraint, the real question isn't "does the main path honor it?" but "how many entrances does this room have?" The fix (TOA-132) was to make `TopicOrientedApplication` remember the receiveOnly channel names during service configuration and have each bypass overload check that set before sending.
+
+Two implementation details are worth remembering because both were easy to get subtly wrong. First, the lookup key has to be `ToaServiceChannel.getName()`, the service-prefixed name the channel is registered under on the bus, because that's the name these overloads are given. Second, the names have to be collected in the per-service loop over declared channels, not the later loop over bus descriptors: the bus loop skips channels that are unmapped or not on a bus, and a receiveOnly channel is precisely the kind that's likely to be unmapped. Collecting in the convenient-looking place would have produced a guard that worked in tests and failed for the customer.
+
 ## How Good Engineers Think About This Codebase
 
 1. **Small surface area, deep extension points.** The core framework is ~25 classes. But those classes expose carefully designed SPIs that let you customize almost everything without touching framework code. This is the essence of framework design — make the common case trivial and the uncommon case possible.

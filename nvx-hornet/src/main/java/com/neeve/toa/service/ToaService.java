@@ -523,6 +523,11 @@ public class ToaService {
      * <li>Otherwise, if there the default channel is used. 
      * <li>If no default channel this will result in a {@link ToaServiceModelException}.
      * </ul>
+     * <p>
+     * This runs while the service definition is parsed, once for each message declared in the
+     * service's {@code <Roles><To>}. Message types that no loaded service declares never reach it, so
+     * the default channel does not cover them and a type-resolved send of one throws at send time. The
+     * user-facing statement of this is on {@code MessageSender}, since this method's Javadoc does not publish.
      * 
      * @param message The message model. 
      * @param channelName The channel name. 

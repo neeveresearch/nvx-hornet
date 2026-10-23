@@ -98,7 +98,8 @@ public interface MessageSender {
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 
      * @throws ToaException If no loaded service declares the message type (use {@link #sendMessage(String, IRogMessage)}
-     * instead), or if the message's channel is not ready for messaging.
+     * instead), or if the message's channel is not ready for messaging. An event sourcing application that
+     * is not the primary does not throw for a channel that is not ready.
      */
     public void sendMessage(final IRogMessage message);
 
@@ -115,7 +116,8 @@ public interface MessageSender {
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 
      * @throws ToaException If no loaded service declares the message type (use {@link #sendMessage(String, IRogMessage, String)}
-     * instead), or if the message's channel is not ready for messaging.
+     * instead), or if the message's channel is not ready for messaging. An event sourcing application that
+     * is not the primary does not throw for a channel that is not ready.
      */
     public void sendMessage(final IRogMessage message, final String topic);
 
@@ -132,7 +134,8 @@ public interface MessageSender {
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 
      * @throws ToaException If no loaded service declares the message type (use {@link #sendMessage(String, IRogMessage, Properties)}
-     * instead), or if the message's channel is not ready for messaging.
+     * instead), or if the message's channel is not ready for messaging. An event sourcing application that
+     * is not the primary does not throw for a channel that is not ready.
      */
     public void sendMessage(final IRogMessage message, final Properties keyResolutionTable);
 
@@ -149,7 +152,8 @@ public interface MessageSender {
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 
      * @throws ToaException If no loaded service declares the message type (use {@link #sendMessage(String, IRogMessage, XString)}
-     * instead), or if the message's channel is not ready for messaging.
+     * instead), or if the message's channel is not ready for messaging. An event sourcing application that
+     * is not the primary does not throw for a channel that is not ready.
      */
     public void sendMessage(final IRogMessage message, final XString topic);
 
@@ -167,7 +171,8 @@ public interface MessageSender {
      * @see AepEngine#sendMessage(MessageChannel, IRogMessage)
      * @param message The message to send. 
      * @throws ToaException If no loaded service declares the message type (use {@link #sendMessage(String, IRogMessage, MessageChannel.RawKeyResolutionTable)}
-     * instead), or if the message's channel is not ready for messaging.
+     * instead), or if the message's channel is not ready for messaging. An event sourcing application that
+     * is not the primary does not throw for a channel that is not ready.
      */
     public void sendMessage(final IRogMessage message, final RawKeyResolutionTable rawKeyResolutionTable);
 
